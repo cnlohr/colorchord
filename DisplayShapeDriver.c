@@ -147,7 +147,7 @@ static void DPOParams(void * id )
 	struct DPODriver * d = (struct DPODriver*)id;
 	d->xn = 160;		RegisterValue( "lightx", PINT, &d->xn, sizeof( d->xn ) ); printf( "XN: %d\n", d->xn );
 	d->yn = 90;			RegisterValue( "lighty", PINT, &d->yn, sizeof( d->yn ) );
-	d->cutoff = .01; 	RegisterValue( "cutoff", PFLOAT, &d->cutoff, sizeof( d->cutoff ) );
+	d->cutoff = .01; 	RegisterValue( "shape_cutoff", PFLOAT, &d->cutoff, sizeof( d->cutoff ) );
 	d->satamp = 5;		RegisterValue( "satamp", PFLOAT, &d->satamp, sizeof( d->satamp ) );
 
 	d->amppow = 2.51;	RegisterValue( "amppow", PFLOAT, &d->amppow, sizeof( d->amppow ) );
