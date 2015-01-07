@@ -15,6 +15,8 @@
 #include "parameters.h"
 
 short screenx, screeny;
+int gargc;
+char ** gargv;
 
 int set_screenx = 640;	REGISTER_PARAM( set_screenx, PINT );
 int set_screeny = 480;	REGISTER_PARAM( set_screeny, PINT );
@@ -86,6 +88,7 @@ void LoadFile( const char * filename )
 {
 	char * buffer;
 	int r;
+	int i;
 
 	FILE * f = fopen( filename, "rb" );
 	if( !f )
@@ -111,6 +114,16 @@ void LoadFile( const char * filename )
 		}
 		free( buffer );
 	}
+
+
+	if( gargc > 2 )
+	{
+		for( i = 2; i < gargc; i++ )
+		{
+			printf( "AP: %s\n", gargv[i] );
+			SetParametersFromString( gargv[i] );
+		}
+	}
 }
 
 int main(int argc, char ** argv)
@@ -119,6 +132,9 @@ int main(int argc, char ** argv)
 	const char * InitialFile = "default.conf";
 	int i;
 	double LastFileTime;
+
+	gargc = argc;
+	gargv = argv;
 
 	if( argc > 1 )
 	{
@@ -130,10 +146,6 @@ int main(int argc, char ** argv)
 		LoadFile( InitialFile );
 	}
 
-	if( argc > 2 )
-	{
-		SetParametersFromString( argv[1] );
-	}
 
 	//Initialize Rawdraw
 	int frames = 0;

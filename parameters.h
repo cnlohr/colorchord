@@ -33,8 +33,13 @@ struct Param
 	struct ParamCallback * callback;
 };
 
+
+//This is the preferred method for getting settings, that way changes will be propogated
 void RegisterValue( const char * name, enum ParamType, void * ptr, int size );
+
 void DumpParameters();
+
+//Use these only if you really can't register your value.
 float GetParameterF( const char * name, float defa );
 int GetParameterI( const char * name, int defa );
 const char * GetParameterS( const char * name, const char * defa );

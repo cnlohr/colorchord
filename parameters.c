@@ -97,6 +97,9 @@ static int SetParameter( struct Param * p, const char * str )
 			((char*)p->ptr)[p->size-1]= '\0';
 		break;
 	case PSTRING:
+		free( p->ptr );
+		p->ptr = strdup( str );
+		break;
 	default:
 		return -1;
 	}
@@ -197,16 +200,17 @@ void SetParametersFromString( const char * string )
 			{
 				name[lastnamenowhite] = 0;
 				value[lastvaluenowhite] = 0;
-//				printf( "Break: %s %s %d\n", name, value, lastvaluenowhite );
 
 				struct Param * p = (struct Param*)HashGetEntry( parameters, name );
 				if( p )
 				{
+					printf( "Set: %s %s\n", name, value );
 					SetParameter( p, value );
 				}
 				else
 				{
 					//p is an orphan.
+					printf( "Orp: %s %s\n", name, value );
 					struct Param ** n = (struct Param **)HashTableInsert( parameters, name, 0 );
 					*n = malloc( sizeof ( struct Param ) );
 					(*n)->orphan = 1;

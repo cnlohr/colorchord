@@ -145,13 +145,16 @@ static void DPOUpdate(void * id, struct NoteFinder*nf)
 static void DPOParams(void * id )
 {
 	struct DPODriver * d = (struct DPODriver*)id;
-	d->xn = GetParameterI( "lightx", 160 );
-	d->yn = GetParameterI( "lighty", 90 );
-	d->cutoff = GetParameterF( "cutoff", .01 );
-	d->satamp = GetParameterF( "satamp", 5 );
-	d->amppow = GetParameterF( "amppow", 2.51 );
-	d->distpow = GetParameterF( "distpow", 1.5 );
-	d->from_sides = GetParameterI( "fromsides", 1 ); //If 0, will make sources random locations.
+	d->xn = 160;		RegisterValue( "lightx", PINT, &d->xn, sizeof( d->xn ) ); printf( "XN: %d\n", d->xn );
+	d->yn = 90;			RegisterValue( "lighty", PINT, &d->yn, sizeof( d->yn ) );
+	d->cutoff = .01; 	RegisterValue( "cutoff", PFLOAT, &d->cutoff, sizeof( d->cutoff ) );
+	d->satamp = 5;		RegisterValue( "satamp", PFLOAT, &d->satamp, sizeof( d->satamp ) );
+
+	d->amppow = 2.51;	RegisterValue( "amppow", PFLOAT, &d->amppow, sizeof( d->amppow ) );
+	d->distpow = 1.5;	RegisterValue( "distpow", PFLOAT, &d->distpow, sizeof( d->distpow ) );
+
+	d->from_sides = 1.5;RegisterValue( "fromsides", PINT, &d->from_sides, sizeof( d->from_sides ) );
+
 	d->note_peaks = 0;
 }
 
