@@ -19,8 +19,7 @@ short screenx, screeny;
 int set_screenx = 640;	REGISTER_PARAM( set_screenx, PINT );
 int set_screeny = 480;	REGISTER_PARAM( set_screeny, PINT );
 char sound_source[16]; 	REGISTER_PARAM( sound_source, PBUFFER );
-
-#define SMARTCPU
+int cpu_autolimit = 1; 	REGISTER_PARAM( cpu_autolimit, PINT );
 
 struct NoteFinder * nf;
 
@@ -44,6 +43,7 @@ void HandleKey( int keycode, int bDown )
 	if( c == '-' && bDown ) { gKey++; 		nf->base_hz = 55 * pow( 2, gKey / 12.0 ); ChangeNFParameters( nf ); }
 	if( c == '0' && bDown ) { gKey = 0;		nf->base_hz = 55 * pow( 2, gKey / 12.0 ); ChangeNFParameters( nf ); }
 	if( c == 'E' && bDown ) show_debug_basic = !show_debug_basic;
+	if( c == 'K' && bDown ) DumpParameters();
 	if( keycode == 65307 ) exit( 0 );
 	printf( "Key: %d -> %d\n", keycode, bDown );
 }
@@ -57,8 +57,6 @@ void HandleMotion( int x, int y, int mask )
 {
 }
 
-//#define HARDWAVE
-
 void SoundCB( float * out, float * in, int samplesr, int * samplesp, struct SoundDriver * sd )
 {
 	int channelin = sd->channelsRec;
@@ -69,11 +67,6 @@ void SoundCB( float * out, float * in, int samplesr, int * samplesp, struct Soun
 
 	int process_channels = (MAX_CHANNELS < channelin)?MAX_CHANNELS:channelin;
 
-#ifdef HARDWAVE
-	static double sttf=0;
-	if( sttf > 200 ) return;
-#endif
-
 	int i;
 	int j;
 	for( i = 0; i < samplesr; i++ )
@@ -82,14 +75,41 @@ void SoundCB( float * out, float * in, int samplesr, int * samplesp, struct Soun
 		{
 			float f = in[i*channelin+j];
 			if( f < -1 || f > 1 ) continue;
-			sound[j][soundhead] = 
-#ifdef HARDWAVE
-				sin(sttf+=0.01);
-#else
-				in[i*channelin+j];
-#endif
+			sound[j][soundhead] = in[i*channelin+j];
 		}
 		soundhead = (soundhead+1)%SOUNDCBSIZE;
+	}
+}
+
+
+void LoadFile( const char * filename )
+{
+	char * buffer;
+	int r;
+
+	FILE * f = fopen( filename, "rb" );
+	if( !f )
+	{
+		fprintf( stderr, "Warning: cannot open %s.\n", filename );
+	}
+	else
+	{
+		fseek( f, 0, SEEK_END );
+		int size = ftell( f );
+		fseek( f, 0, SEEK_SET );
+		buffer = malloc( size + 1 );
+		r = fread( buffer, size, 1, f );
+		fclose( f );
+		buffer[size] = 0;
+		if( r != 1 )
+		{
+			fprintf( stderr, "Warning: %d bytes read.  Expected: %d from file %s\n", r, size, filename );
+		}
+		else
+		{
+			SetParametersFromString( buffer );
+		}
+		free( buffer );
 	}
 }
 
@@ -98,39 +118,16 @@ int main(int argc, char ** argv)
 //	const char * OutDriver = "name=LEDOutDriver;leds=512;light_siding=1.9";
 	const char * InitialFile = "default.conf";
 	int i;
+	double LastFileTime;
 
 	if( argc > 1 )
 	{
-		InitialFile = "default.conf";
+		InitialFile = argv[1];
 	}
 
 	{
-		char * buffer;
-		int r;
-		FILE * f = fopen( InitialFile, "rb" );
-		if( !f )
-		{
-			fprintf( stderr, "Warning: cannot open %s.\n", InitialFile );
-		}
-		else
-		{
-			fseek( f, 0, SEEK_END );
-			int size = ftell( f );
-			fseek( f, 0, SEEK_SET );
-			buffer = malloc( size + 1 );
-			r = fread( buffer, size, 1, f );
-			fclose( f );
-			buffer[size] = 0;
-			if( r != 1 )
-			{
-				fprintf( stderr, "Warning: %d bytes read.  Expected: %d from file %s\n", r, size, InitialFile );
-			}
-			else
-			{
-				SetParametersFromString( buffer );
-			}
-			free( buffer );
-		}
+		LastFileTime = OGGetFileTime( InitialFile );
+		LoadFile( InitialFile );
 	}
 
 	if( argc > 2 )
@@ -297,12 +294,22 @@ int main(int argc, char ** argv)
 			frames = 0;
 			LastFPSTime+=1;
 		}
-#ifdef SMARTCPU
-		SecToWait = .016 - ( ThisTime - LastFrameTime );
-		LastFrameTime += .016;
-		if( SecToWait > 0 )
-			OGUSleep( (int)( SecToWait * 1000000 ) );
-#endif
+
+		if( cpu_autolimit )
+		{
+			SecToWait = .016 - ( ThisTime - LastFrameTime );
+			LastFrameTime += .016;
+			if( SecToWait < -.1 ) LastFrameTime = ThisTime - .1;
+			if( SecToWait > 0 )
+				OGUSleep( (int)( SecToWait * 1000000 ) );
+		}
+
+		if( OGGetFileTime( InitialFile ) != LastFileTime )
+		{
+			LastFileTime = OGGetFileTime( InitialFile );
+			LoadFile( InitialFile );
+		}
+
 	}
 
 }

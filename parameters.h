@@ -34,7 +34,7 @@ struct Param
 };
 
 void RegisterValue( const char * name, enum ParamType, void * ptr, int size );
-
+void DumpParameters();
 float GetParameterF( const char * name, float defa );
 int GetParameterI( const char * name, int defa );
 const char * GetParameterS( const char * name, const char * defa );

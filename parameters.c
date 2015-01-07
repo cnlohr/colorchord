@@ -33,6 +33,7 @@ float GetParameterF( const char * name, float defa )
 		default: break;
 		}
 	}
+	printf( "U: %s = %f\n", name, defa );
 
 	return defa;
 }
@@ -53,6 +54,8 @@ int GetParameterI( const char * name, int defa )
 		}
 	}
 
+	printf( "U: %s = %d\n", name, defa );
+
 	return defa;
 }
 
@@ -71,6 +74,8 @@ const char * GetParameterS( const char * name, const char * defa )
 		default: break;
 		}
 	}
+
+	printf( "U: %s = %s\n", name, defa );
 
 	return defa;
 }
@@ -285,6 +290,22 @@ void AddCallback( const char * name, ParamCallbackT t, void * v )
 	{
 		fprintf( stderr, "Warning: cannot add callback to %s\n.", name );
 	}
+}
+
+
+void DumpParameters()
+{
+	int i;
+	struct chashlist * l = HashProduceSortedTable( parameters );
+
+	for( i = 0; i < l->length; i++ )
+	{
+		struct chashentry * e = &l->items[i];
+		printf( "%s = %s\n", e->key, GetParameterS( e->key, "" ) );
+	}
+	printf( "\n" );
+
+	free( l );
 }
 
 
