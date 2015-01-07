@@ -45,7 +45,7 @@ void SetParametersFromString( const char * string );
 void AddCallback( const char * name, ParamCallbackT t, void * v );
 
 #define REGISTER_PARAM( parameter_name, type ) \
-	void Register##parameter_name() __attribute__((constructor(101))); \
+	void Register##parameter_name() __attribute__((constructor)); \
 	void Register##parameter_name() { RegisterValue( #parameter_name, type, &parameter_name, sizeof( parameter_name ) ); }
 
 
