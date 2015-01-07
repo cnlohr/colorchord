@@ -22,6 +22,7 @@ int set_screenx = 640;	REGISTER_PARAM( set_screenx, PINT );
 int set_screeny = 480;	REGISTER_PARAM( set_screeny, PINT );
 char sound_source[16]; 	REGISTER_PARAM( sound_source, PBUFFER );
 int cpu_autolimit = 1; 	REGISTER_PARAM( cpu_autolimit, PINT );
+int sample_channel = -1;REGISTER_PARAM( sample_channel, PINT );
 
 struct NoteFinder * nf;
 
@@ -31,7 +32,7 @@ struct NoteFinder * nf;
 
 double VisTimeEnd, VisTimeStart;
 int soundhead = 0;
-float sound[MAX_CHANNELS][SOUNDCBSIZE];
+float sound[SOUNDCBSIZE];
 int show_debug = 0;
 int show_debug_basic = 1;
 
@@ -73,13 +74,27 @@ void SoundCB( float * out, float * in, int samplesr, int * samplesp, struct Soun
 	int j;
 	for( i = 0; i < samplesr; i++ )
 	{
-		for( j = 0; j < process_channels; j++ )
+		if( sample_channel < 0 )
 		{
-			float f = in[i*channelin+j];
-			if( f < -1 || f > 1 ) continue;
-			sound[j][soundhead] = in[i*channelin+j];
+			float fo = 0;
+			for( j = 0; j < process_channels; j++ )
+			{
+				float f = in[i*channelin+j];
+				if( f < -1 || f > 1 ) continue;
+				fo += f;
+			}
+			fo /= process_channels;
+			sound[soundhead] = fo;
+			soundhead = (soundhead+1)%SOUNDCBSIZE;
+		
 		}
-		soundhead = (soundhead+1)%SOUNDCBSIZE;
+		else
+		{
+			float f = in[i*channelin+sample_channel];
+			if( f < -1 || f > 1 ) continue;
+			sound[soundhead] = f;
+			soundhead = (soundhead+1)%SOUNDCBSIZE;
+		}
 	}
 }
 
@@ -179,7 +194,7 @@ int main(int argc, char ** argv)
 		CNFGColor( 0xFFFFFF );
 		CNFGGetDimensions( &screenx, &screeny );
 
-		RunNoteFinder( nf, sound[0], (soundhead-1+SOUNDCBSIZE)%SOUNDCBSIZE, SOUNDCBSIZE );
+		RunNoteFinder( nf, sound, (soundhead-1+SOUNDCBSIZE)%SOUNDCBSIZE, SOUNDCBSIZE );
 		//Done all ColorChord work.
 
 		VisTimeStart = OGGetAbsoluteTime();
@@ -233,13 +248,13 @@ int main(int argc, char ** argv)
 			//Let's draw the o-scope.
 			int thissoundhead = soundhead;
 			thissoundhead = (thissoundhead-1+SOUNDCBSIZE)%SOUNDCBSIZE;
-			int lasty = sound[0][thissoundhead] * 128 + 128; thissoundhead = (thissoundhead-1+SOUNDCBSIZE)%SOUNDCBSIZE;
-			int thisy = sound[0][thissoundhead] * 128 + 128; thissoundhead = (thissoundhead-1+SOUNDCBSIZE)%SOUNDCBSIZE;
+			int lasty = sound[thissoundhead] * 128 + 128; thissoundhead = (thissoundhead-1+SOUNDCBSIZE)%SOUNDCBSIZE;
+			int thisy = sound[thissoundhead] * 128 + 128; thissoundhead = (thissoundhead-1+SOUNDCBSIZE)%SOUNDCBSIZE;
 			for( i = 0; i < screenx; i++ )
 			{
 				CNFGTackSegment( i, lasty, i+1, thisy );
 				lasty = thisy;
-				thisy = sound[0][thissoundhead] * 128 + 128; thissoundhead = (thissoundhead-1+SOUNDCBSIZE)%SOUNDCBSIZE;
+				thisy = sound[thissoundhead] * 128 + 128; thissoundhead = (thissoundhead-1+SOUNDCBSIZE)%SOUNDCBSIZE;
 			}
 		}
 
