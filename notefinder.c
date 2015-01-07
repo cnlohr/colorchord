@@ -238,7 +238,7 @@ void RunNoteFinder( struct NoteFinder * nf, const float * audio_stream, int head
 	{
 		for( j = 0; j < nf->dists; j++ )
 		{ 
-			if( !nf->dist_takens[j] && !nf->note_founds[i] && fabsloop( nf->note_positions[i], nf->dist_means[j], freqbins ) < nf->note_jumpability )
+			if( !nf->dist_takens[j] && !nf->note_founds[i] && fabsloop( nf->note_positions[i], nf->dist_means[j], freqbins ) < nf->note_jumpability && nf->dist_amps[j] > 0.00001 ) //0.00001 for stability.
 			{
 				//Attach ourselves to this bin.
 				nf->note_peaks_to_dists_mapping[i] = j;
@@ -246,7 +246,9 @@ void RunNoteFinder( struct NoteFinder * nf, const float * audio_stream, int head
 				if( nf->enduring_note_id[i] == 0 )
 					nf->enduring_note_id[i] = nf->current_note_id++;	
 				nf->note_founds[i] = 1;
+
 				nf->note_positions[i] = avgloop( nf->note_positions[i], (1.-nf->note_attach_freq_iir), nf->dist_means[j], nf->note_attach_freq_iir, nf->freqbins);
+
 				//I guess you can't IIR this like normal.
 				////note_positions[i] * (1.-note_attach_freq_iir) + dist_means[j] * note_attach_freq_iir;
 
@@ -261,6 +263,7 @@ void RunNoteFinder( struct NoteFinder * nf, const float * audio_stream, int head
 	//Combine like-notes.
 	for( i = 0; i < note_peaks; i++ )
 	{
+//		printf( "%f %f %d\n", nf->note_amplitudes[i], nf->note_positions[i], nf->enduring_note_id[i] );
 		for( j = 0; j < note_peaks; j++ )
 		{
 			if( i == j ) continue;
@@ -280,9 +283,11 @@ void RunNoteFinder( struct NoteFinder * nf, const float * audio_stream, int head
 					b = i;
 					a = j;
 				}
+				float newp = avgloop( nf->note_positions[a], nf->note_amplitudes[a], nf->note_positions[b], nf->note_amplitudes[b], freqbins );
+
 				//Combine B into A.
 				nf->note_amplitudes[a] += nf->note_amplitudes[b];
-				nf->note_positions[a] = avgloop( nf->note_positions[a], nf->note_amplitudes[a], nf->note_positions[b], nf->note_amplitudes[b], freqbins );
+				nf->note_positions[a] = newp;
 				nf->note_amplitudes[b] = 0;
 				nf->note_positions[b] = -100;
 				nf->enduring_note_id[b] = 0;

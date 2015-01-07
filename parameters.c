@@ -210,7 +210,7 @@ void SetParametersFromString( const char * string )
 				else
 				{
 					//p is an orphan.
-					printf( "Orp: %s %s\n", name, value );
+//					printf( "Orp: %s %s\n", name, value );
 					struct Param ** n = (struct Param **)HashTableInsert( parameters, name, 0 );
 					*n = malloc( sizeof ( struct Param ) );
 					(*n)->orphan = 1;
