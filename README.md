@@ -14,6 +14,9 @@ Developed over many years, ColorChord 2 is now getting close to alpha stages.  C
 
 The major differences in ColorChord 2 is the major rewrite to move everything back to the CPU and a multitude of algorithmic optimizations to make it possible to run on something other than the brand newest of systems.
 
+TODO: add a link to the new video.
+
+Here's a video of it running: https://www.youtube.com/watch?v=UI4eqOP2AU0
 
 Current State of Affairs
 ------------------------
