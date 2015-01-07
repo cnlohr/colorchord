@@ -1,0 +1,7 @@
+Still to do:
+
+
+Try this:
+* Separate "LED Selection" from "output" algorithms.
+* For light finding, pick lights off the peaks to get number of lights to use.
+* For light shifting (for 1d-looping light systems) shift the centers of the notes, then vernoi between the notes.

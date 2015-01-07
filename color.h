@@ -1,0 +1,12 @@
+#ifndef _COLOR_H
+#define _COLOR_H
+
+#include <stdint.h>
+
+//note = 0..1 (Root is YELLOW); Val = 0..1
+//NOTE: CC is _NOT_ HUE!!!
+uint32_t CCtoHEX( float note, float sat, float value );
+uint32_t HSVtoHEX( float hue, float sat, float value );
+
+#endif
+
