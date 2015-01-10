@@ -1,3 +1,6 @@
+//XXX This needs to be re-worked to only output LEDs so DisplayArray can take it.
+//XXX CONSIDER DUMPING
+
 #include "outdrivers.h"
 #include "notefinder.h"
 #include <stdio.h>
@@ -11,7 +14,7 @@
 //Uses: note_amplitudes2[note] for how many lights to use.
 //Uses: note_amplitudes_out[note] for how bright it should be.
 
-#define MAX_LEDS_PER_NOTE 512
+#define MAX_LEDS_PER_NOTE 1024
 
 extern short screenx, screeny;
 
@@ -116,7 +119,7 @@ static void DPOUpdate(void * id, struct NoteFinder*nf)
 		}
 	}
 
-	float cw = ((float)screenx) / d->xn;
+/*	float cw = ((float)screenx) / d->xn;
 	float ch = ((float)screeny) / d->yn;
 
 	for( i = 0; i < d->note_peaks; i++ )
@@ -134,7 +137,24 @@ static void DPOUpdate(void * id, struct NoteFinder*nf)
 
 			CNFGDrawBox( x, y, x+cw, y+ch );
 		}
+	}*/
+
+	int led = 0;
+	for( i = 0; i < d->note_peaks; i++ )
+	{
+		struct LINote * l = &d->notes[i];
+		int j;
+		float sat = nf->note_amplitudes_out[i] * d->satamp;
+		if( sat > 1 ) sat = 1;
+		uint32_t color = CCtoHEX( nf->note_positions[i] / nf->freqbins, 1.0, sat );
+
+		OutLEDs[led*3+0] = color & 0xff;
+		OutLEDs[led*3+1] = ( color >> 8 ) & 0xff;
+		OutLEDs[led*3+2] = ( color >> 16 ) & 0xff;
+		led++;
+
 	}
+	
 }
 
 static void DPOParams(void * id )

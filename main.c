@@ -17,6 +17,8 @@
 short screenx, screeny;
 int gargc;
 char ** gargv;
+struct DriverInstances * outdriver[MAX_OUT_DRIVERS];
+
 
 int set_screenx = 640;	REGISTER_PARAM( set_screenx, PINT );
 int set_screeny = 480;	REGISTER_PARAM( set_screeny, PINT );
@@ -68,7 +70,7 @@ void SoundCB( float * out, float * in, int samplesr, int * samplesp, struct Soun
 	//Load the samples into a ring buffer.  Split the channels from interleved to one per buffer.
 	*samplesp = 0;
 
-	int process_channels = (MAX_CHANNELS < channelin)?MAX_CHANNELS:channelin;
+//	int process_channels = (MAX_CHANNELS < channelin)?MAX_CHANNELS:channelin;
 
 	int i;
 	int j;
@@ -77,13 +79,13 @@ void SoundCB( float * out, float * in, int samplesr, int * samplesp, struct Soun
 		if( sample_channel < 0 )
 		{
 			float fo = 0;
-			for( j = 0; j < process_channels; j++ )
+			for( j = 0; j < channelin; j++ )
 			{
 				float f = in[i*channelin+j];
 				if( f < -1 || f > 1 ) continue;
 				fo += f;
 			}
-			fo /= process_channels;
+			fo /= channelin;
 			sound[soundhead] = fo;
 			soundhead = (soundhead+1)%SOUNDCBSIZE;
 		
@@ -144,9 +146,11 @@ void LoadFile( const char * filename )
 int main(int argc, char ** argv)
 {
 //	const char * OutDriver = "name=LEDOutDriver;leds=512;light_siding=1.9";
-	const char * InitialFile = "default.conf";
+	const char * InitialFile = 0;
+	const char * InitialFileDefault = "default.conf";
 	int i;
-	double LastFileTime;
+	double LastFileTimeInit = 0;
+	double LastFileTimeDefault = 0;
 
 	gargc = argc;
 	gargv = argv;
@@ -156,8 +160,15 @@ int main(int argc, char ** argv)
 		InitialFile = argv[1];
 	}
 
+
 	{
-		LastFileTime = OGGetFileTime( InitialFile );
+		LastFileTimeDefault = OGGetFileTime( InitialFileDefault );
+		LoadFile( InitialFileDefault );
+	}
+
+	if( InitialFile )
+	{
+		LastFileTimeInit = OGGetFileTime( InitialFile );
 		LoadFile( InitialFile );
 	}
 
@@ -171,7 +182,35 @@ int main(int argc, char ** argv)
 	CNFGBGColor = 0x800000;
 	CNFGDialogColor = 0x444444;
 	CNFGSetup( "ColorChord Test", set_screenx, set_screeny );
-	struct DriverInstances * outdriver = SetupOutDriver( );
+
+
+	char * OutDriverNames = strdup( GetParameterS( "outdrivers", "null" ) );
+	char * ThisDriver = OutDriverNames;
+	char * TDStart;
+	for( i = 0; i < MAX_OUT_DRIVERS; i++ )
+	{
+		while( *ThisDriver == ' ' || *ThisDriver == '\t' ) ThisDriver++;
+		if( !*ThisDriver ) break;
+
+		TDStart = ThisDriver;
+
+		while( *ThisDriver != 0 && *ThisDriver != ',' )
+		{
+			if( *ThisDriver == '\t' || *ThisDriver == ' ' ) *ThisDriver = 0;
+			ThisDriver++;
+		}
+
+		if( *ThisDriver )
+		{
+			*ThisDriver = 0;
+			ThisDriver++;
+		}
+	
+		printf( "Loading: %s\n", TDStart );
+		outdriver[i] = SetupOutDriver( TDStart );
+	}
+	free(OutDriverNames);
+
 
 	//Initialize Sound
 	struct SoundDriver * sd = InitSound( sound_source, &SoundCB );
@@ -198,8 +237,10 @@ int main(int argc, char ** argv)
 		//Done all ColorChord work.
 
 		VisTimeStart = OGGetAbsoluteTime();
-		if( outdriver )
-			outdriver->Func( outdriver->id, nf );
+		for( i = 0; i < MAX_OUT_DRIVERS; i++ )
+			if( outdriver[i] )
+				outdriver[i]->Func( outdriver[i]->id, nf );
+
 		VisTimeEnd = OGGetAbsoluteTime();
 
 		//Handle outputs.
@@ -331,10 +372,17 @@ int main(int argc, char ** argv)
 				OGUSleep( (int)( SecToWait * 1000000 ) );
 		}
 
-		if( OGGetFileTime( InitialFile ) != LastFileTime )
+		if( OGGetFileTime( InitialFileDefault ) != LastFileTimeDefault ||
+			(InitialFile && LastFileTimeInit != OGGetFileTime( InitialFile ) ) )
 		{
-			LastFileTime = OGGetFileTime( InitialFile );
-			LoadFile( InitialFile );
+			LastFileTimeDefault = OGGetFileTime( InitialFileDefault );
+			LoadFile( InitialFileDefault );
+
+			if( InitialFile )
+			{
+				LastFileTimeInit = OGGetFileTime( InitialFile );
+				LoadFile( InitialFile );
+			}
 		}
 
 	}

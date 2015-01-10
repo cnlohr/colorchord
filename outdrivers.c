@@ -5,6 +5,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+
+unsigned char	OutLEDs[MAX_LEDS*3];
+int				UsedLEDs;
+
 struct OutDriverListElem ODList[MAX_OUT_DRIVERS];
 const char OutDriverParameters[MAX_OUT_DRIVER_STRING];
 
@@ -28,13 +32,12 @@ struct DriverInstances * null( )
 REGISTER_OUT_DRIVER(null);
 
 
-struct DriverInstances * SetupOutDriver( )
+struct DriverInstances * SetupOutDriver( const char * drivername )
 {
 	int i;
-	const char * p = GetParameterS( "displayname", "null" );
 	for( i = 0; i < MAX_OUT_DRIVERS; i++ )
 	{
-		if( ODList[i].Name && strcmp( p, ODList[i].Name ) == 0 )
+		if( ODList[i].Name && strcmp( drivername, ODList[i].Name ) == 0 )
 		{
 			printf( "Found: %s %p\n", ODList[i].Name, ODList[i].Init );
 			return ODList[i].Init(  );

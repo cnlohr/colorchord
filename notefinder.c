@@ -206,6 +206,7 @@ void RunNoteFinder( struct NoteFinder * nf, const float * audio_stream, int head
 		nf->folded_bins[i] = amp;
 	}
 
+	//This is here to reduce the number of false-positive hits.  It helps remove peaks that are meaningless.
 	FilterFoldedBinsBlob( nf->folded_bins, freqbins, nf->filter_strength, nf->filter_iter );
 
 	nf->FilterTime = OGGetAbsoluteTime();
@@ -328,7 +329,7 @@ void RunNoteFinder( struct NoteFinder * nf, const float * audio_stream, int head
 
 		nf->note_amplitudes2[i] = nf->note_amplitudes2[i] * (1.-nf->note_attach_amp_iir2) + nf->note_amplitudes[i] * nf->note_attach_amp_iir2;
 
-		if( nf->note_amplitudes[i] < nf->note_min_amplitude )
+		if( nf->note_amplitudes2[i] < nf->note_min_amplitude )
 		{
 			nf->note_amplitudes[i] = 0;
 			nf->note_amplitudes2[i] = 0;

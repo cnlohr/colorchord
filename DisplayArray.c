@@ -19,6 +19,7 @@ struct DPODriver
 {
 	int xn;
 	int yn;
+	int rot90;
 	int zigzag;
 };
 
@@ -29,8 +30,8 @@ static void DPOUpdate(void * id, struct NoteFinder*nf)
 	struct DPODriver * d = (struct DPODriver*)id;
 
 
-	float cw = ((float)screenx) / d->xn;
-	float ch = ((float)screeny) / d->yn;
+	float cw = ((float)(d->rot90?screeny:screenx)) / d->xn;
+	float ch = ((float)(d->rot90?screenx:screeny)) / d->yn;
 
 	for( y = 0; y < d->yn; y++ )
 	for( x = 0; x < d->xn; x++ )
@@ -54,7 +55,11 @@ static void DPOUpdate(void * id, struct NoteFinder*nf)
 		CNFGColor(  OutLEDs[index*3+0] | (OutLEDs[index*3+1] <<8)|(OutLEDs[index*3+2] <<16) );
 		float dx = (x) * cw;
 		float dy = (y) * ch;
-		CNFGTackRectangle( dx, dy, dx+cw+.5, dy+ch+.5 );
+
+		if( d->rot90 )
+			CNFGTackRectangle( dy, dx, dy+ch+.5, dx+cw+.5 );
+		else
+			CNFGTackRectangle( dx, dy, dx+cw+.5, dy+ch+.5 );
 	}
 	CNFGColor( 0xffffff );
 }
@@ -66,6 +71,7 @@ static void DPOParams(void * id )
 	d->xn = 16;		RegisterValue(  "lightx", PINT, &d->xn, sizeof( d->xn ) );
 	d->yn = 9;		RegisterValue(  "lighty", PINT, &d->yn, sizeof( d->yn ) );
 	d->zigzag = 0;	RegisterValue(  "zigzag", PINT, &d->zigzag, sizeof( d->zigzag ) );
+	d->rot90 = 0;	RegisterValue(  "rot90", PINT, &d->rot90, sizeof( d->rot90 ) );
 
 }
 

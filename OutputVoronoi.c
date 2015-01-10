@@ -13,8 +13,6 @@
 
 #define MAX_LEDS_PER_NOTE 512
 
-extern short screenx, screeny;
-
 struct LINote
 {
 	float x, y;   //In screen space.
@@ -64,8 +62,8 @@ static void DPOUpdate(void * id, struct NoteFinder*nf)
 		{
 			float angle = nf->note_positions[i] / nf->freqbins * 6.28318;
 //			float angle = nf->enduring_note_id[i];
-			float cx = screenx/2;
-			float cy = screeny/2;
+			float cx = d->xn/2.0;
+			float cy = d->yn/2.0;
 			float tx = sin( angle ) * cx + cx;
 			float ty = cos( angle ) * cy + cy;
 			l->x = l->x * .9 + tx * .1;
@@ -79,8 +77,8 @@ static void DPOUpdate(void * id, struct NoteFinder*nf)
 		else
 		{
 			srand( nf->enduring_note_id[i] );
-			l->x = rand()%screenx;
-			l->y = rand()%screenx;
+			l->x = rand()%d->xn;
+			l->y = rand()%d->yn;
 		}
 	}
 
@@ -92,17 +90,13 @@ static void DPOUpdate(void * id, struct NoteFinder*nf)
 
 
 
-	float cw = ((float)screenx) / d->xn;
-	float ch = ((float)screeny) / d->yn;
-
 	int x, y;
+	int led = 0;
 	for( y = 0; y < d->yn; y++ )
 	for( x = 0; x < d->xn; x++ )
 	{
-		float lx = (x+.5) * cw;
-		float ly = (y+.5) * ch;
-		float kx = (x) * cw;
-		float ky = (y) * ch;
+		float lx = (x+.5);
+		float ly = (y+.5);
 
 		int bestmatch = -1;
 		float bestmatchval = 0;
@@ -126,18 +120,18 @@ static void DPOUpdate(void * id, struct NoteFinder*nf)
 			}
 		}
 
+		uint32_t color = 0;
 		if( bestmatch != -1 )
 		{
 			float sat = nf->note_amplitudes_out[bestmatch] * d->satamp;
 			if( sat > 1.0 ) sat = 1.0;
-			CNFGColor ( CCtoHEX( nf->note_positions[bestmatch] / nf->freqbins, 1.0, sat ) );
+			color = CCtoHEX( nf->note_positions[bestmatch] / nf->freqbins, 1.0, sat );
 		}
-		else
-		{
-			CNFGColor ( 0 );
-		}
-		CNFGTackRectangle( kx, ky, kx+cw, ky+ch );
 
+		OutLEDs[led*3+0] = color & 0xff;
+		OutLEDs[led*3+1] = ( color >> 8 ) & 0xff;
+		OutLEDs[led*3+2] = ( color >> 16 ) & 0xff;
+		led++;
 	}
 	CNFGColor ( 0xffffff );
 }
@@ -145,20 +139,22 @@ static void DPOUpdate(void * id, struct NoteFinder*nf)
 static void DPOParams(void * id )
 {
 	struct DPODriver * d = (struct DPODriver*)id;
-	d->xn = 160;		RegisterValue( "lightx", PINT, &d->xn, sizeof( d->xn ) ); printf( "XN: %d\n", d->xn );
+
+	//XXX WRONG
+	d->xn = 160;		RegisterValue( "lightx", PINT, &d->xn, sizeof( d->xn ) ); 
 	d->yn = 90;			RegisterValue( "lighty", PINT, &d->yn, sizeof( d->yn ) );
-	d->cutoff = .01; 	RegisterValue( "shape_cutoff", PFLOAT, &d->cutoff, sizeof( d->cutoff ) );
+	d->cutoff = .01; 	RegisterValue( "Voronoi_cutoff", PFLOAT, &d->cutoff, sizeof( d->cutoff ) );
 	d->satamp = 5;		RegisterValue( "satamp", PFLOAT, &d->satamp, sizeof( d->satamp ) );
 
 	d->amppow = 2.51;	RegisterValue( "amppow", PFLOAT, &d->amppow, sizeof( d->amppow ) );
 	d->distpow = 1.5;	RegisterValue( "distpow", PFLOAT, &d->distpow, sizeof( d->distpow ) );
 
-	d->from_sides = 1.5;RegisterValue( "fromsides", PINT, &d->from_sides, sizeof( d->from_sides ) );
+	d->from_sides = 1;  RegisterValue( "fromsides", PINT, &d->from_sides, sizeof( d->from_sides ) );
 
 	d->note_peaks = 0;
 }
 
-static struct DriverInstances * DisplayShapeDriver(const char * parameters)
+static struct DriverInstances * OutputVoronoi(const char * parameters)
 {
 	struct DriverInstances * ret = malloc( sizeof( struct DriverInstances ) );
 	struct DPODriver * d = ret->id = malloc( sizeof( struct DPODriver ) );
@@ -169,6 +165,6 @@ static struct DriverInstances * DisplayShapeDriver(const char * parameters)
 	return ret;
 }
 
-REGISTER_OUT_DRIVER(DisplayShapeDriver);
+REGISTER_OUT_DRIVER(OutputVoronoi);
 
 

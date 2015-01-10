@@ -1,8 +1,11 @@
 Still to do:
 
 Try this:
-* Separate "LED Selection" from "output" algorithms.
+* Separate "LED Selection" from "output" algorithms. << Do this by allowing arbitrary Lights Drivers
+
 * For light finding, pick lights off the peaks to get number of lights to use.
 * For light shifting (for 1d-looping light systems) shift the centers of the notes, then vernoi between the notes.
+
+Brenden:
 * Consider running DFT on all channels and mixing results
 

@@ -251,7 +251,7 @@ void CNFGTackRectangle( short x1, short y1, short x2, short y2 )
 
 void CNFGTackPoly( RDPoint * points, int verts )
 {
-	XFillPolygon(CNFGDisplay, CNFGPixmap, CNFGGC, (XPoint *)points, 3, Convex, CoordModeOrigin );
+	XFillPolygon(CNFGDisplay, CNFGPixmap, CNFGGC, (XPoint *)points, verts, Convex, CoordModeOrigin );
 }
 
 #endif

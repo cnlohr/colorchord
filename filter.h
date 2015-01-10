@@ -3,7 +3,7 @@
 
 
 //Perform a two-pass filter on the data, circularly.  Once right, then left.
-void FilterFoldedBinsIIRTWOPASS( float * folded, int bins, float strength );
+//void FilterFoldedBinsIIRTWOPASS( float * folded, int bins, float strength );
 
 void FilterFoldedBinsBlob( float * folded, int bins, float strength, int iter );
 

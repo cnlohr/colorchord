@@ -5,6 +5,12 @@
 
 struct NoteFinder;
 
+#define MAX_LEDS 32678
+
+
+extern unsigned char	OutLEDs[MAX_LEDS*3];
+extern int				UsedLEDs;
+
 
 #define MAX_OUT_DRIVERS 64
 #define MAX_OUT_DRIVER_STRING 1024

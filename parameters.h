@@ -22,13 +22,19 @@ struct ParamCallback
 	struct ParamCallback * next;
 };
 
+struct LinkedParameter
+{
+	void * ptr;
+	struct LinkedParameter * lp;
+};
+
 struct Param
 {
 	char orphan; //If this is set, then this is something that was received from a string, but has no claimed interface.
 				 //It will be claimed when RegisterValue is called.  NOTE: When orphan is set, it must be a malloc'd string.
 	enum ParamType t;
-	void * ptr;
 	int size;
+	struct LinkedParameter * lp;
 
 	struct ParamCallback * callback;
 };

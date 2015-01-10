@@ -26,10 +26,10 @@ float GetParameterF( const char * name, float defa )
 	{
 		switch( p->t )
 		{
-		case PFLOAT: return *((float*)p->ptr);
-		case PINT:   return *((int*)p->ptr);
+		case PFLOAT: return *((float*)p->lp->ptr);
+		case PINT:   return *((int*)p->lp->ptr);
 		case PSTRING:
-		case PBUFFER: if( p->ptr ) return atof( p->ptr );
+		case PBUFFER: if( p->lp->ptr ) return atof( p->lp->ptr );
 		default: break;
 		}
 	}
@@ -46,10 +46,10 @@ int GetParameterI( const char * name, int defa )
 	{
 		switch( p->t )
 		{
-		case PFLOAT: return *((float*)p->ptr);
-		case PINT:   return *((int*)p->ptr);
+		case PFLOAT: return *((float*)p->lp->ptr);
+		case PINT:   return *((int*)p->lp->ptr);
 		case PSTRING:
-		case PBUFFER: if( p->ptr ) return atoi( p->ptr );
+		case PBUFFER: if( p->lp->ptr ) return atoi( p->lp->ptr );
 		default: break;
 		}
 	}
@@ -67,10 +67,10 @@ const char * GetParameterS( const char * name, const char * defa )
 	{
 		switch( p->t )
 		{
-		case PFLOAT: snprintf( returnbuffer, sizeof( returnbuffer ), "%0.4f", *((float*)p->ptr) ); return returnbuffer;
-		case PINT:   snprintf( returnbuffer, sizeof( returnbuffer ), "%d", *((int*)p->ptr) );      return returnbuffer;
+		case PFLOAT: snprintf( returnbuffer, sizeof( returnbuffer ), "%0.4f", *((float*)p->lp->ptr) ); return returnbuffer;
+		case PINT:   snprintf( returnbuffer, sizeof( returnbuffer ), "%d", *((int*)p->lp->ptr) );      return returnbuffer;
 		case PSTRING:
-		case PBUFFER: return p->ptr;
+		case PBUFFER: return p->lp->ptr;
 		default: break;
 		}
 	}
@@ -83,22 +83,41 @@ const char * GetParameterS( const char * name, const char * defa )
 
 static int SetParameter( struct Param * p, const char * str )
 {
+	struct LinkedParameter * lp;
+	lp = p->lp;
+
 	switch( p->t )
 	{
 	case PFLOAT:
-		*((float*)p->ptr) = atof( str );
+		while( lp )
+		{
+			*((float*)lp->ptr) = atof( str );
+			lp = lp->lp;
+		}
 		break;
 	case PINT:
-		*((int*)p->ptr) = atoi( str );
+		while( lp )
+		{
+			*((int*)lp->ptr) = atoi( str );
+			lp = lp->lp;
+		}
 		break;
 	case PBUFFER:
-		strncpy( (char*)p->ptr, str, p->size );
-		if( p->size > 0 )
-			((char*)p->ptr)[p->size-1]= '\0';
+		while( lp )
+		{
+			strncpy( (char*)lp->ptr, str, p->size );
+			if( p->size > 0 )
+				((char*)lp->ptr)[p->size-1]= '\0';
+			lp = lp->lp;
+		}
 		break;
 	case PSTRING:
-		free( p->ptr );
-		p->ptr = strdup( str );
+		while( lp )
+		{
+			free( lp->ptr );
+			lp->ptr = strdup( str );
+			lp = lp->lp;
+		}
 		break;
 	default:
 		return -1;
@@ -129,8 +148,8 @@ void RegisterValue( const char * name, enum ParamType t, void * ptr, int size )
 			{
 				fprintf( stderr, "Warning: Orphan parameter %s was not a PSTRING.\n", name );
 			}
-			char * orig = p->ptr;
-			p->ptr = ptr;
+			char * orig = p->lp->ptr;
+			p->lp->ptr = ptr;
 			p->t = t;
 			p->size = size;
 			p->orphan = 0;
@@ -143,7 +162,18 @@ void RegisterValue( const char * name, enum ParamType t, void * ptr, int size )
 		}
 		else
 		{
-			fprintf( stderr, "Warning: Parameter %s re-registered.  Cannot re-register.\n", name );
+			struct LinkedParameter * lp = p->lp;
+			if( size != p->size )
+			{
+				fprintf( stderr, "Size mismatch: Parameter %s.\n", name );
+			}
+			else
+			{
+				p->lp = malloc( sizeof( struct LinkedParameter ) );
+				p->lp->lp = lp;
+				p->lp->ptr = ptr;
+				memcpy( p->lp->ptr, p->lp->lp->ptr, size );
+			}
 		}
 	}
 	else
@@ -151,7 +181,9 @@ void RegisterValue( const char * name, enum ParamType t, void * ptr, int size )
 		struct Param ** n = (struct Param**)HashTableInsert( parameters, name, 1 );
 		*n = malloc( sizeof( struct Param ) );
 		(*n)->t = t;
-		(*n)->ptr = ptr;
+		(*n)->lp = malloc( sizeof( struct LinkedParameter ) );
+		(*n)->lp->lp = 0;
+		(*n)->lp->ptr = ptr;
 		(*n)->orphan = 0;
 		(*n)->size = size;
 		(*n)->callback = 0;
@@ -215,7 +247,9 @@ void SetParametersFromString( const char * string )
 					*n = malloc( sizeof ( struct Param ) );
 					(*n)->orphan = 1;
 					(*n)->t = PSTRING;
-					(*n)->ptr = strdup( value );
+					(*n)->lp = malloc( sizeof( struct LinkedParameter ) );
+					(*n)->lp->lp = 0;
+					(*n)->lp->ptr = strdup( value );
 					(*n)->size = strlen( value ) + 1;
 					(*n)->callback = 0;
 				}
