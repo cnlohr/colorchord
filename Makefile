@@ -2,7 +2,7 @@ all : colorchord
 
 RAWDRAW:=DrawFunctions.o XDriver.o
 SOUND:=sound.o sound_alsa.o sound_pulse.o sound_null.o
-OUTS := OutputVoronoi.o DisplayArray.o OutputLinear.o DisplayPie.o
+OUTS := OutputVoronoi.o DisplayArray.o OutputLinear.o DisplayPie.o DisplayNetwork.o
 
 #LEDOUTDriver.o DisplayOUTDriver.o
 
