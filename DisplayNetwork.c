@@ -77,9 +77,9 @@ static void DPOUpdate(void * id, struct NoteFinder*nf)
 
 		for( j = 0; j < d->leds; j++ )
 		{
-			buffer[i++] = OutLEDs[j*3+2];
-			buffer[i++] = OutLEDs[j*3+0];
-			buffer[i++] = OutLEDs[j*3+1];
+			buffer[i++] = OutLEDs[j*3+0];  //RED
+			buffer[i++] = OutLEDs[j*3+2];  //BLUE
+			buffer[i++] = OutLEDs[j*3+1];  //GREEN
 		}
 		int r = sendto( d->socket, buffer, i, MSG_NOSIGNAL, &d->servaddr, sizeof( d->servaddr ) );
 		if( r < 0 )
