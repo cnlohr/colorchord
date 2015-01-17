@@ -26,10 +26,10 @@ float GetParameterF( const char * name, float defa )
 	{
 		switch( p->t )
 		{
-		case PFLOAT: return *((float*)p->lp->ptr);
-		case PINT:   return *((int*)p->lp->ptr);
-		case PSTRING:
-		case PBUFFER: if( p->lp->ptr ) return atof( p->lp->ptr );
+		case PAFLOAT: return *((float*)p->lp->ptr);
+		case PAINT:   return *((int*)p->lp->ptr);
+		case PASTRING:
+		case PABUFFER: if( p->lp->ptr ) return atof( p->lp->ptr );
 		default: break;
 		}
 	}
@@ -46,10 +46,10 @@ int GetParameterI( const char * name, int defa )
 	{
 		switch( p->t )
 		{
-		case PFLOAT: return *((float*)p->lp->ptr);
-		case PINT:   return *((int*)p->lp->ptr);
-		case PSTRING:
-		case PBUFFER: if( p->lp->ptr ) return atoi( p->lp->ptr );
+		case PAFLOAT: return *((float*)p->lp->ptr);
+		case PAINT:   return *((int*)p->lp->ptr);
+		case PASTRING:
+		case PABUFFER: if( p->lp->ptr ) return atoi( p->lp->ptr );
 		default: break;
 		}
 	}
@@ -67,10 +67,10 @@ const char * GetParameterS( const char * name, const char * defa )
 	{
 		switch( p->t )
 		{
-		case PFLOAT: snprintf( returnbuffer, sizeof( returnbuffer ), "%0.4f", *((float*)p->lp->ptr) ); return returnbuffer;
-		case PINT:   snprintf( returnbuffer, sizeof( returnbuffer ), "%d", *((int*)p->lp->ptr) );      return returnbuffer;
-		case PSTRING:
-		case PBUFFER: return p->lp->ptr;
+		case PAFLOAT: snprintf( returnbuffer, sizeof( returnbuffer ), "%0.4f", *((float*)p->lp->ptr) ); return returnbuffer;
+		case PAINT:   snprintf( returnbuffer, sizeof( returnbuffer ), "%d", *((int*)p->lp->ptr) );      return returnbuffer;
+		case PASTRING:
+		case PABUFFER: return p->lp->ptr;
 		default: break;
 		}
 	}
@@ -88,21 +88,21 @@ static int SetParameter( struct Param * p, const char * str )
 
 	switch( p->t )
 	{
-	case PFLOAT:
+	case PAFLOAT:
 		while( lp )
 		{
 			*((float*)lp->ptr) = atof( str );
 			lp = lp->lp;
 		}
 		break;
-	case PINT:
+	case PAINT:
 		while( lp )
 		{
 			*((int*)lp->ptr) = atoi( str );
 			lp = lp->lp;
 		}
 		break;
-	case PBUFFER:
+	case PABUFFER:
 		while( lp )
 		{
 			strncpy( (char*)lp->ptr, str, p->size );
@@ -111,7 +111,7 @@ static int SetParameter( struct Param * p, const char * str )
 			lp = lp->lp;
 		}
 		break;
-	case PSTRING:
+	case PASTRING:
 		while( lp )
 		{
 			free( lp->ptr );
@@ -144,7 +144,7 @@ void RegisterValue( const char * name, enum ParamType t, void * ptr, int size )
 		//Entry already exists.
 		if( p->orphan )
 		{
-			if( p->t != PSTRING )
+			if( p->t != PASTRING )
 			{
 				fprintf( stderr, "Warning: Orphan parameter %s was not a PSTRING.\n", name );
 			}
@@ -246,7 +246,7 @@ void SetParametersFromString( const char * string )
 					struct Param ** n = (struct Param **)HashTableInsert( parameters, name, 0 );
 					*n = malloc( sizeof ( struct Param ) );
 					(*n)->orphan = 1;
-					(*n)->t = PSTRING;
+					(*n)->t = PASTRING;
 					(*n)->lp = malloc( sizeof( struct LinkedParameter ) );
 					(*n)->lp->lp = 0;
 					(*n)->lp->ptr = strdup( value );

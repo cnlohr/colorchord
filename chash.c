@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
+#include <malloc.h>
 
 #define I_AM_LITTLE (((union { unsigned x; unsigned char c; }){1}).c)
 

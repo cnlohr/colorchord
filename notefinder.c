@@ -40,24 +40,24 @@ struct NoteFinder * CreateNoteFinder( int spsRec )
 
 	ret->ofreqs = 0; //force a re-init.
 
-	RegisterValue( "octaves", PINT, &ret->octaves, sizeof( ret->octaves ) );
-	RegisterValue( "freqbins", PINT, &ret->freqbins, sizeof( ret->freqbins ) );
-	RegisterValue( "base_hz", PFLOAT, &ret->base_hz, sizeof( ret->base_hz ) );
-	RegisterValue( "filter_strength", PFLOAT, &ret->filter_strength, sizeof( ret->filter_strength ) );
-	RegisterValue( "filter_iter", PINT, &ret->filter_iter, sizeof( ret->filter_iter ) );
-	RegisterValue( "decompose_iterations", PINT, &ret->decompose_iterations, sizeof( ret->decompose_iterations ) );
-	RegisterValue( "amplify", PFLOAT, &ret->amplify, sizeof( ret->amplify ) );
-	RegisterValue( "dft_speedup", PFLOAT, &ret->dft_speedup, sizeof( ret->dft_speedup ) );
-	RegisterValue( "dft_q", PFLOAT, &ret->dft_q, sizeof( ret->dft_q ) );
-	RegisterValue( "default_sigma", PFLOAT, &ret->default_sigma, sizeof( ret->default_sigma ) );
-	RegisterValue( "note_jumpability", PFLOAT, &ret->note_jumpability, sizeof( ret->note_jumpability ) );
-	RegisterValue( "note_combine_distance", PFLOAT, &ret->note_combine_distance, sizeof( ret->note_combine_distance ) );
-	RegisterValue( "note_attach_freq_iir", PFLOAT, &ret->note_attach_freq_iir, sizeof( ret->note_attach_freq_iir ) );
-	RegisterValue( "note_attach_amp_iir", PFLOAT, &ret->note_attach_amp_iir, sizeof( ret->note_attach_amp_iir ) );
-	RegisterValue( "note_attach_amp_iir2", PFLOAT, &ret->note_attach_amp_iir2, sizeof( ret->note_attach_amp_iir2 ) );
-	RegisterValue( "note_minimum_new_distribution_value", PFLOAT, &ret->note_minimum_new_distribution_value, sizeof( ret->note_minimum_new_distribution_value ) );
-	RegisterValue( "note_out_chop", PFLOAT, &ret->note_out_chop, sizeof( ret->note_out_chop ) );
-	RegisterValue( "dft_iir", PFLOAT, &ret->dft_iir, sizeof( ret->dft_iir ) );
+	RegisterValue( "octaves", PAINT, &ret->octaves, sizeof( ret->octaves ) );
+	RegisterValue( "freqbins", PAINT, &ret->freqbins, sizeof( ret->freqbins ) );
+	RegisterValue( "base_hz", PAFLOAT, &ret->base_hz, sizeof( ret->base_hz ) );
+	RegisterValue( "filter_strength", PAFLOAT, &ret->filter_strength, sizeof( ret->filter_strength ) );
+	RegisterValue( "filter_iter", PAINT, &ret->filter_iter, sizeof( ret->filter_iter ) );
+	RegisterValue( "decompose_iterations", PAINT, &ret->decompose_iterations, sizeof( ret->decompose_iterations ) );
+	RegisterValue( "amplify", PAFLOAT, &ret->amplify, sizeof( ret->amplify ) );
+	RegisterValue( "dft_speedup", PAFLOAT, &ret->dft_speedup, sizeof( ret->dft_speedup ) );
+	RegisterValue( "dft_q", PAFLOAT, &ret->dft_q, sizeof( ret->dft_q ) );
+	RegisterValue( "default_sigma", PAFLOAT, &ret->default_sigma, sizeof( ret->default_sigma ) );
+	RegisterValue( "note_jumpability", PAFLOAT, &ret->note_jumpability, sizeof( ret->note_jumpability ) );
+	RegisterValue( "note_combine_distance", PAFLOAT, &ret->note_combine_distance, sizeof( ret->note_combine_distance ) );
+	RegisterValue( "note_attach_freq_iir", PAFLOAT, &ret->note_attach_freq_iir, sizeof( ret->note_attach_freq_iir ) );
+	RegisterValue( "note_attach_amp_iir", PAFLOAT, &ret->note_attach_amp_iir, sizeof( ret->note_attach_amp_iir ) );
+	RegisterValue( "note_attach_amp_iir2", PAFLOAT, &ret->note_attach_amp_iir2, sizeof( ret->note_attach_amp_iir2 ) );
+	RegisterValue( "note_minimum_new_distribution_value", PAFLOAT, &ret->note_minimum_new_distribution_value, sizeof( ret->note_minimum_new_distribution_value ) );
+	RegisterValue( "note_out_chop", PAFLOAT, &ret->note_out_chop, sizeof( ret->note_out_chop ) );
+	RegisterValue( "dft_iir", PAFLOAT, &ret->dft_iir, sizeof( ret->dft_iir ) );
 
 	AddCallback( "freqbins", ChangeNFParameters, ret );
 	AddCallback( "octaves", ChangeNFParameters, ret );

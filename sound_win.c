@@ -1,3 +1,5 @@
+//XXX THIS DRIVER IS INCOMPLETE XXX
+
 #include <windows.h>
 #include "parameters.h"
 #include "sound.h"

@@ -141,15 +141,15 @@ static void DPOParams(void * id )
 	struct DPODriver * d = (struct DPODriver*)id;
 
 	//XXX WRONG
-	d->xn = 160;		RegisterValue( "lightx", PINT, &d->xn, sizeof( d->xn ) ); 
-	d->yn = 90;			RegisterValue( "lighty", PINT, &d->yn, sizeof( d->yn ) );
-	d->cutoff = .01; 	RegisterValue( "Voronoi_cutoff", PFLOAT, &d->cutoff, sizeof( d->cutoff ) );
-	d->satamp = 5;		RegisterValue( "satamp", PFLOAT, &d->satamp, sizeof( d->satamp ) );
+	d->xn = 160;		RegisterValue( "lightx", PAINT, &d->xn, sizeof( d->xn ) ); 
+	d->yn = 90;			RegisterValue( "lighty", PAINT, &d->yn, sizeof( d->yn ) );
+	d->cutoff = .01; 	RegisterValue( "Voronoi_cutoff", PAFLOAT, &d->cutoff, sizeof( d->cutoff ) );
+	d->satamp = 5;		RegisterValue( "satamp", PAFLOAT, &d->satamp, sizeof( d->satamp ) );
 
-	d->amppow = 2.51;	RegisterValue( "amppow", PFLOAT, &d->amppow, sizeof( d->amppow ) );
-	d->distpow = 1.5;	RegisterValue( "distpow", PFLOAT, &d->distpow, sizeof( d->distpow ) );
+	d->amppow = 2.51;	RegisterValue( "amppow", PAFLOAT, &d->amppow, sizeof( d->amppow ) );
+	d->distpow = 1.5;	RegisterValue( "distpow", PAFLOAT, &d->distpow, sizeof( d->distpow ) );
 
-	d->from_sides = 1;  RegisterValue( "fromsides", PINT, &d->from_sides, sizeof( d->from_sides ) );
+	d->from_sides = 1;  RegisterValue( "fromsides", PAINT, &d->from_sides, sizeof( d->from_sides ) );
 
 	d->note_peaks = 0;
 }

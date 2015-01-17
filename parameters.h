@@ -6,10 +6,10 @@
 enum ParamType
 {
 	NONE,
-	PFLOAT,
-	PINT,
-	PSTRING, //const char *, cannot set.
-	PBUFFER,
+	PAFLOAT,
+	PAINT,
+	PASTRING, //const char *, cannot set.
+	PABUFFER,
 	NUM_PARAMS,
 };
 

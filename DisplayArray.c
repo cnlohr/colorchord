@@ -68,10 +68,10 @@ static void DPOParams(void * id )
 {
 	struct DPODriver * d = (struct DPODriver*)id;
 
-	d->xn = 16;		RegisterValue(  "lightx", PINT, &d->xn, sizeof( d->xn ) );
-	d->yn = 9;		RegisterValue(  "lighty", PINT, &d->yn, sizeof( d->yn ) );
-	d->zigzag = 0;	RegisterValue(  "zigzag", PINT, &d->zigzag, sizeof( d->zigzag ) );
-	d->rot90 = 0;	RegisterValue(  "rot90", PINT, &d->rot90, sizeof( d->rot90 ) );
+	d->xn = 16;		RegisterValue(  "lightx", PAINT, &d->xn, sizeof( d->xn ) );
+	d->yn = 9;		RegisterValue(  "lighty", PAINT, &d->yn, sizeof( d->yn ) );
+	d->zigzag = 0;	RegisterValue(  "zigzag", PAINT, &d->zigzag, sizeof( d->zigzag ) );
+	d->rot90 = 0;	RegisterValue(  "rot90", PAINT, &d->rot90, sizeof( d->rot90 ) );
 
 }
 

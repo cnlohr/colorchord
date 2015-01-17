@@ -5,13 +5,19 @@
 #include <stdlib.h>
 #include <math.h>
 #include <string.h>
+#include "color.h"
+#include "DrawFunctions.h"
+#include <unistd.h>
+
+#ifdef WIN32
+#include <windows.h>
+#define MSG_NOSIGNAL 0
+#else
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <netdb.h>
-#include "color.h"
-#include "DrawFunctions.h"
-#include <unistd.h>
+#endif
 
 #define MAX_BUFFER 1487
 
@@ -44,7 +50,7 @@ static void DPOUpdate(void * id, struct NoteFinder*nf)
 
 		if( hname )
 		{
-			bzero(&d->servaddr, sizeof(d->servaddr));
+			memset(&d->servaddr, 0, sizeof(d->servaddr));
 			d->servaddr.sin_family = hname->h_addrtype;
 			d->servaddr.sin_port = htons( d->port );
 			d->servaddr.sin_addr.s_addr = *(long*)hname->h_addr;
@@ -81,7 +87,7 @@ static void DPOUpdate(void * id, struct NoteFinder*nf)
 			buffer[i++] = OutLEDs[j*3+2];  //BLUE
 			buffer[i++] = OutLEDs[j*3+1];  //GREEN
 		}
-		int r = sendto( d->socket, buffer, i, MSG_NOSIGNAL, &d->servaddr, sizeof( d->servaddr ) );
+		int r = sendto( d->socket, buffer, i, MSG_NOSIGNAL,(const struct sockaddr *) &d->servaddr, sizeof( d->servaddr ) );
 		if( r < 0 )
 		{
 			fprintf( stderr, "Send fault.\n" );
@@ -97,11 +103,11 @@ static void DPOParams(void * id )
 	struct DPODriver * d = (struct DPODriver*)id;
 	strcpy( d->address, "localhost" );
 
-	d->leds = 10;		RegisterValue(  "leds", PINT, &d->leds, sizeof( d->leds ) );
-	d->skipfirst = 1;	RegisterValue(  "skipfirst", PINT, &d->skipfirst, sizeof( d->skipfirst ) );
-	d->port = 7777;		RegisterValue(  "port", PINT, &d->port, sizeof( d->port ) );
-	d->firstval = 0;	RegisterValue(  "firstval", PINT, &d->firstval, sizeof( d->firstval ) );
-						RegisterValue(  "address", PBUFFER, d->address, sizeof( d->address ) );
+	d->leds = 10;		RegisterValue(  "leds", PAINT, &d->leds, sizeof( d->leds ) );
+	d->skipfirst = 1;	RegisterValue(  "skipfirst", PAINT, &d->skipfirst, sizeof( d->skipfirst ) );
+	d->port = 7777;		RegisterValue(  "port", PAINT, &d->port, sizeof( d->port ) );
+	d->firstval = 0;	RegisterValue(  "firstval", PAINT, &d->firstval, sizeof( d->firstval ) );
+						RegisterValue(  "address", PABUFFER, d->address, sizeof( d->address ) );
 	d->socket = -1;
 	d->oldaddress[0] = 0;
 }

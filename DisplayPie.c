@@ -57,9 +57,9 @@ static void DPOParams(void * id )
 {
 	struct DPODriver * d = (struct DPODriver*)id;
 
-	d->leds = 9;		RegisterValue(  "leds", PINT, &d->leds, sizeof( d->leds ) );
-	d->pie_min = .18;	RegisterValue(  "pie_min", PFLOAT, &d->pie_min, sizeof( d->pie_min ) );
-	d->pie_max = .3;	RegisterValue(  "pie_max", PFLOAT, &d->pie_max, sizeof( d->pie_max ) );
+	d->leds = 9;		RegisterValue(  "leds", PAINT, &d->leds, sizeof( d->leds ) );
+	d->pie_min = .18;	RegisterValue(  "pie_min", PAFLOAT, &d->pie_min, sizeof( d->pie_min ) );
+	d->pie_max = .3;	RegisterValue(  "pie_max", PAFLOAT, &d->pie_max, sizeof( d->pie_max ) );
 
 }
 

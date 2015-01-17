@@ -14,17 +14,22 @@
 #include "outdrivers.h"
 #include "parameters.h"
 
+#ifdef WIN32
+#include <windows.h>
+#endif
+
+int lastfps;
 short screenx, screeny;
 int gargc;
 char ** gargv;
 struct DriverInstances * outdriver[MAX_OUT_DRIVERS];
 
 
-int set_screenx = 640;	REGISTER_PARAM( set_screenx, PINT );
-int set_screeny = 480;	REGISTER_PARAM( set_screeny, PINT );
-char sound_source[16]; 	REGISTER_PARAM( sound_source, PBUFFER );
-int cpu_autolimit = 1; 	REGISTER_PARAM( cpu_autolimit, PINT );
-int sample_channel = -1;REGISTER_PARAM( sample_channel, PINT );
+int set_screenx = 640;	REGISTER_PARAM( set_screenx, PAINT );
+int set_screeny = 480;	REGISTER_PARAM( set_screeny, PAINT );
+char sound_source[16]; 	REGISTER_PARAM( sound_source, PABUFFER );
+int cpu_autolimit = 1; 	REGISTER_PARAM( cpu_autolimit, PAINT );
+int sample_channel = -1;REGISTER_PARAM( sample_channel, PAINT );
 
 struct NoteFinder * nf;
 
@@ -74,6 +79,7 @@ void SoundCB( float * out, float * in, int samplesr, int * samplesp, struct Soun
 
 	int i;
 	int j;
+
 	for( i = 0; i < samplesr; i++ )
 	{
 		if( sample_channel < 0 )
@@ -152,6 +158,16 @@ int main(int argc, char ** argv)
 	double LastFileTimeInit = 0;
 	double LastFileTimeDefault = 0;
 
+#ifdef WIN32
+    WSADATA wsaData;
+
+    WSAStartup(0x202, &wsaData);
+
+	strcpy( sound_source, "WIN" );
+#else
+	strcpy( sound_source, "PULSE" );
+#endif
+
 	gargc = argc;
 	gargv = argv;
 
@@ -181,7 +197,22 @@ int main(int argc, char ** argv)
 	double SecToWait;
 	CNFGBGColor = 0x800000;
 	CNFGDialogColor = 0x444444;
-	CNFGSetup( "ColorChord Test", set_screenx, set_screeny );
+
+	char title[1024];
+	char * tp = title;
+
+	memcpy( tp, "ColorChord ", strlen( "ColorChord " ) );
+	tp += strlen( "ColorChord " );
+
+	for( i = 1; i < argc; i++ )
+	{
+		memcpy( tp, argv[i], strlen( argv[i] ) );
+		tp += strlen( argv[i] );
+		*tp = ' ';
+		tp++;
+	}
+	*tp = 0;
+	CNFGSetup( title, set_screenx, set_screeny );
 
 
 	char * OutDriverNames = strdup( GetParameterS( "outdrivers", "null" ) );
@@ -352,13 +383,19 @@ int main(int argc, char ** argv)
 		sprintf( stt, "[9] Key: %d [0] (%3.1f) [-]", gKey, nf->base_hz );
 		CNFGDrawText( stt, 2 );
 
+		CNFGColor( 0xffffff );
+		CNFGPenX = 440; CNFGPenY = screeny-10;
+		sprintf( stt, "FPS: %d", lastfps );
+		CNFGDrawText( stt, 2 );
+
 		//Finish Rawdraw with FPS counter, and a nice delay loop.
 		frames++;
 		CNFGSwapBuffers();
 		ThisTime = OGGetAbsoluteTime();
 		if( ThisTime > LastFPSTime + 1 )
 		{
-			printf( "FPS: %d\n", frames );
+//			printf( "FPS: %d\n", frames );
+			lastfps = frames;
 			frames = 0;
 			LastFPSTime+=1;
 		}

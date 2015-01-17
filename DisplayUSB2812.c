@@ -63,7 +63,7 @@ static void LEDUpdate(void * id, struct NoteFinder*nf)
 		if( libusb_init(NULL) < 0 )
 		{
 			fprintf( stderr, "Error: Could not initialize libUSB\n" );
-			exit( -99 );
+//			exit( -99 );
 		}
 
 		led->devh = libusb_open_device_with_vid_pid( NULL, 0xabcd, 0xf003 );
@@ -71,7 +71,7 @@ static void LEDUpdate(void * id, struct NoteFinder*nf)
 		if( !led->devh )
 		{
 			fprintf( stderr,  "Error: Cannot find device.\n" );
-			exit( -98 );
+//			exit( -98 );
 		}
 	}
 
@@ -122,9 +122,9 @@ static void LEDUpdate(void * id, struct NoteFinder*nf)
 				source = sx + sy * led->yn;
 			}
 		}
-		led->last_leds[i*3+0] = OutLEDs[source*3+0] * led->outamp;
-		led->last_leds[i*3+2] = OutLEDs[source*3+1] * led->outamp; 
-		led->last_leds[i*3+1] = OutLEDs[source*3+2] * led->outamp;
+		led->last_leds[i*3+0] = OutLEDs[source*3+1] * led->outamp;
+		led->last_leds[i*3+1] = OutLEDs[source*3+0] * led->outamp; 
+		led->last_leds[i*3+2] = OutLEDs[source*3+2] * led->outamp;
 	}
 
 	led->readyFlag = 1;
