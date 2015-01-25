@@ -73,6 +73,7 @@ static void DMXUpdate(void * id, struct NoteFinder*nf)
 
 		if( !led->devh )
 		{
+			led->did_init = 0;
 			fprintf( stderr,  "Error: Cannot find device.\n" );
 //			exit( -98 );
 		}
