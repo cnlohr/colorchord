@@ -2,7 +2,7 @@ all : colorchord
 
 RAWDRAW:=DrawFunctions.o XDriver.o
 SOUND:=sound.o sound_alsa.o sound_pulse.o sound_null.o
-OUTS := OutputVoronoi.o DisplayArray.o OutputLinear.o DisplayPie.o DisplayNetwork.o DisplayUSB2812.o
+OUTS := OutputVoronoi.o DisplayArray.o OutputLinear.o DisplayPie.o DisplayNetwork.o DisplayUSB2812.o DisplayDMX.o
 
 WINGCC:=i586-mingw32msvc-gcc
 WINGCCFLAGS:= -lwinmm -lgdi32 -lws2_32 -O2 -ffast-math -g
