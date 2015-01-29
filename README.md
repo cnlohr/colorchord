@@ -26,6 +26,14 @@ Currently, ColorChord 2 is designed to run on Linux.  It's not particularly tied
 Building and Using
 ------------------
 
+On Linux you'll need the following packages, for Debian/Ubuntu/Mint you'll need the following:
+* libpulse-dev
+* libasound2-dev
+* libx11-dev
+* libxext-dev
+* libxinerama-dev
+* libusb-1.0-0-dev
+
 To make colorchord, type:
 
 ```
