@@ -14,8 +14,15 @@
 #include "outdrivers.h"
 #include "parameters.h"
 
+struct SoundDriver * sd;
+
 #ifdef WIN32
 #include <windows.h>
+void WindowsTerm()
+{
+	CloseSound( sd );
+}
+
 #endif
 
 int lastfps;
@@ -244,7 +251,7 @@ int main(int argc, char ** argv)
 
 
 	//Initialize Sound
-	struct SoundDriver * sd = InitSound( sound_source, &SoundCB );
+	sd = InitSound( sound_source, &SoundCB );
 
 	if( !sd )
 	{

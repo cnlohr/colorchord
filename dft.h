@@ -12,5 +12,12 @@ void DoDFT( float * outbins, float * frequencies, int bins, float * databuffer, 
 //Speedup = target number of data points
 void DoDFTQuick( float * outbins, float * frequencies, int bins, const float * databuffer, int place_in_data_buffer, int size_of_data_buffer, float q, float speedup );
 
+//An unusual tool to do a "progressive" DFT, using data from previous rounds.
+void DoDFTProgressive( float * outbins, float * frequencies, int bins, const float * databuffer, int place_in_data_buffer, int size_of_data_buffer, float q, float speedup );
+
+//A progressive DFT that's done using only low-bit integer math.
+void DoDFTProgressiveInteger( float * outbins, float * frequencies, int bins, const float * databuffer, int place_in_data_buffer, int size_of_data_buffer, float q, float speedup );
+
+
 #endif
 
