@@ -192,8 +192,6 @@ void DoDFTProgressive( float * outbins, float * frequencies, int bins, const flo
 
 
 
-#define PROGIIR .005
-
 //NOTES to self:
 //
 // Let's say we want to try this on an AVR.
@@ -208,70 +206,69 @@ static int8_t sintable[512]; //Actually [sin][cos] pairs.
 //LDD instruction on AVR can read with constant offset.  We can set Y to be the place in the buffer, and read with offset.
 static uint16_t * datspace;  //(advances,places,isses,icses)
 
-//
 void HandleProgressiveInt( int8_t sample1, int8_t sample2 )
 {
 	int i;
-	uint16_t startpl = 0;
 	int16_t ts, tc;
 	int16_t tmp1;
 	int8_t s1, c1;
 	uint16_t ipl, localipl, adv;
 
+	uint16_t * ds = &datspace[0];
+	int8_t * st;
+	//Clocks are listed for AVR.
 
-	//startpl maps to 'Y'
-	//
-
-
-	//Estimated 68 minimum instructions... So for two pairs each... just under 5ksps, theoretical.
-	//Running overall at ~2kHz.
-	for( i = 0; i < gbins; i++ )            //Loop, fixed size = 3 + 2 cycles                       5
+	//Estimated 78 minimum instructions... So for two pairs each... just over 4ksps, theoretical.
+	//Running overall at ~2kHz.  With GCC: YUCK! 102 cycles!!!
+	for( i = 0; i < gbins; i++ )            //Loop, fixed size = 3 + 2 cycles                       N/A
 	{
 		//12 cycles MIN
-		adv = datspace[startpl++]; //Read, indirect from RAM (and increment)  2+2 cycles			4
-		ipl = datspace[startpl++]; //Read, indirect from RAM (and increment)  2+2 cycles			4
+		adv = *(ds++); //Read, indirect from RAM (and increment)  2+2 cycles			4
+		ipl = *(ds++); //Read, indirect from RAM (and increment)  2+2 cycles			4
 
 		//13 cycles MIN
 		ipl += adv;   				         //Advance, 16bit += 16bit, 1 + 1 cycles                2
-		localipl = (ipl>>8)<<1;				//Select upper 8 bits  1 cycles							1
+		localipl = (ipl>>8)<<1;				//Select upper 8 bits  1 cycles							1   *** AS/IS: 4
 
-			// need to load Z with 'sintable' and add localipl										2
-		s1 = sintable[localipl++];			//Read s1 component out of table. 2+2    cycles			2
-		c1 = sintable[localipl++];			//Read c1 component out of table. 2    cycles			2
+		st = &sintable[localipl];
+		s1 = *(st++);						//Read s1 component out of table. 2+2    cycles			2
+		c1 = *st;							//Read c1 component out of table. 2    cycles			2   *** AS/IS: 4
 
-		ts = (s1 * sample1);				// 8 x 8 multiply signed + copy R1 out. zero MSB ts		2
-		tc = (c1 * sample1);				// 8 x 8 multiply signed + copy R1 out. zero MSB tc   	2
+		ts = (s1 * sample1);				// 8 x 8 multiply signed + copy R1 out. zero MSB ts		2  ->Deferred
+		tc = (c1 * sample1);				// 8 x 8 multiply signed + copy R1 out. zero MSB tc   	2  ->Deferred
 
 
 		//15 cycles MIN
 		ipl += adv;   				        //Advance, 16bit += 16bit, 1 + 1 cycles   				2
-		localipl = (ipl>>8)<<1;				//Select upper 8 bits  1 cycles							1
+		localipl = (ipl>>8)<<1;				//Select upper 8 bits  1 cycles							1  *** AS/IS: 4
 
 			// need to load Z with 'sintable' and add localipl										2
-		s1 = sintable[localipl++];			//Read s1 component out of table. 2   cycles			2	
-		c1 = sintable[localipl++];			//Read c1 component out of table. 2    cycles			2
+		st = &sintable[localipl];
+		s1 = *(st++);						//Read s1 component out of table. 2   cycles			2	
+		c1 = *st;							//Read c1 component out of table. 2    cycles			2 *** AS/IS: 4
 
-		ts += (s1 * sample2);				// 8 x 8 multiply signed + add R1 out.					3
-		tc += (c1 * sample2);				// 8 x 8 multiply signed + add R1 out.					3
+		ts += (s1 * sample2);				// 8 x 8 multiply signed + add R1 out.					3  ->Deferred
+		tc += (c1 * sample2);				// 8 x 8 multiply signed + add R1 out.					3  ->Deferred
 
 
 		//Add TS and TC to the datspace stuff. (24 instructions)
-		tmp1 = datspace[startpl];			//Read out, sin component.								4
-		tmp1 -= tmp1>>6;					//Subtract from the MSB (with carry)					2
-		tmp1 += ts>>6;						//Add MSBs with carry									2
+		tmp1 = (*ds);			//Read out, sin component.								4  Accurate.
+		tmp1 -= tmp1>>7;					//Subtract from the MSB (with carry)					2 -> 6  AS/IS: 7+7 = 14
+		tmp1 += ts>>7;						//Add MSBs with carry									2 -> 6  AS/IS: 6
 
-		datspace[startpl++] = tmp1;			//Store values back										4
+		*(ds++) = tmp1;			//Store values back										4
 
-		tmp1 = datspace[startpl];			//Read out, sin component.								4
-		tmp1 -= tmp1>>6;					//Subtract from the MSB (with carry)					2
-		tmp1 += tc>>6;						//Add MSBs with carry									2
+		tmp1 = *ds;			//Read out, sin component.								4
+		tmp1 -= tmp1>>7;					//Subtract from the MSB (with carry)					2 -> 6 AS/IS: 7+7 = 14
+		tmp1 += tc>>7;						//Add MSBs with carry									2 -> 6 AS/IS: 6
 
-		datspace[startpl++] = tmp1;			//Store values back										4
+		*ds++ = tmp1;			//Store values back										4
 
-		datspace[startpl-3] = ipl;			//Store values back										4
+		*(ds-3) = ipl;			//Store values back										4 AS/IS: 6
+
+		//AS-IS: 8 loop overhead.
 	}
 }
-
 
 void DoDFTProgressiveInteger( float * outbins, float * frequencies, int bins, const float * databuffer, int place_in_data_buffer, int size_of_data_buffer, float q, float speedup )
 {
@@ -324,5 +321,222 @@ void DoDFTProgressiveInteger( float * outbins, float * frequencies, int bins, co
 	}
 //	printf( "\n");
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+////////////////////////SKIPPY DFT
+
+//Skippy DFT is a very ood one. 
+
+
+
+#define OCTAVES  5
+#define FIXBPERO 24
+#define FIXBINS  (FIXBPERO*OCTAVES)
+#define BINCYCLE (1<<OCTAVES)
+
+//NOTES to self:
+//
+// Let's say we want to try this on an AVR.
+//  24 bins, 5 octaves = 120 bins.
+// 20 MHz clock / 4.8k sps = 4096 IPS = 34 clocks per bin = :(
+//  We can do two at the same time, this frees us up some 
+
+static uint8_t Sdonefirstrun;
+static int8_t Ssintable[512]; //Actually [sin][cos] pairs.
+static uint16_t Sdatspace[FIXBINS*4];  //(advances,places,isses,icses)
+
+//For 
+static uint8_t Sdo_this_octave[BINCYCLE];
+static int16_t Saccum_octavebins[OCTAVES];
+static uint8_t Swhichoctaveplace;
+
+void HandleProgressiveIntSkippy( int8_t sample1 )
+{
+	int i;
+	int16_t ts, tc;
+	int16_t tmp1;
+	int8_t s1, c1;
+	uint16_t ipl, localipl, adv;
+
+	uint8_t oct = Sdo_this_octave[Swhichoctaveplace];
+	Swhichoctaveplace ++;
+	Swhichoctaveplace &= BINCYCLE-1;
+
+	if( oct > 128 )
+	{
+		//Special: This is when we can update everything.
+
+/*		if( (rand()%100) == 0 )
+		{
+			for( i = 0; i < FIXBINS; i++ )
+//				printf( "%0.2f ",goutbins[i]*100 );
+				printf( "(%d %d)",Sdatspace[i*4+2], Sdatspace[i*4+3] );
+			printf( "\n" );
+		} */
+
+		for( i = 0; i < FIXBINS; i++ )
+		{
+			int16_t isps = Sdatspace[i*4+2];
+			int16_t ispc = Sdatspace[i*4+3];
+			int16_t mux = ( (isps/256) * (isps/256)) + ((ispc/256) * (ispc/256));
+	//		printf( "%d (%d %d)\n", mux, isps, ispc );
+
+			int octave = i / FIXBPERO;
+//			mux >>= octave; 
+			goutbins[i] = sqrt( mux );
+//			goutbins[i]/=100.0;
+			goutbins[i]/=100*(1<<octave);
+			Sdatspace[i*4+2] -= isps>>5;
+			Sdatspace[i*4+3] -= ispc>>5;
+		}
+
+	}
+
+	for( i = 0; i < OCTAVES;i++ )
+	{
+		Saccum_octavebins[i] += sample1;
+	}
+
+	uint16_t * ds = &Sdatspace[oct*FIXBPERO*4];
+	int8_t * st;
+
+	sample1 = Saccum_octavebins[oct]>>(OCTAVES-oct);
+	Saccum_octavebins[oct] = 0;
+
+	for( i = 0; i < FIXBPERO; i++ )            //Loop, fixed size = 3 + 2 cycles                       N/A
+	{
+		//12 cycles MIN
+		adv = *(ds++); //Read, indirect from RAM (and increment)  2+2 cycles			4
+		ipl = *(ds++); //Read, indirect from RAM (and increment)  2+2 cycles			4
+
+		//13 cycles MIN
+		ipl += adv;   				         //Advance, 16bit += 16bit, 1 + 1 cycles                2
+		localipl = (ipl>>8)<<1;				//Select upper 8 bits  1 cycles							1   *** AS/IS: 4
+
+		st = &Ssintable[localipl];
+		s1 = *(st++);						//Read s1 component out of table. 2+2    cycles			2
+		c1 = *st;							//Read c1 component out of table. 2    cycles			2   *** AS/IS: 4
+
+		ts = (s1 * sample1);				// 8 x 8 multiply signed + copy R1 out. zero MSB ts		2  ->Deferred
+		tc = (c1 * sample1);				// 8 x 8 multiply signed + copy R1 out. zero MSB tc   	2  ->Deferred
+
+
+		//Add TS and TC to the datspace stuff. (24 instructions)
+		tmp1 = (*ds);			//Read out, sin component.								4  Accurate.
+//		tmp1 -= tmp1>>4;					//Subtract from the MSB (with carry)					2 -> 6  AS/IS: 7+7 = 14
+		tmp1 += ts>>3;						//Add MSBs with carry									2 -> 6  AS/IS: 6
+
+		*(ds++) = tmp1;			//Store values back										4
+
+		tmp1 = *ds;			//Read out, sin component.								4
+//		tmp1 -= tmp1>>4;					//Subtract from the MSB (with carry)					2 -> 6 AS/IS: 7+7 = 14
+		tmp1 += tc>>3;						//Add MSBs with carry									2 -> 6 AS/IS: 6
+
+		*ds++ = tmp1;			//Store values back										4
+
+		*(ds-3) = ipl;			//Store values back										4 AS/IS: 6
+
+		//AS-IS: 8 loop overhead.
+	}
+}
+
+void DoDFTProgressiveIntegerSkippy( float * outbins, float * frequencies, int bins, const float * databuffer, int place_in_data_buffer, int size_of_data_buffer, float q, float speedup )
+{
+	static float backupbins[FIXBINS];
+	int i, j;
+	static int last_place;
+
+//printf( "SKIPPY\n" );
+
+	if( !Sdonefirstrun )
+	{
+		memset( outbins, 0, bins * sizeof( float ) );
+		goutbins = outbins;
+		//Sdatspace = malloc(FIXBPERO*OCTAVES*8);
+		//memset(Sdatspace,0,FIXBPERO*OCTAVES*8);
+		//printf( "MS: %d\n", FIXBPERO*OCTAVES*8);
+		Sdonefirstrun = 1;
+		for( i = 0; i < 256; i++ )
+		{
+			Ssintable[i*2+0] = (int8_t)((sinf( i / 256.0 * 6.283 ) * 127.0));
+			Ssintable[i*2+1] = (int8_t)((cosf( i / 256.0 * 6.283 ) * 127.0));
+		}
+
+		for( i = 0; i < BINCYCLE; i++ )
+		{
+			// Sdo_this_octave = 
+			// 4 3 4 2 4 3 4 ...
+			//search for "first" zero
+
+			for( j = 0; j <= OCTAVES; j++ )
+			{
+				if( ((1<<j) & i) == 0 ) break;
+			}
+			if( j > OCTAVES )
+			{
+				fprintf( stderr, "Error: algorithm fault.\n" );
+				exit( -1 );
+			}
+			Sdo_this_octave[i] = OCTAVES-j-1;
+		}
+	}
+
+	memcpy( outbins, backupbins, FIXBINS*4 );
+
+	if( FIXBINS != bins )
+	{
+		fprintf( stderr, "Error: Bins was reconfigured.  skippy requires a constant number of bins.\n" );
+		return;
+	}
+
+	
+	for( i = 0; i < bins; i++ )
+	{
+		float freq = frequencies[(i%FIXBPERO) + (FIXBPERO*(OCTAVES-1))];
+		Sdatspace[i*4] = (65536.0/freq);// / oneoveroctave;
+	}
+
+
+	for( i = last_place; i != place_in_data_buffer; i = (i+1)%size_of_data_buffer )
+	{
+		int8_t ifr1 = (int8_t)( ((databuffer[i]) ) * 127 );
+		HandleProgressiveIntSkippy( ifr1 );
+		HandleProgressiveIntSkippy( ifr1 );
+	}
+
+	last_place = place_in_data_buffer;
+
+	memcpy( backupbins, outbins, FIXBINS*4 );
+
+	//Extract bins.
+/*
+	for( i = 0; i < bins; i++ )
+	{
+		int16_t isps = Sdatspace[i*4+2];
+		int16_t ispc = Sdatspace[i*4+3];
+		int16_t mux = ( (isps/256) * (isps/256)) + ((ispc/256) * (ispc/256));
+//		printf( "%d (%d %d)\n", mux, isps, ispc );
+		outbins[i] = sqrt( mux )/100.0;
+	}
+*/
+
+//	printf( "\n");
+}
+
+
+
+
 
 

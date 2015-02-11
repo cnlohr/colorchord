@@ -14,6 +14,8 @@
 #include "outdrivers.h"
 #include "parameters.h"
 
+#define NRDEFFILES 10
+
 struct SoundDriver * sd;
 
 #ifdef WIN32
@@ -32,6 +34,7 @@ char ** gargv;
 struct DriverInstances * outdriver[MAX_OUT_DRIVERS];
 
 
+int headless = 0;		REGISTER_PARAM( headless, PAINT );
 int set_screenx = 640;	REGISTER_PARAM( set_screenx, PAINT );
 int set_screeny = 480;	REGISTER_PARAM( set_screeny, PAINT );
 char sound_source[16]; 	REGISTER_PARAM( sound_source, PABUFFER );
@@ -95,9 +98,12 @@ void SoundCB( float * out, float * in, int samplesr, int * samplesp, struct Soun
 			for( j = 0; j < channelin; j++ )
 			{
 				float f = in[i*channelin+j];
-				if( f < -1 || f > 1 ) continue;
-				fo += f;
+				if( f > -1 && f < 1 )
+				{
+					fo += f;
+				}
 			}
+
 			fo /= channelin;
 			sound[soundhead] = fo;
 			soundhead = (soundhead+1)%SOUNDCBSIZE;
@@ -106,9 +112,11 @@ void SoundCB( float * out, float * in, int samplesr, int * samplesp, struct Soun
 		else
 		{
 			float f = in[i*channelin+sample_channel];
-			if( f < -1 || f > 1 ) continue;
-			sound[soundhead] = f;
-			soundhead = (soundhead+1)%SOUNDCBSIZE;
+			if( f > -1 && f < 1 )
+			{
+				sound[soundhead] = f;
+				soundhead = (soundhead+1)%SOUNDCBSIZE;
+			}
 		}
 	}
 }
@@ -118,7 +126,6 @@ void LoadFile( const char * filename )
 {
 	char * buffer;
 	int r;
-	int i;
 
 	FILE * f = fopen( filename, "rb" );
 	if( !f )
@@ -144,26 +151,69 @@ void LoadFile( const char * filename )
 		}
 		free( buffer );
 	}
+}
 
 
-	if( gargc > 2 )
+const char * InitialFile[NRDEFFILES];
+double FileTimes[NRDEFFILES];
+int InitialFileCount = 1;
+
+void SetEnvValues()
+{
+	int i;
+	int hits = 0;
+	for( i = 0; i < InitialFileCount; i++ )
 	{
-		for( i = 2; i < gargc; i++ )
+		double ft = OGGetFileTime( InitialFile[i] );
+		if( FileTimes[i] != ft )
+		{
+			FileTimes[i] = ft;
+			hits++;
+		}
+	}
+
+	if( !hits ) return;
+
+	//Otherwise, something changed.
+
+	LoadFile( InitialFile[0] );
+
+	for( i = 1; i < gargc; i++ )
+	{
+		if( strchr( gargv[i], '=' ) != 0 )
 		{
 			printf( "AP: %s\n", gargv[i] );
 			SetParametersFromString( gargv[i] );
 		}
+		else
+		{
+			printf( "LF: %s\n", gargv[i] );
+			LoadFile( gargv[i] );
+		}
 	}
+}
+
+void ProcessArgs()
+{
+	int i;
+	for( i = 1; i < gargc; i++ )
+	{
+		if( strchr( gargv[i], '=' ) != 0 )
+		{
+			//A value setting operation
+		}
+		else
+		{
+			InitialFile[InitialFileCount++] = gargv[i];
+		}
+	}
+
+	SetEnvValues();
 }
 
 int main(int argc, char ** argv)
 {
-//	const char * OutDriver = "name=LEDOutDriver;leds=512;light_siding=1.9";
-	const char * InitialFile = 0;
-	const char * InitialFileDefault = "default.conf";
 	int i;
-	double LastFileTimeInit = 0;
-	double LastFileTimeDefault = 0;
 
 #ifdef WIN32
     WSADATA wsaData;
@@ -178,23 +228,9 @@ int main(int argc, char ** argv)
 	gargc = argc;
 	gargv = argv;
 
-	if( argc > 1 )
-	{
-		InitialFile = argv[1];
-	}
+	InitialFile[0] = "default.conf";
 
-
-	{
-		LastFileTimeDefault = OGGetFileTime( InitialFileDefault );
-		LoadFile( InitialFileDefault );
-	}
-
-	if( InitialFile )
-	{
-		LastFileTimeInit = OGGetFileTime( InitialFile );
-		LoadFile( InitialFile );
-	}
-
+	ProcessArgs();
 
 	//Initialize Rawdraw
 	int frames = 0;
@@ -219,7 +255,8 @@ int main(int argc, char ** argv)
 		tp++;
 	}
 	*tp = 0;
-	CNFGSetup( title, set_screenx, set_screeny );
+	if( !headless )
+		CNFGSetup( title, set_screenx, set_screeny );
 
 
 	char * OutDriverNames = strdup( GetParameterS( "outdrivers", "null" ) );
@@ -266,10 +303,14 @@ int main(int argc, char ** argv)
 	{
 		char stt[1024];
 		//Handle Rawdraw frame swappign
-		CNFGHandleInput();
-		CNFGClearFrame();
-		CNFGColor( 0xFFFFFF );
-		CNFGGetDimensions( &screenx, &screeny );
+
+		if( !headless )
+		{
+			CNFGHandleInput();
+			CNFGClearFrame();
+			CNFGColor( 0xFFFFFF );
+			CNFGGetDimensions( &screenx, &screeny );
+		}
 
 		RunNoteFinder( nf, sound, (soundhead-1+SOUNDCBSIZE)%SOUNDCBSIZE, SOUNDCBSIZE );
 		//Done all ColorChord work.
@@ -281,123 +322,127 @@ int main(int argc, char ** argv)
 
 		VisTimeEnd = OGGetAbsoluteTime();
 
-		//Handle outputs.
-		int freqbins = nf->freqbins;
-		int note_peaks = freqbins/2;
-		int freqs = freqbins * nf->octaves;
-		//int maxdists = freqbins/2;
-
-		//Do a bunch of debugging.
-		if( show_debug_basic )
+		if( !headless )
 		{
-			for( i = 0; i < nf->dists; i++ )
+			//Handle outputs.
+			int freqbins = nf->freqbins;
+			int note_peaks = freqbins/2;
+			int freqs = freqbins * nf->octaves;
+			//int maxdists = freqbins/2;
+
+			//Do a bunch of debugging.
+			if( show_debug_basic )
 			{
-				CNFGPenX = (nf->dist_means[i] + 0.5) / freqbins * screenx;  //Move over 0.5 for visual purposes.  The means is correct.
-				CNFGPenY = 400-nf->dist_amps[i] * 150.0 / nf->dist_sigmas[i];
-				//printf( "%f %f\n", dist_means[i], dist_amps[i] );
-				sprintf( stt, "%f\n%f\n", nf->dist_means[i], nf->dist_amps[i] );
-				CNFGDrawText( stt, 2 );
+				for( i = 0; i < nf->dists; i++ )
+				{
+					CNFGPenX = (nf->dist_means[i] + 0.5) / freqbins * screenx;  //Move over 0.5 for visual purposes.  The means is correct.
+					CNFGPenY = 400-nf->dist_amps[i] * 150.0 / nf->dist_sigmas[i];
+					//printf( "%f %f\n", dist_means[i], dist_amps[i] );
+					sprintf( stt, "%f\n%f\n", nf->dist_means[i], nf->dist_amps[i] );
+					CNFGDrawText( stt, 2 );
+				}
+				CNFGColor( 0xffffff );
+
+				//Draw the folded bins
+				for( i = 0; i < freqbins; i++ )
+				{
+					float x0 = i / (float)freqbins * (float)screenx;
+					float x1 = (i+1) / (float)freqbins * (float)screenx;
+					float amp = nf->folded_bins[i] * 250.0;
+					CNFGDialogColor = CCtoHEX( ((float)(i+0.5) / freqbins), 1.0, 1.0 );
+					CNFGDrawBox( x0, 400-amp, x1, 400 );
+				}
+				CNFGDialogColor = 0xf0f000;
+
+				for( i = 0; i < note_peaks; i++ )
+				{
+					//printf( "%f %f /", note_positions[i], note_amplitudes[i] );
+					if( nf->note_amplitudes_out[i] < 0 ) continue;
+					CNFGDialogColor = CCtoHEX( (nf->note_positions[i] / freqbins), 1.0, 1.0 );
+					CNFGDrawBox( ((float)i / note_peaks) * screenx, 480 - nf->note_amplitudes_out[i] * 100, ((float)(i+1) / note_peaks) * screenx, 480 );
+					CNFGPenX = ((float)(i+.4) / note_peaks) * screenx;
+					CNFGPenY = screeny - 30;
+					sprintf( stt, "%d\n%0.0f", nf->enduring_note_id[i], nf->note_amplitudes2[i]*1000.0 );
+					CNFGDrawText( stt, 2 );
+
+				}
+
+				//Let's draw the o-scope.
+				int thissoundhead = soundhead;
+				thissoundhead = (thissoundhead-1+SOUNDCBSIZE)%SOUNDCBSIZE;
+				int lasty = sound[thissoundhead] * 128 + 128; thissoundhead = (thissoundhead-1+SOUNDCBSIZE)%SOUNDCBSIZE;
+				int thisy = sound[thissoundhead] * 128 + 128; thissoundhead = (thissoundhead-1+SOUNDCBSIZE)%SOUNDCBSIZE;
+				for( i = 0; i < screenx; i++ )
+				{
+					CNFGTackSegment( i, lasty, i+1, thisy );
+					lasty = thisy;
+					thisy = sound[thissoundhead] * 128 + 128; thissoundhead = (thissoundhead-1+SOUNDCBSIZE)%SOUNDCBSIZE;
+				}
 			}
+
+			//Extra debugging?
+			if( show_debug )
+			{
+				//Draw the histogram
+				float lasthistval;
+				CNFGColor( 0xffffff );
+
+				for( i = -1; i < screenx; i++ )
+				{
+					float thishistval = CalcHistAt( (float)i/(float)screenx*freqbins-0.5, nf->freqbins, nf->dist_means, nf->dist_amps, nf->dist_sigmas, nf->dists );
+					if( i >= 0 )
+						CNFGTackSegment( i, 400-lasthistval * 250.0, i+1, 400-thishistval * 250.0 );
+					lasthistval = thishistval;
+				}
+
+				CNFGColor( 0xffffff );
+
+				//Draw the bins
+				for( i = 0; i < freqs; i++ )
+				{
+					float x0 = i / (float)freqs * (float)screenx;
+					float x1 = (i+1) / (float)freqs * (float)screenx;
+					float amp = nf->outbins[i] * 250.0;
+					CNFGDialogColor = CCtoHEX( ((float)i / freqbins), 1.0, 1.0 );
+					CNFGDrawBox( x0, 0, x1, amp );
+				}
+				CNFGDialogColor = 0x0f0f0f;
+
+				char stdebug[1024];
+				sprintf( stdebug, "DFT:%8.2fms\nFLT:%8.2f\nDEC:%8.2f\nFNL:%8.2f\nDPY:%8.2f",
+					(nf->DFTTime - nf->StartTime)*1000,
+					(nf->FilterTime - nf->DFTTime)*1000,
+					(nf->DecomposeTime - nf->FilterTime)*1000,
+					(nf->FinalizeTime - nf->DecomposeTime)*1000,
+					(VisTimeEnd - VisTimeStart)*1000 );
+				CNFGPenX = 50;
+				CNFGPenY = 50;
+				CNFGDrawText( stdebug, 2 );
+			}
+
+			CNFGColor( show_debug?0xffffff:0x000000 );
+			CNFGPenX = 0; CNFGPenY = screeny-10;
+			CNFGDrawText( "Extra Debug (D)", 2 );
+
+			CNFGColor( show_debug_basic?0xffffff:0x000000 );
+			CNFGPenX = 120; CNFGPenY = screeny-10;
+			CNFGDrawText( "Basic Debug (E)", 2 );
+
+			CNFGColor( show_debug_basic?0xffffff:0x000000 );
+			CNFGPenX = 240; CNFGPenY = screeny-10;
+			sprintf( stt, "[9] Key: %d [0] (%3.1f) [-]", gKey, nf->base_hz );
+			CNFGDrawText( stt, 2 );
+
 			CNFGColor( 0xffffff );
-
-			//Draw the folded bins
-			for( i = 0; i < freqbins; i++ )
-			{
-				float x0 = i / (float)freqbins * (float)screenx;
-				float x1 = (i+1) / (float)freqbins * (float)screenx;
-				float amp = nf->folded_bins[i] * 250.0;
-				CNFGDialogColor = CCtoHEX( ((float)(i+0.5) / freqbins), 1.0, 1.0 );
-				CNFGDrawBox( x0, 400-amp, x1, 400 );
-			}
-			CNFGDialogColor = 0xf0f000;
-
-			for( i = 0; i < note_peaks; i++ )
-			{
-				//printf( "%f %f /", note_positions[i], note_amplitudes[i] );
-				if( nf->note_amplitudes_out[i] < 0 ) continue;
-				CNFGDialogColor = CCtoHEX( (nf->note_positions[i] / freqbins), 1.0, 1.0 );
-				CNFGDrawBox( ((float)i / note_peaks) * screenx, 480 - nf->note_amplitudes_out[i] * 100, ((float)(i+1) / note_peaks) * screenx, 480 );
-				CNFGPenX = ((float)(i+.4) / note_peaks) * screenx;
-				CNFGPenY = screeny - 30;
-				sprintf( stt, "%d\n%0.0f", nf->enduring_note_id[i], nf->note_amplitudes2[i]*1000.0 );
-				CNFGDrawText( stt, 2 );
-
-			}
-
-			//Let's draw the o-scope.
-			int thissoundhead = soundhead;
-			thissoundhead = (thissoundhead-1+SOUNDCBSIZE)%SOUNDCBSIZE;
-			int lasty = sound[thissoundhead] * 128 + 128; thissoundhead = (thissoundhead-1+SOUNDCBSIZE)%SOUNDCBSIZE;
-			int thisy = sound[thissoundhead] * 128 + 128; thissoundhead = (thissoundhead-1+SOUNDCBSIZE)%SOUNDCBSIZE;
-			for( i = 0; i < screenx; i++ )
-			{
-				CNFGTackSegment( i, lasty, i+1, thisy );
-				lasty = thisy;
-				thisy = sound[thissoundhead] * 128 + 128; thissoundhead = (thissoundhead-1+SOUNDCBSIZE)%SOUNDCBSIZE;
-			}
+			CNFGPenX = 440; CNFGPenY = screeny-10;
+			sprintf( stt, "FPS: %d", lastfps );
+			CNFGDrawText( stt, 2 );
+			CNFGSwapBuffers();
 		}
-
-		//Extra debugging?
-		if( show_debug )
-		{
-			//Draw the histogram
-			float lasthistval;
-			CNFGColor( 0xffffff );
-
-			for( i = -1; i < screenx; i++ )
-			{
-				float thishistval = CalcHistAt( (float)i/(float)screenx*freqbins-0.5, nf->freqbins, nf->dist_means, nf->dist_amps, nf->dist_sigmas, nf->dists );
-				if( i >= 0 )
-					CNFGTackSegment( i, 400-lasthistval * 250.0, i+1, 400-thishistval * 250.0 );
-				lasthistval = thishistval;
-			}
-
-			CNFGColor( 0xffffff );
-
-			//Draw the bins
-			for( i = 0; i < freqs; i++ )
-			{
-				float x0 = i / (float)freqs * (float)screenx;
-				float x1 = (i+1) / (float)freqs * (float)screenx;
-				float amp = nf->outbins[i] * 250.0;
-				CNFGDialogColor = CCtoHEX( ((float)i / freqbins), 1.0, 1.0 );
-				CNFGDrawBox( x0, 0, x1, amp );
-			}
-			CNFGDialogColor = 0x0f0f0f;
-
-			char stdebug[1024];
-			sprintf( stdebug, "DFT:%8.2fms\nFLT:%8.2f\nDEC:%8.2f\nFNL:%8.2f\nDPY:%8.2f",
-				(nf->DFTTime - nf->StartTime)*1000,
-				(nf->FilterTime - nf->DFTTime)*1000,
-				(nf->DecomposeTime - nf->FilterTime)*1000,
-				(nf->FinalizeTime - nf->DecomposeTime)*1000,
-				(VisTimeEnd - VisTimeStart)*1000 );
-			CNFGPenX = 50;
-			CNFGPenY = 50;
-			CNFGDrawText( stdebug, 2 );
-		}
-
-		CNFGColor( show_debug?0xffffff:0x000000 );
-		CNFGPenX = 0; CNFGPenY = screeny-10;
-		CNFGDrawText( "Extra Debug (D)", 2 );
-
-		CNFGColor( show_debug_basic?0xffffff:0x000000 );
-		CNFGPenX = 120; CNFGPenY = screeny-10;
-		CNFGDrawText( "Basic Debug (E)", 2 );
-
-		CNFGColor( show_debug_basic?0xffffff:0x000000 );
-		CNFGPenX = 240; CNFGPenY = screeny-10;
-		sprintf( stt, "[9] Key: %d [0] (%3.1f) [-]", gKey, nf->base_hz );
-		CNFGDrawText( stt, 2 );
-
-		CNFGColor( 0xffffff );
-		CNFGPenX = 440; CNFGPenY = screeny-10;
-		sprintf( stt, "FPS: %d", lastfps );
-		CNFGDrawText( stt, 2 );
 
 		//Finish Rawdraw with FPS counter, and a nice delay loop.
 		frames++;
-		CNFGSwapBuffers();
+
 		ThisTime = OGGetAbsoluteTime();
 		if( ThisTime > LastFPSTime + 1 )
 		{
@@ -416,18 +461,7 @@ int main(int argc, char ** argv)
 				OGUSleep( (int)( SecToWait * 1000000 ) );
 		}
 
-		if( OGGetFileTime( InitialFileDefault ) != LastFileTimeDefault ||
-			(InitialFile && LastFileTimeInit != OGGetFileTime( InitialFile ) ) )
-		{
-			LastFileTimeDefault = OGGetFileTime( InitialFileDefault );
-			LoadFile( InitialFileDefault );
-
-			if( InitialFile )
-			{
-				LastFileTimeInit = OGGetFileTime( InitialFile );
-				LoadFile( InitialFile );
-			}
-		}
+		SetEnvValues();
 
 	}
 

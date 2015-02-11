@@ -8,6 +8,7 @@ struct NoteFinder
 {
 	//Setup DFT Bins
 	int ofreqs;
+	float slope;// = 0
 	int octaves;// = 5;
 	int freqbins;// = 24;
 	int note_peaks; //Calculated from freqbins (not configurable)
