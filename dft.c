@@ -1,10 +1,12 @@
-
 #include "dft.h"
 #include <math.h>
 #include <stdio.h>
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
+
+
+#ifndef CCEMBEDDED
 
 void DoDFT( float * outbins, float * frequencies, int bins, float * databuffer, int place_in_data_buffer, int size_of_data_buffer, float q )
 {
@@ -88,10 +90,9 @@ static float * gbinqtys;
 static float * gbinqtyc;
 static float * phis;
 static float * gfrequencies;
-static float * goutbins;
 static float * lastbins;
 static float * advances;
-
+static float * goutbins;
 static int     gbins;
 static float   gq;
 static float   gspeedup;
@@ -325,7 +326,7 @@ void DoDFTProgressiveInteger( float * outbins, float * frequencies, int bins, co
 
 
 
-
+#endif
 
 
 
@@ -337,14 +338,6 @@ void DoDFTProgressiveInteger( float * outbins, float * frequencies, int bins, co
 
 ////////////////////////SKIPPY DFT
 
-//Skippy DFT is a very ood one. 
-
-
-
-#define OCTAVES  5
-#define FIXBPERO 24
-#define FIXBINS  (FIXBPERO*OCTAVES)
-#define BINCYCLE (1<<OCTAVES)
 
 //NOTES to self:
 //
@@ -354,13 +347,130 @@ void DoDFTProgressiveInteger( float * outbins, float * frequencies, int bins, co
 //  We can do two at the same time, this frees us up some 
 
 static uint8_t Sdonefirstrun;
-static int8_t Ssintable[512]; //Actually [sin][cos] pairs.
-static uint16_t Sdatspace[FIXBINS*4];  //(advances,places,isses,icses)
+//int8_t Ssintable[512]; //Actually [sin][cos] pairs.
+const int8_t Ssintable[512] = {
+           0, 127,   3, 126,   6, 126,   9, 126,  12, 126,  15, 126,  18, 125,  21, 125,
+          24, 124,  27, 123,  30, 123,  33, 122,  36, 121,  39, 120,  42, 119,  45, 118,
+          48, 117,  51, 116,  54, 114,  57, 113,  59, 112,  62, 110,  65, 108,  67, 107,
+          70, 105,  73, 103,  75, 102,  78, 100,  80,  98,  82,  96,  85,  94,  87,  91,
+          89,  89,  91,  87,  94,  85,  96,  82,  98,  80, 100,  78, 102,  75, 103,  73,
+         105,  70, 107,  67, 108,  65, 110,  62, 112,  59, 113,  57, 114,  54, 116,  51,
+         117,  48, 118,  45, 119,  42, 120,  39, 121,  36, 122,  33, 123,  30, 123,  27,
+         124,  24, 125,  21, 125,  18, 126,  15, 126,  12, 126,   9, 126,   6, 126,   3,
+         127,   0, 126,  -3, 126,  -6, 126,  -9, 126, -12, 126, -15, 125, -18, 125, -21,
+         124, -24, 123, -27, 123, -30, 122, -33, 121, -36, 120, -39, 119, -42, 118, -45,
+         117, -48, 116, -51, 114, -54, 113, -57, 112, -59, 110, -62, 108, -65, 107, -67,
+         105, -70, 103, -73, 102, -75, 100, -78,  98, -80,  96, -82,  94, -85,  91, -87,
+          89, -89,  87, -91,  85, -94,  82, -96,  80, -98,  78,-100,  75,-102,  73,-103,
+          70,-105,  67,-107,  65,-108,  62,-110,  59,-111,  57,-113,  54,-114,  51,-116,
+          48,-117,  45,-118,  42,-119,  39,-120,  36,-121,  33,-122,  30,-123,  27,-123,
+          24,-124,  21,-125,  18,-125,  15,-126,  12,-126,   9,-126,   6,-126,   3,-126,
+           0,-127,  -3,-126,  -6,-126,  -9,-126, -12,-126, -15,-126, -18,-125, -21,-125,
+         -24,-124, -27,-123, -30,-123, -33,-122, -36,-121, -39,-120, -42,-119, -45,-118,
+         -48,-117, -51,-116, -54,-114, -57,-113, -59,-112, -62,-110, -65,-108, -67,-107,
+         -70,-105, -73,-103, -75,-102, -78,-100, -80, -98, -82, -96, -85, -94, -87, -91,
+         -89, -89, -91, -87, -94, -85, -96, -82, -98, -80,-100, -78,-101, -75,-103, -73,
+        -105, -70,-107, -67,-108, -65,-110, -62,-111, -59,-113, -57,-114, -54,-116, -51,
+        -117, -48,-118, -45,-119, -42,-120, -39,-121, -36,-122, -33,-123, -30,-123, -27,
+        -124, -24,-125, -21,-125, -18,-126, -15,-126, -12,-126,  -9,-126,  -6,-126,  -3,
+        -127,   0,-126,   3,-126,   6,-126,   9,-126,  12,-126,  15,-125,  18,-125,  21,
+        -124,  24,-123,  27,-123,  30,-122,  33,-121,  36,-120,  39,-119,  42,-118,  45,
+        -117,  48,-116,  51,-114,  54,-113,  57,-112,  59,-110,  62,-108,  65,-107,  67,
+        -105,  70,-103,  73,-102,  75,-100,  78, -98,  80, -96,  82, -94,  85, -91,  87,
+         -89,  89, -87,  91, -85,  94, -82,  96, -80,  98, -78, 100, -75, 101, -73, 103,
+         -70, 105, -67, 107, -65, 108, -62, 110, -59, 111, -57, 113, -54, 114, -51, 116,
+         -48, 117, -45, 118, -42, 119, -39, 120, -36, 121, -33, 122, -30, 123, -27, 123,
+         -24, 124, -21, 125, -18, 125, -15, 126, -12, 126,  -9, 126,  -6, 126,  -3, 126,};
+/** The above table was created using the following code:
+#include <math.h>
+#include <stdio.h>
+#include <stdint.h>
+
+int8_t Ssintable[512]; //Actually [sin][cos] pairs.
+
+int main()
+{
+	int i;
+	for( i = 0; i < 256; i++ )
+	{
+		Ssintable[i*2+0] = (int8_t)((sinf( i / 256.0 * 6.283 ) * 127.0));
+		Ssintable[i*2+1] = (int8_t)((cosf( i / 256.0 * 6.283 ) * 127.0));
+	}
+
+	printf( "const int8_t Ssintable[512] = {" );
+	for( i = 0; i < 512; i++ )
+	{
+		if( !(i & 0xf ) )
+		{
+			printf( "\n\t" );
+		}
+		printf( "%4d," ,Ssintable[i] );
+	}
+	printf( "};\n" );
+}
+ */
+
+
+
+uint16_t Sdatspace[FIXBINS*4];  //(advances,places,isses,icses)
 
 //For 
-static uint8_t Sdo_this_octave[BINCYCLE];
-static int16_t Saccum_octavebins[OCTAVES];
-static uint8_t Swhichoctaveplace;
+uint8_t Sdo_this_octave[BINCYCLE];
+int16_t Saccum_octavebins[OCTAVES];
+uint8_t Swhichoctaveplace;
+uint16_t embeddedbins[FIXBINS]; //This is updated every time the DFT hits the octavecount, or 1/32 updates.
+
+//From: http://stackoverflow.com/questions/1100090/looking-for-an-efficient-integer-square-root-algorithm-for-arm-thumb2
+/**
+ * \brief    Fast Square root algorithm, with rounding
+ *
+ * This does arithmetic rounding of the result. That is, if the real answer
+ * would have a fractional part of 0.5 or greater, the result is rounded up to
+ * the next integer.
+ *      - SquareRootRounded(2) --> 1
+ *      - SquareRootRounded(3) --> 2
+ *      - SquareRootRounded(4) --> 2
+ *      - SquareRootRounded(6) --> 2
+ *      - SquareRootRounded(7) --> 3
+ *      - SquareRootRounded(8) --> 3
+ *      - SquareRootRounded(9) --> 3
+ *
+ * \param[in] a_nInput - unsigned integer for which to find the square root
+ *
+ * \return Integer square root of the input value.
+ */
+static uint16_t SquareRootRounded(uint32_t a_nInput)
+{
+    uint32_t op  = a_nInput;
+    uint32_t res = 0;
+    uint32_t one = 1uL << 30; // The second-to-top bit is set: use 1u << 14 for uint16_t type; use 1uL<<30 for uint32_t type
+
+
+    // "one" starts at the highest power of four <= than the argument.
+    while (one > op)
+    {
+        one >>= 2;
+    }
+
+    while (one != 0)
+    {
+        if (op >= res + one)
+        {
+            op = op - (res + one);
+            res = res +  2 * one;
+        }
+        res >>= 1;
+        one >>= 2;
+    }
+
+    /* Do arithmetic rounding to nearest integer */
+    if (op > res)
+    {
+        res++;
+    }
+
+    return res;
+}
 
 void HandleProgressiveIntSkippy( int8_t sample1 )
 {
@@ -390,19 +500,32 @@ void HandleProgressiveIntSkippy( int8_t sample1 )
 		{
 			int16_t isps = Sdatspace[i*4+2];
 			int16_t ispc = Sdatspace[i*4+3];
-			int16_t mux = ( (isps/256) * (isps/256)) + ((ispc/256) * (ispc/256));
 	//		printf( "%d (%d %d)\n", mux, isps, ispc );
 
 			int octave = i / FIXBPERO;
 //			mux >>= octave; 
-			goutbins[i] = sqrt( mux );
-//			goutbins[i]/=100.0;
-			goutbins[i]/=100*(1<<octave);
-			Sdatspace[i*4+2] -= isps>>5;
-			Sdatspace[i*4+3] -= ispc>>5;
-		}
 
+#ifndef CCEMBEDDED
+			uint32_t mux = ( (isps/256) * (isps/256)) + ((ispc/256) * (ispc/256));
+			goutbins[i] = sqrt( mux );
+			goutbins[i]/=25*(1<<octave);
+#endif
+
+
+			uint32_t rmux = ( (isps) * (isps)) + ((ispc) * (ispc));
+			embeddedbins[i] = SquareRootRounded( rmux );
+			embeddedbins[i] >>= octave;
+
+			Sdatspace[i*4+2] -= isps>>4; //XXX 4 is more responsive AND doesn't overflow as easily.
+			Sdatspace[i*4+3] -= ispc>>4; //XXX 4 is more responsive AND doesn't overflow as easily.
+
+			//TRICKY: It is possible for the sin and cos accumulators to overflow,
+			//I DO NOT INTEND TO FIX THIS NOW!  It could be easily fixed by using 32-bit integers, or
+			//by decreasing the quality a little bit, but it is an extreme case with a pure, full-volume sinewave.
+		}
+		return;
 	}
+
 
 	for( i = 0; i < OCTAVES;i++ )
 	{
@@ -410,7 +533,7 @@ void HandleProgressiveIntSkippy( int8_t sample1 )
 	}
 
 	uint16_t * ds = &Sdatspace[oct*FIXBPERO*4];
-	int8_t * st;
+	const int8_t * st;
 
 	sample1 = Saccum_octavebins[oct]>>(OCTAVES-oct);
 	Saccum_octavebins[oct] = 0;
@@ -436,13 +559,13 @@ void HandleProgressiveIntSkippy( int8_t sample1 )
 		//Add TS and TC to the datspace stuff. (24 instructions)
 		tmp1 = (*ds);			//Read out, sin component.								4  Accurate.
 //		tmp1 -= tmp1>>4;					//Subtract from the MSB (with carry)					2 -> 6  AS/IS: 7+7 = 14
-		tmp1 += ts>>3;						//Add MSBs with carry									2 -> 6  AS/IS: 6
+		tmp1 += ts>>4;						//Add MSBs with carry									2 -> 6  AS/IS: 6
 
 		*(ds++) = tmp1;			//Store values back										4
 
 		tmp1 = *ds;			//Read out, sin component.								4
 //		tmp1 -= tmp1>>4;					//Subtract from the MSB (with carry)					2 -> 6 AS/IS: 7+7 = 14
-		tmp1 += tc>>3;						//Add MSBs with carry									2 -> 6 AS/IS: 6
+		tmp1 += tc>>4;						//Add MSBs with carry									2 -> 6 AS/IS: 6
 
 		*ds++ = tmp1;			//Store values back										4
 
@@ -452,46 +575,82 @@ void HandleProgressiveIntSkippy( int8_t sample1 )
 	}
 }
 
+void SetupDFTProgressiveIntegerSkippy()
+{
+	int i;
+	int j;
+	//Sdatspace = malloc(FIXBPERO*OCTAVES*8);
+	//memset(Sdatspace,0,FIXBPERO*OCTAVES*8);
+	//printf( "MS: %d\n", FIXBPERO*OCTAVES*8);
+	Sdonefirstrun = 1;
+/*
+	for( i = 0; i < 256; i++ )
+	{
+		Ssintable[i*2+0] = (int8_t)((sinf( i / 256.0 * 6.283 ) * 127.0));
+		Ssintable[i*2+1] = (int8_t)((cosf( i / 256.0 * 6.283 ) * 127.0));
+	}
+*/
+	for( i = 0; i < BINCYCLE; i++ )
+	{
+		// Sdo_this_octave = 
+		// 4 3 4 2 4 3 4 ...
+		//search for "first" zero
+
+		for( j = 0; j <= OCTAVES; j++ )
+		{
+			if( ((1<<j) & i) == 0 ) break;
+		}
+		if( j > OCTAVES )
+		{
+			fprintf( stderr, "Error: algorithm fault.\n" );
+			exit( -1 );
+		}
+		Sdo_this_octave[i] = OCTAVES-j-1;
+	}
+}
+
+#ifndef CCEMBEDDED
+
+void UpdateBinsForProgressiveIntegerSkippy( const float * frequencies )
+{
+	int i;	
+	for( i = 0; i < FIXBINS; i++ )
+	{
+		float freq = frequencies[(i%FIXBPERO) + (FIXBPERO*(OCTAVES-1))];
+		Sdatspace[i*4] = (65536.0/freq);// / oneoveroctave;
+	}
+}
+
+#endif
+
+
+void UpdateBinsForProgressiveIntegerSkippyInt( const uint16_t * frequencies )
+{
+	int i;	
+	for( i = 0; i < FIXBINS; i++ )
+	{
+		uint16_t freq = frequencies[i%FIXBPERO];
+		Sdatspace[i*4] = freq;// / oneoveroctave;
+	}
+}
+
+void Push8BitIntegerSkippy( int8_t dat )
+{
+	HandleProgressiveIntSkippy( dat );
+	HandleProgressiveIntSkippy( dat );
+}
+
+
+#ifndef CCEMBEDDED
+
 void DoDFTProgressiveIntegerSkippy( float * outbins, float * frequencies, int bins, const float * databuffer, int place_in_data_buffer, int size_of_data_buffer, float q, float speedup )
 {
 	static float backupbins[FIXBINS];
-	int i, j;
+	int i;
 	static int last_place;
 
-//printf( "SKIPPY\n" );
-
-	if( !Sdonefirstrun )
-	{
-		memset( outbins, 0, bins * sizeof( float ) );
-		goutbins = outbins;
-		//Sdatspace = malloc(FIXBPERO*OCTAVES*8);
-		//memset(Sdatspace,0,FIXBPERO*OCTAVES*8);
-		//printf( "MS: %d\n", FIXBPERO*OCTAVES*8);
-		Sdonefirstrun = 1;
-		for( i = 0; i < 256; i++ )
-		{
-			Ssintable[i*2+0] = (int8_t)((sinf( i / 256.0 * 6.283 ) * 127.0));
-			Ssintable[i*2+1] = (int8_t)((cosf( i / 256.0 * 6.283 ) * 127.0));
-		}
-
-		for( i = 0; i < BINCYCLE; i++ )
-		{
-			// Sdo_this_octave = 
-			// 4 3 4 2 4 3 4 ...
-			//search for "first" zero
-
-			for( j = 0; j <= OCTAVES; j++ )
-			{
-				if( ((1<<j) & i) == 0 ) break;
-			}
-			if( j > OCTAVES )
-			{
-				fprintf( stderr, "Error: algorithm fault.\n" );
-				exit( -1 );
-			}
-			Sdo_this_octave[i] = OCTAVES-j-1;
-		}
-	}
+	memset( outbins, 0, bins * sizeof( float ) );
+	goutbins = outbins;
 
 	memcpy( outbins, backupbins, FIXBINS*4 );
 
@@ -501,13 +660,16 @@ void DoDFTProgressiveIntegerSkippy( float * outbins, float * frequencies, int bi
 		return;
 	}
 
-	
-	for( i = 0; i < bins; i++ )
+
+//printf( "SKIPPY\n" );
+
+	if( !Sdonefirstrun )
 	{
-		float freq = frequencies[(i%FIXBPERO) + (FIXBPERO*(OCTAVES-1))];
-		Sdatspace[i*4] = (65536.0/freq);// / oneoveroctave;
+		SetupDFTProgressiveIntegerSkippy();
+		Sdonefirstrun = 1;
 	}
 
+	UpdateBinsForProgressiveIntegerSkippy( frequencies );
 
 	for( i = last_place; i != place_in_data_buffer; i = (i+1)%size_of_data_buffer )
 	{
@@ -519,23 +681,9 @@ void DoDFTProgressiveIntegerSkippy( float * outbins, float * frequencies, int bi
 	last_place = place_in_data_buffer;
 
 	memcpy( backupbins, outbins, FIXBINS*4 );
-
-	//Extract bins.
-/*
-	for( i = 0; i < bins; i++ )
-	{
-		int16_t isps = Sdatspace[i*4+2];
-		int16_t ispc = Sdatspace[i*4+3];
-		int16_t mux = ( (isps/256) * (isps/256)) + ((ispc/256) * (ispc/256));
-//		printf( "%d (%d %d)\n", mux, isps, ispc );
-		outbins[i] = sqrt( mux )/100.0;
-	}
-*/
-
-//	printf( "\n");
 }
 
-
+#endif
 
 
 

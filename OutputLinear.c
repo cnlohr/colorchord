@@ -157,7 +157,9 @@ static void LEDUpdate(void * id, struct NoteFinder*nf)
 		if( satQ > 1 ) satQ = 1;
 		led->last_led_pos[i] = rledpos[ia];
 		led->last_led_amp[i] = sat;
-		int r = CCtoHEX( led->last_led_pos[i], 1.0, (led->steady_bright?sat:satQ) );
+		float sendsat = (led->steady_bright?sat:satQ);
+		if( sendsat > 1 ) sendsat = 1;
+		int r = CCtoHEX( led->last_led_pos[i], 1.0, sendsat );
 
 		OutLEDs[i*3+0] = r & 0xff;
 		OutLEDs[i*3+1] = (r>>8) & 0xff;

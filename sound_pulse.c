@@ -267,6 +267,11 @@ void * InitSoundPulse( SoundCBType cb )
 	r->channelsRec = r->channelsPlay;
 	r->sourceName = GetParameterS( "sourcename", NULL );
 
+	if( strcmp( r->sourceName, "default" ) == 0  )
+	{
+		r->sourceName = 0;
+	}
+
 	r->play = 0;
 	r->rec = 0;
 	r->buffer = GetParameterI( "buffer", 1024 );

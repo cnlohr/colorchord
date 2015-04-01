@@ -44,7 +44,7 @@ int sample_channel = -1;REGISTER_PARAM( sample_channel, PAINT );
 struct NoteFinder * nf;
 
 //Sound circular buffer
-#define SOUNDCBSIZE 65536
+#define SOUNDCBSIZE 8096
 #define MAX_CHANNELS 2
 
 double VisTimeEnd, VisTimeStart;
@@ -98,9 +98,14 @@ void SoundCB( float * out, float * in, int samplesr, int * samplesp, struct Soun
 			for( j = 0; j < channelin; j++ )
 			{
 				float f = in[i*channelin+j];
-				if( f > -1 && f < 1 )
+				if( f >= -1 && f <= 1 )
 				{
 					fo += f;
+				}
+				else
+				{
+					fo += (f>0)?1:-1;
+//					printf( "Sound fault A %d/%d %d/%d %f\n", j, channelin, i, samplesr, f );
 				}
 			}
 
@@ -114,9 +119,13 @@ void SoundCB( float * out, float * in, int samplesr, int * samplesp, struct Soun
 			float f = in[i*channelin+sample_channel];
 			if( f > -1 && f < 1 )
 			{
-				sound[soundhead] = f;
-				soundhead = (soundhead+1)%SOUNDCBSIZE;
+				f = (f>0)?1:-1;
 			}
+
+			//printf( "Sound fault B %d/%d\n", i, samplesr );
+			sound[soundhead] = f;
+			soundhead = (soundhead+1)%SOUNDCBSIZE;
+
 		}
 	}
 }
@@ -374,6 +383,7 @@ int main(int argc, char ** argv)
 				int thisy = sound[thissoundhead] * 128 + 128; thissoundhead = (thissoundhead-1+SOUNDCBSIZE)%SOUNDCBSIZE;
 				for( i = 0; i < screenx; i++ )
 				{
+					if( thisy < 0 || thisy > 256 ) printf( "%d/%d\n", thisy,thissoundhead );
 					CNFGTackSegment( i, lasty, i+1, thisy );
 					lasty = thisy;
 					thisy = sound[thissoundhead] * 128 + 128; thissoundhead = (thissoundhead-1+SOUNDCBSIZE)%SOUNDCBSIZE;
