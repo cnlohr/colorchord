@@ -16,7 +16,7 @@ EXTRALIBS:=-lusb-1.0
 colorchord : os_generic.o main.o  dft.o decompose.o filter.o color.o sort.o notefinder.o util.o outdrivers.o $(RAWDRAW) $(SOUND) $(OUTS) parameters.o chash.o 
 	gcc -o $@ $^ $(CFLAGS) $(LDLIBS) $(EXTRALIBS) $(RAWDRAWLIBS)
 
-embeddedcc : os_generic.c embeddedcc.c dft.c
+embeddedcc : os_generic.c embeddedcc.c dft.c embeddednf.c
 	gcc -o $@ $^ $(CFLAGS) -DCCEMBEDDED $(LDFLAGS) $(EXTRALIBS) $(RAWDRAWLIBS)
 
 runembedded : embeddedcc

@@ -559,13 +559,13 @@ void HandleProgressiveIntSkippy( int8_t sample1 )
 		//Add TS and TC to the datspace stuff. (24 instructions)
 		tmp1 = (*ds);			//Read out, sin component.								4  Accurate.
 //		tmp1 -= tmp1>>4;					//Subtract from the MSB (with carry)					2 -> 6  AS/IS: 7+7 = 14
-		tmp1 += ts>>4;						//Add MSBs with carry									2 -> 6  AS/IS: 6
+		tmp1 += ts>>SHIFT_ADD_DETAIL;						//Add MSBs with carry									2 -> 6  AS/IS: 6
 
 		*(ds++) = tmp1;			//Store values back										4
 
 		tmp1 = *ds;			//Read out, sin component.								4
 //		tmp1 -= tmp1>>4;					//Subtract from the MSB (with carry)					2 -> 6 AS/IS: 7+7 = 14
-		tmp1 += tc>>4;						//Add MSBs with carry									2 -> 6 AS/IS: 6
+		tmp1 += tc>>SHIFT_ADD_DETAIL;						//Add MSBs with carry									2 -> 6 AS/IS: 6
 
 		*ds++ = tmp1;			//Store values back										4
 
