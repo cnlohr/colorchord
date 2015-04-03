@@ -23,6 +23,7 @@
 //We have to define all of the possible locations on the note line in this.
 //note_frequency = 0..((1<<SEMIBITSPERBIN)*FIXBPERO-1)
 #define SEMIBITSPERBIN 3 
+#define NOTERANGE ((1<<SEMIBITSPERBIN)*FIXBPERO)
 
 //This is the amplitude, coming from folded_bins.  If the value is below this
 //it is considered a non-note.
