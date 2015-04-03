@@ -5,7 +5,6 @@
 
 #include <stdio.h>
 #include "embeddednf.h"
-#include "dft.h"
 
 int main()
 {
@@ -15,7 +14,11 @@ int main()
 	while( ( ci = getchar() ) != EOF )
 	{
 		int cs = ci - 0x80;
+#ifdef USE_32DFT
+		PushSample32( ((int8_t)cs)*32 );
+#else
 		Push8BitIntegerSkippy( (int8_t)cs );
+#endif
 		//printf( "%d ", cs ); fflush( stdout );
 		wf++;
 		if( wf == 64 )

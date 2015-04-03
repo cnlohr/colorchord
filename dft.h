@@ -53,8 +53,13 @@ void Push8BitIntegerSkippy( int8_t dat ); //Call this to push on new frames of s
 #define FIXBPERO 24
 #endif
 
+#ifndef FIXBINS
 #define FIXBINS  (FIXBPERO*OCTAVES)
+#endif
+
+#ifndef BINCYCLE
 #define BINCYCLE (1<<OCTAVES)
+#endif
 
 //This variable determins how much to nerf the current sample of the DFT.
 //I've found issues when this is smaller, but bigger values do have a negative
@@ -65,7 +70,7 @@ void Push8BitIntegerSkippy( int8_t dat ); //Call this to push on new frames of s
 
 //Whenever you need to read the bins, you can do it from here.
 extern uint16_t Sdatspace[];  //(advances,places,isses,icses)
-extern uint16_t embeddedbins[]; //This is updated every time the DFT hits the octavecount, or 1/32 updates.
+extern uint16_t embeddedbins[]; //This is updated every time the DFT hits the octavecount, or every BINCYCLE updates.
 
 #endif
 

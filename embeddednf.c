@@ -57,7 +57,11 @@ void UpdateFreqs()
 		fbins[i] = ( 65536.0 ) / ( DFREQ ) * frq * 16;
 	}
 
+#ifdef USE_32DFT
+	UpdateBins32( fbins );
+#else
 	UpdateBinsForProgressiveIntegerSkippyInt( fbins );
+#endif
 }
 
 void Init()
@@ -82,7 +86,11 @@ void Init()
 	}
 
 	//Step 1: Initialize the Integer DFT.
+#ifdef USE_32DFT
+	SetupDFTProgressive32();
+#else
 	SetupDFTProgressiveIntegerSkippy();
+#endif
 
 	//Step 2: Set up the frequency list.  You could do this multiple times
 	//if you want to change the loadout of the frequencies.
@@ -93,10 +101,18 @@ void HandleFrameInfo()
 {
 	int i, j, k;
 
+#ifdef USE_32DFT
+	uint16_t * strens;
+	UpdateOutputBins32();
+	strens = embeddedbins32;
+#else
+	uint16_t * strens = embeddedbins;
+#endif
+
 	//Copy out the bins from the DFT to our fuzzed bins.
 	for( i = 0; i < FIXBINS; i++ )
 	{
-		fuzzed_bins[i] = (fuzzed_bins[i] + (embeddedbins[i]>>FUZZ_IIR_BITS) -
+		fuzzed_bins[i] = (fuzzed_bins[i] + (strens[i]>>FUZZ_IIR_BITS) -
 			(fuzzed_bins[i]>>FUZZ_IIR_BITS));
 	}
 
@@ -322,21 +338,22 @@ void HandleFrameInfo()
 	}
 
 	//We now have notes!!!
-/*
+#if 1
 	for( i = 0; i < MAXNOTES; i++ )
 	{
 		if( note_peak_freqs[i] == 255 ) continue;
 		printf( "(%3d %4d %4d) ", note_peak_freqs[i], note_peak_amps[i], note_peak_amps2[i] );
 	}
 	printf( "\n") ;
-*/
+#endif
 
-/*
+#if 0
 	for( i = 0; i < FIXBPERO; i++ )
 	{
 		printf( "%5d ", folded_bins[i] );
 	}
-	printf( "\n" );*/
+	printf( "\n" );
+#endif
 }
 
 

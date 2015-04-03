@@ -348,7 +348,7 @@ void DoDFTProgressiveInteger( float * outbins, float * frequencies, int bins, co
 
 static uint8_t Sdonefirstrun;
 //int8_t Ssintable[512]; //Actually [sin][cos] pairs.
-const int8_t Ssintable[512] = {
+static const int8_t Ssintable[512] = {
            0, 127,   3, 126,   6, 126,   9, 126,  12, 126,  15, 126,  18, 125,  21, 125,
           24, 124,  27, 123,  30, 123,  33, 122,  36, 121,  39, 120,  42, 119,  45, 118,
           48, 117,  51, 116,  54, 114,  57, 113,  59, 112,  62, 110,  65, 108,  67, 107,
@@ -397,7 +397,7 @@ int main()
 		Ssintable[i*2+1] = (int8_t)((cosf( i / 256.0 * 6.283 ) * 127.0));
 	}
 
-	printf( "const int8_t Ssintable[512] = {" );
+	printf( "static const int8_t Ssintable[512] = {" );
 	for( i = 0; i < 512; i++ )
 	{
 		if( !(i & 0xf ) )
@@ -415,9 +415,9 @@ int main()
 uint16_t Sdatspace[FIXBINS*4];  //(advances,places,isses,icses)
 
 //For 
-uint8_t Sdo_this_octave[BINCYCLE];
-int16_t Saccum_octavebins[OCTAVES];
-uint8_t Swhichoctaveplace;
+static uint8_t Sdo_this_octave[BINCYCLE];
+static int16_t Saccum_octavebins[OCTAVES];
+static uint8_t Swhichoctaveplace;
 uint16_t embeddedbins[FIXBINS]; //This is updated every time the DFT hits the octavecount, or 1/32 updates.
 
 //From: http://stackoverflow.com/questions/1100090/looking-for-an-efficient-integer-square-root-algorithm-for-arm-thumb2

@@ -1,7 +1,9 @@
 #ifndef _EMBEDDEDNF_H
 #define _EMBEDDEDNF_H
 
-#include "dft.h"
+//Use a 32-bit DFT.  It won't work for AVRs, but for any 32-bit systems where
+//they can multiply quickly, this is the bees knees.
+#define USE_32DFT
 
 #define DFREQ     8000
 #define BASE_FREQ 55.0  // You may make this a float.
@@ -31,6 +33,13 @@
 #define MINIMUM_AMP_FOR_NOTE_TO_DISAPPEAR 64
 #define AMP_1_NERFING_BITS 5
 #define AMP_2_NERFING_BITS 3
+
+
+#ifdef USE_32DFT
+#include "DFT32.h"
+#else
+#include "dft.h"
+#endif
 
 extern uint16_t folded_bins[]; //[FIXBPERO] <- The folded fourier output.
 extern uint16_t fuzzed_bins[]; //[FIXBINS]  <- The Full DFT after IIR, Blur and Taper
