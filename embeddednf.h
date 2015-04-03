@@ -5,7 +5,10 @@
 //they can multiply quickly, this is the bees knees.
 #define USE_32DFT
 
+#ifndef DFREQ
 #define DFREQ     8000
+#endif
+
 #define BASE_FREQ 55.0  // You may make this a float.
 
 //The higher the number the slackier your FFT will be come.
@@ -23,14 +26,14 @@
 
 //This is the amplitude, coming from folded_bins.  If the value is below this
 //it is considered a non-note.
-#define MIN_AMP_FOR_NOTE 128
+#define MIN_AMP_FOR_NOTE 64
 
 //If there is detected note this far away from an established note, we will
 //then consider this new note the same one as last time, and move the established
 //note.  This is also used when combining notes.  It is this distance times two.
 #define MAX_JUMP_DISTANCE 7
 
-#define MINIMUM_AMP_FOR_NOTE_TO_DISAPPEAR 64
+#define MINIMUM_AMP_FOR_NOTE_TO_DISAPPEAR 32
 #define AMP_1_NERFING_BITS 5
 #define AMP_2_NERFING_BITS 3
 
@@ -48,6 +51,8 @@ extern uint16_t fuzzed_bins[]; //[FIXBINS]  <- The Full DFT after IIR, Blur and 
 extern uint8_t  note_peak_freqs[];
 extern uint16_t note_peak_amps[];  //[MAXNOTES] 
 extern uint16_t note_peak_amps2[];  //[MAXNOTES]  (Responds quicker)
+extern uint8_t  note_jumped_to[]; //[MAXNOTES] When a note combines into another one,
+	//this records where it went.  I.e. if your note just disappeared, check this flag.
 
 //XXX: TODO: Consider doing the fuzz IIR on the folded bins.  That way we can
 //save several bytes of RAM on not having to keep fuzzed_bins around.

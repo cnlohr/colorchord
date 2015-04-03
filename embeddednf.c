@@ -6,6 +6,7 @@ uint16_t fuzzed_bins[FIXBINS];
 uint8_t  note_peak_freqs[MAXNOTES];
 uint16_t note_peak_amps[MAXNOTES];
 uint16_t note_peak_amps2[MAXNOTES];
+uint8_t  note_jumped_to[MAXNOTES];
 
 
 static const float bf_table[24] = {
@@ -215,7 +216,7 @@ void HandleFrameInfo()
 			if( thisfreq > 255-(1<<SEMIBITSPERBIN) )
 				thisfreq = (1<<SEMIBITSPERBIN)*FIXBPERO - (256-thisfreq);
 
-			//printf( "Peak At: %3d /(%2d) %4d/%4d/%4d\n", thisfreq, i,prev, this, next );
+//			printf( "---%3d /(%2d) %4d/%4d/%4d---", thisfreq, i,prev, this, next );
 
 			//Okay, we have a peak, and a frequency. Now, we need to search
 			//through the existing notes to see if we have any matches.
@@ -314,11 +315,13 @@ void HandleFrameInfo()
 		uint32_t porp = (amp1<<15) / (amp1+amp2);  
 		uint16_t newnote = (nf1 * porp + nf2 * (32768-porp))>>15;
 
-		note_peak_amps[i] = amp1 + amp2;
-		note_peak_amps[j] = 0;
 		note_peak_freqs[i] = newnote;
+		note_peak_amps[i] = (note_peak_amps[i]+note_peak_amps[j])>>1;
+		note_peak_amps2[i] = (note_peak_amps2[i]+note_peak_amps2[j])>>1;
+
 		note_peak_freqs[j] = 255;
-		note_peak_amps2[i] += note_peak_amps2[j];
+		note_peak_amps[j] = 0;
+		note_jumped_to[j] = i;
 	}
 
 
@@ -338,7 +341,7 @@ void HandleFrameInfo()
 	}
 
 	//We now have notes!!!
-#if 1
+#if 0
 	for( i = 0; i < MAXNOTES; i++ )
 	{
 		if( note_peak_freqs[i] == 255 ) continue;
@@ -350,10 +353,12 @@ void HandleFrameInfo()
 #if 0
 	for( i = 0; i < FIXBPERO; i++ )
 	{
-		printf( "%5d ", folded_bins[i] );
+		printf( "%4d ", folded_bins[i] );
 	}
 	printf( "\n" );
 #endif
+
+
 }
 
 
