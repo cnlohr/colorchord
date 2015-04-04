@@ -8,11 +8,11 @@
 #define NOTE_FINAL_AMP  255   //Number from 0...255
 
 //Controls, basically, the minimum size of the splotches.
-#define NERF_NOTE_SIZE_VALUE 10
+#define NERF_NOTE_SIZE_VALUE 1
 
 #define NUM_LIN_LEDS 296
 
-#define LIN_WRAPAROUND 0 //Whether the output lights wrap around. (TODO)
+#define LIN_WRAPAROUND 1 //Whether the output lights wrap around.
 
 extern uint8_t ledArray[];
 extern uint8_t ledOut[]; //[NUM_LIN_LEDS*3]

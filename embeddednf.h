@@ -32,7 +32,7 @@
 #define MAX_JUMP_DISTANCE 5
 
 
-#define AMP_1_NERFING_BITS 5
+#define AMP_1_NERFING_BITS 4
 #define AMP_2_NERFING_BITS 3
 
 //This is the amplitude, coming from folded_bins.  If the value is below this
