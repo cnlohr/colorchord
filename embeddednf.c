@@ -101,6 +101,11 @@ void Init()
 void HandleFrameInfo()
 {
 	int i, j, k;
+	uint8_t hitnotes[MAXNOTES];
+	for( i = 0; i < MAXNOTES; i++ )
+	{
+		hitnotes[i] = 0;
+	}
 
 #ifdef USE_32DFT
 	uint16_t * strens;
@@ -275,10 +280,11 @@ void HandleFrameInfo()
 
 			if( marked_note != -1 )
 			{
-				if( note_peak_amps[marked_note] <= this )
-					note_peak_amps[marked_note] = this;
-				if( note_peak_amps2[marked_note] <= this )
-					note_peak_amps2[marked_note] = this;
+				hitnotes[marked_note] = 1;
+//				if( note_peak_amps[marked_note] <= this )
+				note_peak_amps[marked_note] = note_peak_amps[marked_note] - (note_peak_amps[marked_note]>>AMP_1_NERFING_BITS) + (this>>AMP_1_NERFING_BITS);
+//				if( note_peak_amps2[marked_note] <= this )
+				note_peak_amps2[marked_note] = note_peak_amps2[marked_note] - (note_peak_amps2[marked_note]>>AMP_2_NERFING_BITS) + (this>>AMP_2_NERFING_BITS);
 			}
 		}
 	}
@@ -327,7 +333,7 @@ void HandleFrameInfo()
 
 	for( i = 0; i < MAXNOTES; i++ )
 	{
-		if( note_peak_freqs[i] == 255 ) continue;
+		if( note_peak_freqs[i] == 255 || hitnotes[i] ) continue;
 
 		note_peak_amps[i] -= note_peak_amps[i]>>AMP_1_NERFING_BITS;
 		note_peak_amps2[i] -= note_peak_amps2[i]>>AMP_2_NERFING_BITS;

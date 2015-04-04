@@ -32,7 +32,7 @@
 //must decrease.  Increasing this value makes responses slower.  Lower values are
 //more responsive.
 #ifndef DFTIIR
-#define DFTIIR 4
+#define DFTIIR 6
 #endif
 
 //Everything the integer one buys, except it only calculates 2 octaves worth of notes per audio frame.
