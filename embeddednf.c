@@ -154,6 +154,7 @@ void HandleFrameInfo()
 	//Sometimes you may notice every other bin being out-of
 	//line, and this fixes that.  We may consider running this
 	//more than once, but in my experience, once is enough.
+	for( j = 0; j < FILTER_BLUR_PASSES; j++ )
 	{
 		//Extra scoping because this is a large on-stack buffer.
 		uint16_t folded_out[FIXBPERO];
@@ -281,13 +282,20 @@ void HandleFrameInfo()
 			if( marked_note != -1 )
 			{
 				hitnotes[marked_note] = 1;
-//				if( note_peak_amps[marked_note] <= this )
-				note_peak_amps[marked_note] = note_peak_amps[marked_note] - (note_peak_amps[marked_note]>>AMP_1_NERFING_BITS) + (this>>AMP_1_NERFING_BITS);
-//				if( note_peak_amps2[marked_note] <= this )
-				note_peak_amps2[marked_note] = note_peak_amps2[marked_note] - (note_peak_amps2[marked_note]>>AMP_2_NERFING_BITS) + (this>>AMP_2_NERFING_BITS);
+				note_peak_amps[marked_note] = note_peak_amps[marked_note] - (note_peak_amps[marked_note]>>AMP_1_NERFING_BITS) + (this>>(AMP_1_NERFING_BITS-3));
+				note_peak_amps2[marked_note] = note_peak_amps2[marked_note] - (note_peak_amps2[marked_note]>>AMP_2_NERFING_BITS) + (this>>(AMP_2_NERFING_BITS-3));
 			}
 		}
 	}
+
+#if 0
+	for( i = 0; i < MAXNOTES; i++ )
+	{
+		if( note_peak_freqs[i] == 255 ) continue;
+		printf( "%d / ", note_peak_amps[i] );
+	}
+	printf( "\n" );
+#endif
 
 	//Now we need to handle combining notes.
 	for( i = 0; i < MAXNOTES; i++ )
@@ -312,22 +320,36 @@ void HandleFrameInfo()
 			continue;
 		}
 
+		int into;
+		int from;
+
+		if( note_peak_amps[i] > note_peak_amps[j] )
+		{
+			into = i;
+			from = j;
+		}
+		else
+		{
+			into = j;
+			from = i;
+		}
+
 		//We need to combine the notes.  We need to move the new note freq
 		//towards the stronger of the two notes.  
-		int16_t amp1 = note_peak_amps[i];
-		int16_t amp2 = note_peak_amps[j];
+		int16_t amp1 = note_peak_amps[into];
+		int16_t amp2 = note_peak_amps[from];
 
 		//0 to 32768 porportional to how much of amp1 we want.
 		uint32_t porp = (amp1<<15) / (amp1+amp2);  
 		uint16_t newnote = (nf1 * porp + nf2 * (32768-porp))>>15;
 
-		note_peak_freqs[i] = newnote;
-		note_peak_amps[i] = (note_peak_amps[i]+note_peak_amps[j])>>1;
-		note_peak_amps2[i] = (note_peak_amps2[i]+note_peak_amps2[j])>>1;
+		note_peak_freqs[into] = newnote;
+		note_peak_amps[into] = (note_peak_amps[into]>note_peak_amps[from])?note_peak_amps[into]:note_peak_amps[j];
+		note_peak_amps2[into] = (note_peak_amps2[into]>note_peak_amps2[from])?note_peak_amps2[into]:note_peak_amps2[j];
 
-		note_peak_freqs[j] = 255;
-		note_peak_amps[j] = 0;
-		note_jumped_to[j] = i;
+		note_peak_freqs[from] = 255;
+		note_peak_amps[from] = 0;
+		note_jumped_to[from] = i;
 	}
 
 

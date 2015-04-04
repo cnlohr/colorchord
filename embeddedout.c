@@ -26,20 +26,33 @@ void UpdateLinearLEDs()
 	uint16_t j, l;
 	uint32_t total_size_all_notes = 0;
 	int32_t porpamps[MAXNOTES]; //LEDs for each corresponding note.
-
 	uint8_t sorted_note_map[MAXNOTES]; //mapping from which note into the array of notes from the rest of the system.
-
 	uint8_t sorted_map_count = 0;
+	uint32_t note_nerf_a = 0;
+
+	for( i = 0; i < MAXNOTES; i++ )
+	{
+		if( note_peak_freqs[i] == 255 ) continue;
+		note_nerf_a += note_peak_amps[i];
+	}
+
+	note_nerf_a = ((note_nerf_a * NERF_NOTE_PORP)>>8);
+
 
 	for( i = 0; i < MAXNOTES; i++ )
 	{
 		uint16_t ist = note_peak_amps[i];
 		uint8_t nff = note_peak_freqs[i];
-		if( nff == 255 || ist <= NERF_NOTE_SIZE_VALUE )
+		if( nff == 255 )
+		{
+			continue;
+		}
+		if( ist < note_nerf_a )
 		{
 			continue;
 		}
 
+#if SORT_NOTES
 		for( j = 0; j < sorted_map_count; j++ )
 		{
 			if( note_peak_freqs[ sorted_note_map[j] ] > nff )
@@ -51,8 +64,10 @@ void UpdateLinearLEDs()
 		{
 			sorted_note_map[k] = sorted_note_map[k-1];
 		}
-
 		sorted_note_map[j] = i;
+#else
+#endif
+		sorted_note_map[sorted_map_count] = i;
 		sorted_map_count++;
 	}
 
@@ -70,21 +85,17 @@ void UpdateLinearLEDs()
 
 	for( i = 0; i < sorted_map_count; i++ )
 	{
-		local_peak_amps[i] = note_peak_amps[sorted_note_map[i]];
+		printf( "%5d ", local_peak_amps[i] );
+		local_peak_amps[i] = note_peak_amps[sorted_note_map[i]] - note_nerf_a;
 		local_peak_amps2[i] = note_peak_amps2[sorted_note_map[i]];
 		local_peak_freq[i] = note_peak_freqs[sorted_note_map[i]];
 	}
+	printf( "\n" );
 
 	for( i = 0; i < sorted_map_count; i++ )
 	{
 		uint16_t ist = local_peak_amps[i];
 		porpamps[i] = 0;
-		if( ist <= NERF_NOTE_SIZE_VALUE )
-		{
-			local_peak_amps[i] = 0;
-			continue;
-		}
-		local_peak_amps[i] = ist - NERF_NOTE_SIZE_VALUE;
 		total_size_all_notes += local_peak_amps[i];
 	}
 
@@ -108,10 +119,15 @@ void UpdateLinearLEDs()
 
 	int16_t total_unaccounted_leds = NUM_LIN_LEDS - total_accounted_leds;
 
-	for( i = 0; i < sorted_map_count && total_unaccounted_leds; i++ )
+	int addedlast = 1;
+	do
 	{
-		porpamps[i]++; total_unaccounted_leds--;
-	}
+		for( i = 0; i < sorted_map_count && total_unaccounted_leds; i++ )
+		{
+			porpamps[i]++; total_unaccounted_leds--;
+			addedlast = 1;
+		}
+	} while( addedlast && total_unaccounted_leds );
 
 	//Put the frequencies on a ring.
 	j = 0;
@@ -314,74 +330,4 @@ uint32_t EHSVtoHEX( uint8_t hue, uint8_t sat, uint8_t val )
 
 	return or | (og<<8) | ((uint32_t)ob<<16);
 }
-/*
-uint32_t HSVtoHEX( float hue, float sat, float value )
-{
 
-	float pr = 0;
-	float pg = 0;
-	float pb = 0;
-
-	short ora = 0;
-	short og = 0;
-	short ob = 0;
-
-	float ro = fmod( hue * 6, 6. );
-
-	float avg = 0;
-
-	ro = fmod( ro + 6 + 1, 6 ); //Hue was 60* off...
-
-	if( ro < 1 ) //yellow->red
-	{
-		pr = 1;
-		pg = 1. - ro;
-	} else if( ro < 2 )
-	{
-		pr = 1;
-		pb = ro - 1.;
-	} else if( ro < 3 )
-	{
-		pr = 3. - ro;
-		pb = 1;
-	} else if( ro < 4 )
-	{
-		pb = 1;
-		pg = ro - 3;
-	} else if( ro < 5 )
-	{
-		pb = 5 - ro;
-		pg = 1;
-	} else
-	{
-		pg = 1;
-		pr = ro - 5;
-	}
-
-	//Actually, above math is backwards, oops!
-	pr *= value;
-	pg *= value;
-	pb *= value;
-
-	avg += pr;
-	avg += pg;
-	avg += pb;
-
-	pr = pr * sat + avg * (1.-sat);
-	pg = pg * sat + avg * (1.-sat);
-	pb = pb * sat + avg * (1.-sat);
-
-	ora = pr * 255;
-	og = pb * 255;
-	ob = pg * 255;
-
-	if( ora < 0 ) ora = 0;
-	if( ora > 255 ) ora = 255;
-	if( og < 0 ) og = 0;
-	if( og > 255 ) og = 255;
-	if( ob < 0 ) ob = 0;
-	if( ob > 255 ) ob = 255;
-
-	return (ob<<16) | (og<<8) | ora;
-}
-*/

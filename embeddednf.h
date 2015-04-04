@@ -19,6 +19,8 @@
 //vaporize in one frame doesn't mean it is annihilated immediately.
 #define MAXNOTES  12
 
+#define FILTER_BLUR_PASSES 2
+
 //Determines bit shifts for where notes lie.  We represent notes with an uint8_t
 //We have to define all of the possible locations on the note line in this.
 //note_frequency = 0..((1<<SEMIBITSPERBIN)*FIXBPERO-1)
@@ -29,16 +31,16 @@
 //If there is detected note this far away from an established note, we will
 //then consider this new note the same one as last time, and move the established
 //note.  This is also used when combining notes.  It is this distance times two.
-#define MAX_JUMP_DISTANCE 5
+#define MAX_JUMP_DISTANCE 4
 
 
-#define AMP_1_NERFING_BITS 4
+#define AMP_1_NERFING_BITS 5
 #define AMP_2_NERFING_BITS 3
 
 //This is the amplitude, coming from folded_bins.  If the value is below this
 //it is considered a non-note.
-#define MIN_AMP_FOR_NOTE 64
-#define MINIMUM_AMP_FOR_NOTE_TO_DISAPPEAR (1<<(AMP_1_NERFING_BITS))
+#define MIN_AMP_FOR_NOTE 128
+#define MINIMUM_AMP_FOR_NOTE_TO_DISAPPEAR 100
 
 
 
