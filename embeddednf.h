@@ -19,27 +19,36 @@
 //vaporize in one frame doesn't mean it is annihilated immediately.
 #define MAXNOTES  12
 
+//We take the raw signal off of the 
 #define FILTER_BLUR_PASSES 2
 
-//Determines bit shifts for where notes lie.  We represent notes with an uint8_t
-//We have to define all of the possible locations on the note line in this.
-//note_frequency = 0..((1<<SEMIBITSPERBIN)*FIXBPERO-1)
+//Determines bit shifts for where notes lie.  We represent notes with an
+//uint8_t.  We have to define all of the possible locations on the note line
+//in this. note_frequency = 0..((1<<SEMIBITSPERBIN)*FIXBPERO-1)
 #define SEMIBITSPERBIN 3 
 #define NOTERANGE ((1<<SEMIBITSPERBIN)*FIXBPERO)
 
 
 //If there is detected note this far away from an established note, we will
-//then consider this new note the same one as last time, and move the established
-//note.  This is also used when combining notes.  It is this distance times two.
+//then consider this new note the same one as last time, and move the
+//established note.  This is also used when combining notes.  It is this
+//distance times two.
 #define MAX_JUMP_DISTANCE 4
 
 
-#define AMP_1_NERFING_BITS 5
-#define AMP_2_NERFING_BITS 3
+//These control how quickly the IIR for the note strengths respond.  AMP 1 is
+//the response for the slow-response, or what we use to determine size of
+//splotches, AMP 2 is the quick response, or what we use to see the visual
+//strength of the notes.
+#define AMP_1_IIR_BITS 5
+#define AMP_2_IIR_BITS 3
 
 //This is the amplitude, coming from folded_bins.  If the value is below this
 //it is considered a non-note.
 #define MIN_AMP_FOR_NOTE 128
+
+//If the strength of a note falls below this, the note will disappear, and be
+//recycled back into the unused list of notes.
 #define MINIMUM_AMP_FOR_NOTE_TO_DISAPPEAR 100
 
 
@@ -53,15 +62,13 @@
 extern uint16_t folded_bins[]; //[FIXBPERO] <- The folded fourier output.
 extern uint16_t fuzzed_bins[]; //[FIXBINS]  <- The Full DFT after IIR, Blur and Taper
 
-//[MAXNOTES] <- frequency of note; Note if it is == 255, then it means it is not set.
+//frequency of note; Note if it is == 255, then it means it is not set. It is
+//generally a value from 
 extern uint8_t  note_peak_freqs[];
 extern uint16_t note_peak_amps[];  //[MAXNOTES] 
 extern uint16_t note_peak_amps2[];  //[MAXNOTES]  (Responds quicker)
 extern uint8_t  note_jumped_to[]; //[MAXNOTES] When a note combines into another one,
 	//this records where it went.  I.e. if your note just disappeared, check this flag.
-
-//XXX: TODO: Consider doing the fuzz IIR on the folded bins.  That way we can
-//save several bytes of RAM on not having to keep fuzzed_bins around.
 
 void Init();
 void UpdateFreqs();

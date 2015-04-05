@@ -140,7 +140,6 @@ void HandleFrameInfo()
 	//Fold the bins from fuzzedbins into one octave.
 	for( i = 0; i < FIXBPERO; i++ )
 		folded_bins[i] = 0;
-
 	k = 0;
 	for( j = 0; j < OCTAVES; j++ )
 	{
@@ -222,13 +221,10 @@ void HandleFrameInfo()
 			if( thisfreq > 255-(1<<SEMIBITSPERBIN) )
 				thisfreq = (1<<SEMIBITSPERBIN)*FIXBPERO - (256-thisfreq);
 
-//			printf( "---%3d /(%2d) %4d/%4d/%4d---", thisfreq, i,prev, this, next );
-
 			//Okay, we have a peak, and a frequency. Now, we need to search
 			//through the existing notes to see if we have any matches.
 			//If we have a note that's close enough, we will try to pull it
 			//closer to us and boost it.
-
 			int8_t lowest_found_free_note = -1;
 			int8_t closest_note_id = -1;
 			int16_t closest_note_distance = 32767;
@@ -255,6 +251,8 @@ void HandleFrameInfo()
 					distance = ((1<<(SEMIBITSPERBIN))*FIXBPERO) - distance;
 				}
 
+				//If we find a note closer to where we are than any of the 
+				//others, we can mark it as our desired note.
 				if( distance < closest_note_distance )
 				{	
 					closest_note_id = j;
@@ -267,11 +265,10 @@ void HandleFrameInfo()
 			if( closest_note_distance <= MAX_JUMP_DISTANCE )
 			{
 				//We found the note we need to augment.
-				//XXX: TODO: Should we be IIRing this?
-
 				note_peak_freqs[closest_note_id] = thisfreq;
 				marked_note = closest_note_id;
 			}
+
 			//The note was not found.
 			else if( lowest_found_free_note != -1 )
 			{
@@ -279,11 +276,22 @@ void HandleFrameInfo()
 				marked_note = lowest_found_free_note;
 			}
 
+			//If we found a note to attach to, we have to use the IIR to
+			//increase the strength of the note, but we can't exactly snap
+			//it to the new strength.
 			if( marked_note != -1 )
 			{
 				hitnotes[marked_note] = 1;
-				note_peak_amps[marked_note] = note_peak_amps[marked_note] - (note_peak_amps[marked_note]>>AMP_1_NERFING_BITS) + (this>>(AMP_1_NERFING_BITS-3));
-				note_peak_amps2[marked_note] = note_peak_amps2[marked_note] - (note_peak_amps2[marked_note]>>AMP_2_NERFING_BITS) + (this>>(AMP_2_NERFING_BITS-3));
+
+				note_peak_amps[marked_note] =
+					note_peak_amps[marked_note] -
+					(note_peak_amps[marked_note]>>AMP_1_IIR_BITS) +
+					(this>>(AMP_1_IIR_BITS-3));
+
+				note_peak_amps2[marked_note] =
+					note_peak_amps2[marked_note] -
+					(note_peak_amps2[marked_note]>>AMP_2_IIR_BITS) +
+					(this>>(AMP_2_IIR_BITS-3));
 			}
 		}
 	}
@@ -310,6 +318,8 @@ void HandleFrameInfo()
 
 		if( distance < 0 ) distance = -distance;
 
+		//If it wraps around above the halfway point, then we're closer to it
+		//on the other side. 
 		if( distance > ((1<<(SEMIBITSPERBIN-1))*FIXBPERO) )
 		{
 			distance = ((1<<(SEMIBITSPERBIN))*FIXBPERO) - distance;
@@ -343,23 +353,30 @@ void HandleFrameInfo()
 		uint32_t porp = (amp1<<15) / (amp1+amp2);  
 		uint16_t newnote = (nf1 * porp + nf2 * (32768-porp))>>15;
 
+		//When combining notes, we have to use the stronger amplitude note.
+		//trying to average or combine the power of the notes looks awful.
 		note_peak_freqs[into] = newnote;
-		note_peak_amps[into] = (note_peak_amps[into]>note_peak_amps[from])?note_peak_amps[into]:note_peak_amps[j];
-		note_peak_amps2[into] = (note_peak_amps2[into]>note_peak_amps2[from])?note_peak_amps2[into]:note_peak_amps2[j];
+		note_peak_amps[into] = (note_peak_amps[into]>note_peak_amps[from])?
+				note_peak_amps[into]:note_peak_amps[j];
+		note_peak_amps2[into] = (note_peak_amps2[into]>note_peak_amps2[from])?
+				note_peak_amps2[into]:note_peak_amps2[j];
 
 		note_peak_freqs[from] = 255;
 		note_peak_amps[from] = 0;
 		note_jumped_to[from] = i;
 	}
 
-
+	//For al lof the notes that have not been hit, we have to allow them to
+	//to decay.  We only do this for notes that have not found a peak.
 	for( i = 0; i < MAXNOTES; i++ )
 	{
 		if( note_peak_freqs[i] == 255 || hitnotes[i] ) continue;
 
-		note_peak_amps[i] -= note_peak_amps[i]>>AMP_1_NERFING_BITS;
-		note_peak_amps2[i] -= note_peak_amps2[i]>>AMP_2_NERFING_BITS;
+		note_peak_amps[i] -= note_peak_amps[i]>>AMP_1_IIR_BITS;
+		note_peak_amps2[i] -= note_peak_amps2[i]>>AMP_2_IIR_BITS;
 
+		//In the event a note is not strong enough anymore, it is to be
+		//returned back into the great pool of unused notes.
 		if( note_peak_amps[i] < MINIMUM_AMP_FOR_NOTE_TO_DISAPPEAR )
 		{
 			note_peak_freqs[i] = 255;

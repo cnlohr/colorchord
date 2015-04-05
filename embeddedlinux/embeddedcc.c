@@ -66,7 +66,7 @@ int main()
 		if( wf == 64 )
 		{
 			NewFrame();
-			wf = 0;
+			wf = 0; 
 		}
 	}
 	return 0;

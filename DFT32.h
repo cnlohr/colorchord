@@ -28,19 +28,22 @@
 #define BINCYCLE (1<<OCTAVES)
 #endif
 
-//You may increase this past 5 but if you do, the amplitude of your incoming signal
-//must decrease.  Increasing this value makes responses slower.  Lower values are
-//more responsive.
+//You may increase this past 5 but if you do, the amplitude of your incoming
+//signal must decrease.  Increasing this value makes responses slower.  Lower
+//values are more responsive.
 #ifndef DFTIIR
 #define DFTIIR 6
 #endif
 
-//Everything the integer one buys, except it only calculates 2 octaves worth of notes per audio frame.
+//Everything the integer one buys, except it only calculates 2 octaves worth of
+//notes per audio frame.
 //This is sort of working, but still have some quality issues.
 //It would theoretically be fast enough to work on an AVR.
 //NOTE: This is the only DFT available to the embedded port of ColorChord
 #ifndef CCEMBEDDED
-void DoDFTProgressive32( float * outbins, float * frequencies, int bins, const float * databuffer, int place_in_data_buffer, int size_of_data_buffer, float q, float speedup );
+void DoDFTProgressive32( float * outbins, float * frequencies, int bins,
+	const float * databuffer, int place_in_data_buffer, int size_of_data_buffer,
+	float q, float speedup );
 #endif
 
 //It's actually split into a few functions, which you can call on your own:
@@ -53,9 +56,12 @@ void UpdateBins32( const uint16_t * frequencies );
 void PushSample32( int16_t dat );
 
 #ifndef CCEMBEDDED
+//ColorChord regular uses this to pass in floats.
 void UpdateBinsForDFT32( const float * frequencies ); //Update the frequencies
 #endif
 
+//This takes the current sin/cos state of ColorChord and output to
+//embeddedbins32.
 void UpdateOutputBins32();
 
 //Whenever you need to read the bins, you can do it from here.

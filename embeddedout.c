@@ -255,7 +255,6 @@ uint32_t ECCtoHEX( uint8_t note, uint8_t sat, uint8_t val )
 		hue = (uint16_t)(((uint32_t)(65536-renote)<<16) / (third<<1)) + (third>>1); // ((((65535-renote)>>8) * (uint32_t)(third>>8)) >> 1) + (third<<1);
 	}
 	hue >>= 8;
-//	printf( "%d;", hue );
 
 	return EHSVtoHEX( hue, sat, val );
 }

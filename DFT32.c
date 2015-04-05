@@ -87,13 +87,22 @@ int main()
 
 uint16_t Sdatspace32A[FIXBINS*2];  //(advances,places)
 int32_t Sdatspace32B[FIXBINS*2];  //(isses,icses)
+
+//This is updated every time the DFT hits the octavecount, or 1/32 updates.
 int32_t Sdatspace32BOut[FIXBINS*2];  //(isses,icses)
 
-//For 
+//Sdo_this_octave is a scheduling state for the running SIN/COS states for
+//each bin.  We have to execute the highest octave every time, however, we can
+//get away with updating the next octave down every-other-time, then the next
+//one down yet, every-other-time from that one.  That way, no matter how many
+//octaves we have, we only need to update FIXBPERO*2 DFT bins.
 static uint8_t Sdo_this_octave[BINCYCLE];
+
 static int32_t Saccum_octavebins[OCTAVES];
 static uint8_t Swhichoctaveplace;
-uint16_t embeddedbins[FIXBINS]; //This is updated every time the DFT hits the octavecount, or 1/32 updates.
+
+//
+uint16_t embeddedbins[FIXBINS]; 
 
 //From: http://stackoverflow.com/questions/1100090/looking-for-an-efficient-integer-square-root-algorithm-for-arm-thumb2
 /**
@@ -158,13 +167,22 @@ void UpdateOutputBins32()
 
 		int octave = i / FIXBPERO;
 
+		//If we are running DFT32 on regular ColorChord, then we will need to
+		//also update goutbins[]... But if we're on embedded systems, we only
+		//update embeddedbins32.
 #ifndef CCEMBEDDED
 		uint32_t mux = ( (isps) * (isps)) + ((ispc) * (ispc));
 		goutbins[i] = sqrtf( (float)mux );
-		goutbins[i] /= (78<<DFTIIR)*(1<<octave); //reasonable (but arbitrary amplification)
+		//reasonable (but arbitrary amplification)
+		goutbins[i] /= (78<<DFTIIR)*(1<<octave); 
 #endif
+
 		uint32_t rmux = ( (isps) * (isps)) + ((ispc) * (ispc));
-		rmux = SquareRootRounded( rmux ) << 1; //bump it up so we don't lose a lot of detail at high freqs.
+
+		//bump up all outputs here, so when we nerf it by bit shifting by
+		//ctave we don't lose a lot of detail.
+		rmux = SquareRootRounded( rmux ) << 1; 
+
 		embeddedbins32[i] = rmux >> octave;
 	}
 }
@@ -182,7 +200,8 @@ static void HandleInt( int16_t sample )
 	if( oct > 128 )
 	{
 		//Special: This is when we can update everything.
-
+		//This gets run one out of every 1/(1<<OCTAVES) times.
+		//It handles updating part of the DFT.
 		int32_t * bins = &Sdatspace32B[0];
 		int32_t * binsOut = &Sdatspace32BOut[0];
 
@@ -229,9 +248,7 @@ int SetupDFTProgressive32()
 {
 	int i;
 	int j;
-	//Sdatspace = malloc(FIXBPERO*OCTAVES*8);
-	//memset(Sdatspace,0,FIXBPERO*OCTAVES*8);
-	//printf( "MS: %d\n", FIXBPERO*OCTAVES*8);
+
 	Sdonefirstrun = 1;
 
 	for( i = 0; i < BINCYCLE; i++ )
@@ -309,9 +326,6 @@ void DoDFTProgressive32( float * outbins, float * frequencies, int bins, const f
 		fprintf( stderr, "Error: Bins was reconfigured.  skippy requires a constant number of bins.\n" );
 		return;
 	}
-
-
-//printf( "SKIPPY\n" );
 
 	if( !Sdonefirstrun )
 	{
