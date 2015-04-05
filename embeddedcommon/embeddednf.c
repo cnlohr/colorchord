@@ -291,7 +291,7 @@ void HandleFrameInfo()
 				note_peak_amps2[marked_note] =
 					note_peak_amps2[marked_note] -
 					(note_peak_amps2[marked_note]>>AMP_2_IIR_BITS) +
-					(this>>(AMP_2_IIR_BITS-3));
+					((this<<3)>>(AMP_2_IIR_BITS));
 			}
 		}
 	}
@@ -325,7 +325,7 @@ void HandleFrameInfo()
 			distance = ((1<<(SEMIBITSPERBIN))*FIXBPERO) - distance;
 		}
 
-		if( distance > MAX_JUMP_DISTANCE * 2 )
+		if( distance > MAX_COMBINE_DISTANCE )
 		{
 			continue;
 		}

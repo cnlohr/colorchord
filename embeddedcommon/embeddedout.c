@@ -83,14 +83,15 @@ void UpdateLinearLEDs()
 	uint16_t local_peak_amps2[MAXNOTES];
 	uint8_t  local_peak_freq[MAXNOTES];
 
+	//Make a copy of all of the variables into local ones so we don't have to keep double-dereferencing.
 	for( i = 0; i < sorted_map_count; i++ )
 	{
-		printf( "%5d ", local_peak_amps[i] );
+		//printf( "%5d ", local_peak_amps[i] );
 		local_peak_amps[i] = note_peak_amps[sorted_note_map[i]] - note_nerf_a;
 		local_peak_amps2[i] = note_peak_amps2[sorted_note_map[i]];
 		local_peak_freq[i] = note_peak_freqs[sorted_note_map[i]];
 	}
-	printf( "\n" );
+//	printf( "\n" );
 
 	for( i = 0; i < sorted_map_count; i++ )
 	{

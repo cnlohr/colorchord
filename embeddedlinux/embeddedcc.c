@@ -63,7 +63,7 @@ int main()
 		Push8BitIntegerSkippy( (int8_t)cs );
 #endif
 		wf++;
-		if( wf == 64 )
+		if( wf == 128 )
 		{
 			NewFrame();
 			wf = 0; 

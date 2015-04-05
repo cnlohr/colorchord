@@ -5,7 +5,7 @@
 
 
 //Controls brightness
-#define NOTE_FINAL_AMP  16   //Number from 0...255
+#define NOTE_FINAL_AMP  12   //Number from 0...255
 
 //Controls, basically, the minimum size of the splotches.
 #define NERF_NOTE_PORP 15 //value from 0 to 255

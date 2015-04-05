@@ -35,21 +35,23 @@
 //distance times two.
 #define MAX_JUMP_DISTANCE 4
 
+#define MAX_COMBINE_DISTANCE 7
+
 
 //These control how quickly the IIR for the note strengths respond.  AMP 1 is
 //the response for the slow-response, or what we use to determine size of
 //splotches, AMP 2 is the quick response, or what we use to see the visual
 //strength of the notes.
 #define AMP_1_IIR_BITS 5
-#define AMP_2_IIR_BITS 3
+#define AMP_2_IIR_BITS 2
 
 //This is the amplitude, coming from folded_bins.  If the value is below this
 //it is considered a non-note.
-#define MIN_AMP_FOR_NOTE 128
+#define MIN_AMP_FOR_NOTE 80
 
 //If the strength of a note falls below this, the note will disappear, and be
 //recycled back into the unused list of notes.
-#define MINIMUM_AMP_FOR_NOTE_TO_DISAPPEAR 100
+#define MINIMUM_AMP_FOR_NOTE_TO_DISAPPEAR 64
 
 
 
