@@ -10,7 +10,7 @@ WINLDFLAGS:=-lwinmm -lgdi32 -lws2_32
 
 RAWDRAWLIBS:=-lX11 -lm -lpthread -lXinerama -lXext
 LDLIBS:=-lpthread -lasound -lm -lpulse-simple -lpulse
-CFLAGS:=-g -Os -flto -Wall
+CFLAGS:=-g -Os -flto -Wall -Iembeddedcommon
 EXTRALIBS:=-lusb-1.0
 
 colorchord : os_generic.o main.o  dft.o decompose.o filter.o color.o sort.o notefinder.o util.o outdrivers.o $(RAWDRAW) $(SOUND) $(OUTS) parameters.o chash.o embeddedcommon/DFT32.o
