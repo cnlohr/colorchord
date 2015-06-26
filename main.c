@@ -123,10 +123,12 @@ void SoundCB( float * out, float * in, int samplesr, int * samplesp, struct Soun
 		else
 		{
 			float f = in[i*channelin+sample_channel];
-			if( f > -1 && f < 1 )
-			{
+
+			if( f > 1 || f < -1 )
+			{ 	
 				f = (f>0)?1:-1;
 			}
+
 
 			//printf( "Sound fault B %d/%d\n", i, samplesr );
 			sound[soundhead] = f;
@@ -135,8 +137,8 @@ void SoundCB( float * out, float * in, int samplesr, int * samplesp, struct Soun
 		}
 	}
 
-	SoundEventHappened( samplesr, in, channelin, 0 );
-	SoundEventHappened( samplesr, out, sd->channelsPlay, 1 );
+	SoundEventHappened( samplesr, in, 0, channelin );
+	SoundEventHappened( samplesr, out, 1, sd->channelsPlay );
 	*samplesp = samplesr;
 }
 
@@ -334,12 +336,23 @@ int main(int argc, char ** argv)
 		RunNoteFinder( nf, sound, (soundhead-1+SOUNDCBSIZE)%SOUNDCBSIZE, SOUNDCBSIZE );
 		//Done all ColorChord work.
 
+
 		VisTimeStart = OGGetAbsoluteTime();
+
 		for( i = 0; i < MAX_OUT_DRIVERS; i++ )
+		{
+
+			if( force_white )
+			{
+				memset( OutLEDs, 0x7f, MAX_LEDS*3 );
+			}
+
 			if( outdriver[i] )
 				outdriver[i]->Func( outdriver[i]->id, nf );
+		}
 
 		VisTimeEnd = OGGetAbsoluteTime();
+
 
 		if( !headless )
 		{

@@ -25,6 +25,7 @@ void HookKeyEvent(   void (*KeyE)( void * v, int key, int down ), void * v )
 		{
 			KeyEvents[i].KeyE = KeyE;
 			KeyEvents[i].v = v;
+			break;
 		}
 	}
 }
@@ -54,6 +55,7 @@ struct SoundEvent
 	void (*SoundE)( void * v, int samples, float * samps, int channel_ct );
 	void * v;
 };
+
 struct SoundEvent SoundEvents[2][MAX_SOUND_EVENTS];
 
 
@@ -64,7 +66,6 @@ void SoundEventHappened( int samples, float * samps, int is_out, int channel_ct 
 	{
 		if( SoundEvents[is_out][i].SoundE )
 		{
-			printf( "%d\n", i );
 			SoundEvents[is_out][i].SoundE( SoundEvents[is_out][i].v, samples, samps, channel_ct );
 		}
 	}
@@ -79,6 +80,7 @@ void HookSoundInEvent( void (*SoundE)( void * v, int samples, float * samps, int
 		{
 			SoundEvents[is_out][i].SoundE = SoundE;
 			SoundEvents[is_out][i].v = v;
+			break;
 		}
 	}
 }

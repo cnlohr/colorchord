@@ -4,8 +4,15 @@
 #include <math.h>
 #include <ctype.h>
 #include <string.h>
+#include <sys/types.h>
+#include <sys/stat.h>
 #include "parameters.h"
 #include "hook.h"
+
+
+extern unsigned char	OutLEDs[MAX_LEDS*3];
+extern int				UsedLEDs;
+
 
 struct RecorderPlugin
 {
@@ -29,11 +36,12 @@ void StopRecording( struct RecorderPlugin * rp )
 
 	rp->TimeSinceStart = 0;
 	rp->DunBoop = 0;
-	fclose( rp->fRec );
-	fclose( rp->fPlay );
+	if( rp->fRec )	fclose( rp->fRec );
+	if( rp->fPlay)  fclose( rp->fPlay );
 	rp->is_recording = 0;
 	rp->fRec = 0;
 	rp->fPlay = 0;
+	printf( "Stopped.\n" );
 }
 
 void StartRecording( struct RecorderPlugin * rp )
@@ -43,6 +51,8 @@ void StartRecording( struct RecorderPlugin * rp )
 	rp->TimeSinceStart = 0;
 	rp->DunBoop = 0;
 	rp->is_recording = 1;
+
+	printf( "Starting Recording: /%s/%s/\n", rp->In_Filename, rp->Out_Filename );
 
 	if( rp->In_Filename[0] == 0 )
 	{
@@ -56,6 +66,7 @@ void StartRecording( struct RecorderPlugin * rp )
 		{
 			fprintf( stderr, "Warning: Could not play filename: %s\n", rp->In_Filename );
 		}
+		printf( "Play file opened.\n" );
 	}
 
 	if( rp->Out_Filename[0] == 0 )
@@ -65,10 +76,11 @@ void StartRecording( struct RecorderPlugin * rp )
 	}
 	else
 	{
+		struct stat buf;
+		char cts[1024];
 		int i;
 		for( i = 0; i < 999; i++ )
 		{
-			char cts[1024];
 			if( i == 0 )
 			{
 				snprintf( cts, 1023, "%s", rp->Out_Filename );
@@ -78,9 +90,17 @@ void StartRecording( struct RecorderPlugin * rp )
 				snprintf( cts, 1023, "%s.%03d", rp->Out_Filename, i );
 			}
 
-			rp->fRec = fopen( cts, "wb" );
-			if( rp->fRec ) break;
+			if( stat( cts, &buf ) != 0 )
+				break;
 		}
+		printf( "Found rec file %s\n", cts );
+		rp->fRec = fopen( cts, "wb" );
+		if( !rp->fRec )
+		{
+			fprintf( stderr, "Error: cannot start recording file \"%s\"\n", cts );
+			return;
+		}
+		printf( "Recording...\n" );
 	}
 }
 
@@ -88,6 +108,7 @@ void StartRecording( struct RecorderPlugin * rp )
 static void RecordEvent(void * v, int samples, float * samps, int channel_ct)
 {
 	struct RecorderPlugin * rp = (struct RecorderPlugin*)v;
+
 	if( !rp->fRec || !rp->is_recording ) return;
 
 	if( rp->DunBoop || !rp->fPlay )
@@ -105,15 +126,20 @@ static void PlaybackEvent(void * v, int samples, float * samps, int channel_ct)
 	struct RecorderPlugin * rp = (struct RecorderPlugin*)v;
 	if( !rp->fPlay ) return;
 
+	int r = fread( samps, channel_ct * sizeof( float ), samples, rp->fPlay );
+	if( r != samples )
+	{
+		StopRecording( rp );
+	}
+	rp->TimeSinceStart += samples;
+
 	if( rp->TimeSinceStart < rp->BypassLength )
 	{
-		int r = fread( samps, channel_ct * sizeof( float ), samples, rp->fPlay );
-		if( r != samples )
-		{
-			StopRecording( rp );
-		}
+		if( rp->is_recording )
+			force_white = 1;
+		else
+			force_white = 0;
 
-		rp->TimeSinceStart += samples;
 		if( rp->TimeSinceStart > rp->BypassLength )
 		{
 			rp->DunBoop = 1;
@@ -126,6 +152,10 @@ static void PlaybackEvent(void * v, int samples, float * samps, int channel_ct)
 				StopRecording( rp );
 			}
 		}
+	}
+	else
+	{
+		force_white = 0;
 	}
 }
 
@@ -146,7 +176,18 @@ static void DPOUpdate(void * id, struct NoteFinder*nf)
 static void DPOParams(void * id )
 {
 	struct RecorderPlugin * d = (struct RecorderPlugin*)id;
+	d->is_recording = 0;
+	d->fRec = 0;
+	d->fPlay = 0;
+	d->DunBoop = 0;
+	d->TimeSinceStart = 0;
+
+	memset( d->In_Filename, 0, PARAM_BUFF );	RegisterValue(  "player_filename", PABUFFER, d->In_Filename, PARAM_BUFF );
+	memset( d->Out_Filename, 0, PARAM_BUFF );	RegisterValue(  "recorder_filename", PABUFFER, d->Out_Filename, PARAM_BUFF );
+	
 	d->sps = 0;		RegisterValue(  "samplerate", PAINT, &d->sps, sizeof( d->sps ) );
+	d->BypassLength = 0;	RegisterValue(  "recorder_bypass", PAINT, &d->BypassLength, sizeof( d->BypassLength ) );
+
 }
 
 static struct DriverInstances * RecorderPlugin(const char * parameters)

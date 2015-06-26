@@ -10,7 +10,7 @@ struct NoteFinder;
 
 #define MAX_LEDS 32678
 
-
+extern int force_white;
 extern unsigned char	OutLEDs[MAX_LEDS*3];
 extern int				UsedLEDs;
 

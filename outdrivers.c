@@ -5,7 +5,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-
+int force_white = 0;
 unsigned char	OutLEDs[MAX_LEDS*3];
 int				UsedLEDs;
 
