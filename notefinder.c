@@ -9,6 +9,7 @@
 #include "filter.h"
 #include "decompose.h"
 #include "sort.h"
+#include "DFT32.h"
 
 struct NoteFinder * CreateNoteFinder( int spsRec )
 {
@@ -25,6 +26,8 @@ struct NoteFinder * CreateNoteFinder( int spsRec )
 	ret->decompose_iterations = 1000;
 	ret->dft_speedup = 300;
 	ret->dft_q = 16;
+	ret->slope = 0.0;
+	ret->do_progressive_dft = 0;
 	ret->default_sigma = 1.4;
 	ret->note_jumpability = 2.5;
 	ret->note_combine_distance = 0.5;
@@ -52,12 +55,14 @@ struct NoteFinder * CreateNoteFinder( int spsRec )
 	RegisterValue( "default_sigma", PAFLOAT, &ret->default_sigma, sizeof( ret->default_sigma ) );
 	RegisterValue( "note_jumpability", PAFLOAT, &ret->note_jumpability, sizeof( ret->note_jumpability ) );
 	RegisterValue( "note_combine_distance", PAFLOAT, &ret->note_combine_distance, sizeof( ret->note_combine_distance ) );
+	RegisterValue( "slope", PAFLOAT, &ret->slope, sizeof( ret->slope ) );
 	RegisterValue( "note_attach_freq_iir", PAFLOAT, &ret->note_attach_freq_iir, sizeof( ret->note_attach_freq_iir ) );
 	RegisterValue( "note_attach_amp_iir", PAFLOAT, &ret->note_attach_amp_iir, sizeof( ret->note_attach_amp_iir ) );
 	RegisterValue( "note_attach_amp_iir2", PAFLOAT, &ret->note_attach_amp_iir2, sizeof( ret->note_attach_amp_iir2 ) );
 	RegisterValue( "note_minimum_new_distribution_value", PAFLOAT, &ret->note_minimum_new_distribution_value, sizeof( ret->note_minimum_new_distribution_value ) );
 	RegisterValue( "note_out_chop", PAFLOAT, &ret->note_out_chop, sizeof( ret->note_out_chop ) );
 	RegisterValue( "dft_iir", PAFLOAT, &ret->dft_iir, sizeof( ret->dft_iir ) );
+	RegisterValue( "do_progressive_dft", PAINT, &ret->do_progressive_dft, sizeof( ret->do_progressive_dft ) );
 
 	AddCallback( "freqbins", ChangeNFParameters, ret );
 	AddCallback( "octaves", ChangeNFParameters, ret );
@@ -175,12 +180,31 @@ void RunNoteFinder( struct NoteFinder * nf, const float * audio_stream, int head
 	//This DFT function does not wavelet or anything.
 	nf->StartTime = OGGetAbsoluteTime();
 
-	DoDFTQuick( dftbins, nf->frequencies, freqs, audio_stream, head, buffersize, nf->dft_q, nf->dft_speedup );
+	switch( nf->do_progressive_dft )
+	{
+	case 0:
+		DoDFTQuick( dftbins, nf->frequencies, freqs, audio_stream, head, buffersize, nf->dft_q, nf->dft_speedup );
+		break;
+	case 1:
+		DoDFTProgressive( dftbins, nf->frequencies, freqs, audio_stream, head, buffersize, nf->dft_q, nf->dft_speedup );
+		break;
+	case 2:
+		DoDFTProgressiveInteger( dftbins, nf->frequencies, freqs, audio_stream, head, buffersize, nf->dft_q, nf->dft_speedup );
+		break;
+	case 3:
+		DoDFTProgressiveIntegerSkippy( dftbins, nf->frequencies, freqs, audio_stream, head, buffersize, nf->dft_q, nf->dft_speedup );
+		break;
+	case 4:
+		DoDFTProgressive32( dftbins, nf->frequencies, freqs, audio_stream, head, buffersize, nf->dft_q, nf->dft_speedup );
+		break;
+	default:
+		fprintf( stderr, "Error: No DFT Seleced\n" );
+	}
 	nf->DFTTime = OGGetAbsoluteTime();
 
 	for( i = 0; i < freqs; i++ )
 	{
-		nf->outbins[i] = nf->outbins[i] * (nf->dft_iir) + (dftbins[i] * (1.-nf->dft_iir) * nf->amplify);
+		nf->outbins[i] = (nf->outbins[i] * (nf->dft_iir) + (dftbins[i] * (1.-nf->dft_iir) * nf->amplify *  ( 1. + nf->slope * i )));
 	}
 	
 

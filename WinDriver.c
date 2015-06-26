@@ -5,6 +5,7 @@
 #include "DrawFunctions.h"
 #include <windows.h>
 #include <stdlib.h>
+#include <stdio.h>
 #include <malloc.h> //for alloca
 
 static HINSTANCE lhInstance;
@@ -193,6 +194,8 @@ void CNFGSetup( const char * name_of_window, int width, int height )
 	InternalHandleResize();
 }
 
+void WindowsTerm();
+
 void CNFGHandleInput()
 {
 	int ldown = 0;
@@ -204,6 +207,13 @@ void CNFGHandleInput()
 
 		switch( msg.message )
 		{
+		case WM_QUIT:
+		case WM_DESTROY:
+		case WM_CLOSE:
+			printf( "Close\n" );
+			WindowsTerm();
+			TerminateProcess( 0, 0 );
+			break;
 		case WM_MOUSEMOVE:
 			HandleMotion( (msg.lParam & 0xFFFF), (msg.lParam>>16) & 0xFFFF, ( (msg.wParam & 0x01)?1:0) | ((msg.wParam & 0x02)?2:0) | ((msg.wParam & 0x10)?4:0) );
 			break;

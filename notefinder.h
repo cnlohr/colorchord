@@ -8,6 +8,7 @@ struct NoteFinder
 {
 	//Setup DFT Bins
 	int ofreqs;
+	float slope;// = 0
 	int octaves;// = 5;
 	int freqbins;// = 24;
 	int note_peaks; //Calculated from freqbins (not configurable)
@@ -16,6 +17,7 @@ struct NoteFinder
 	int filter_iter;// = 1;
 	int decompose_iterations;// = 1000;
 	float amplify; // =1 (amplify input across the board)
+	int do_progressive_dft; //= 1
 
 	//at 300, there is still some minimal aliasing at higher frequencies.  Increase this for less low-end distortion
 	//NOTE: This /should/ get fixed, as we /should/ be decimating the input data intelligently with lower octaves.

@@ -6,7 +6,6 @@ What is ColorChord?
 
 Chromatic Sound to Light Conversion System.  It's really that simple.  Unlike so many of the sound responsive systems out there, ColorChord looks at the chromatic properties of the sound.  It looks for notes, not ranges.  If it hears an "E" it doesn't care what octave it's in, it's an E.  This provides a good deal more interesting patterns between instruments and music than would be available otherwise.
 
-
 Background
 ----------
 
@@ -21,10 +20,21 @@ Here's a video of it running: https://www.youtube.com/watch?v=UI4eqOP2AU0
 Current State of Affairs
 ------------------------
 
-Currently, ColorChord 2 is designed to run on Linux.  It's not particularly tied to an architecture, but does pretty much need a dedicated FPU to achieve any decent performance.  Right now there aren't very many output options available for it.  The most interesting one used for debugging is a vornoi-diagram-like thing called "DisplayShapeDriver."
+Currently, ColorChord 2 is designed to run on Linux or Windows.  It's not particularly tied to an architecture, but does pretty much need a dedicated FPU to achieve any decent performance.  Right now there aren't very many output options available for it.  The most interesting one used for debugging is a vornoi-diagram-like thing called "DisplayShapeDriver."
+
+ColorChord: Embedded
+--------------------
+
+There is work on an embedded version of ColorChord, which avoids floating point operations anywhere in the output pipeline.  Though I have made efforts to port it to AVRs, it doesn't seem feasable to operate on AVRs in the normal sense, so I have retargeted my efforts to 32-bit systems.
+
 
 Building and Using
 ------------------
+
+On Linux you'll need the following packages, for Debian/Ubuntu/Mint you'll need the following:
+```
+apt-get install libpulse-dev libasound2-dev libx11-dev libxext-dev libxinerama-dev libusb-1.0-0-dev
+```
 
 To make colorchord, type:
 
