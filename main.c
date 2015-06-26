@@ -13,6 +13,7 @@
 #include "notefinder.h"
 #include "outdrivers.h"
 #include "parameters.h"
+#include "hook.h"
 
 #ifdef WIN32
 #include <windows.h>
@@ -56,6 +57,7 @@ void HandleKey( int keycode, int bDown )
 	if( c == 'K' && bDown ) DumpParameters();
 	if( keycode == 65307 ) exit( 0 );
 	printf( "Key: %d -> %d\n", keycode, bDown );
+	KeyHappened( keycode, bDown );
 }
 
 void HandleButton( int x, int y, int button, int bDown )
@@ -71,17 +73,22 @@ void SoundCB( float * out, float * in, int samplesr, int * samplesp, struct Soun
 {
 	int channelin = sd->channelsRec;
 //	int channelout = sd->channelsPlay;
+	//*samplesp = 0;
+//	int process_channels = (MAX_CHANNELS < channelin)?MAX_CHANNELS:channelin;
 
 	//Load the samples into a ring buffer.  Split the channels from interleved to one per buffer.
-	*samplesp = 0;
 
-//	int process_channels = (MAX_CHANNELS < channelin)?MAX_CHANNELS:channelin;
 
 	int i;
 	int j;
 
 	for( i = 0; i < samplesr; i++ )
 	{
+		for( j = 0; j < channelin; j++ )
+		{
+			out[i*channelin+j] = 0;
+		}
+
 		if( sample_channel < 0 )
 		{
 			float fo = 0;
@@ -94,7 +101,6 @@ void SoundCB( float * out, float * in, int samplesr, int * samplesp, struct Soun
 			fo /= channelin;
 			sound[soundhead] = fo;
 			soundhead = (soundhead+1)%SOUNDCBSIZE;
-		
 		}
 		else
 		{
@@ -104,6 +110,10 @@ void SoundCB( float * out, float * in, int samplesr, int * samplesp, struct Soun
 			soundhead = (soundhead+1)%SOUNDCBSIZE;
 		}
 	}
+
+	SoundEventHappened( samplesr, in, channelin, 0 );
+	SoundEventHappened( samplesr, out, sd->channelsPlay, 1 );
+	*samplesp = samplesr;
 }
 
 

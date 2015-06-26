@@ -1,3 +1,6 @@
+//Output drivers, used for outputting lights, etc... However, this technique
+//may be used for unrelated-to-output plugins.
+
 #ifndef _OUTDRIVERS_H
 #define _OUTDRIVERS_H
 
