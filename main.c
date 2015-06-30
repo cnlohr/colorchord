@@ -55,11 +55,13 @@ int show_debug = 0;
 int show_debug_basic = 1;
 
 int gKey = 0;
+extern int force_white;
 
 void HandleKey( int keycode, int bDown )
 {
 	char c = toupper( keycode );
 	if( c == 'D' && bDown ) show_debug = !show_debug;
+	if( c == 'W' ) force_white = bDown;
 	if( c == '9' && bDown ) { gKey--; 		nf->base_hz = 55 * pow( 2, gKey / 12.0 ); ChangeNFParameters( nf ); }
 	if( c == '-' && bDown ) { gKey++; 		nf->base_hz = 55 * pow( 2, gKey / 12.0 ); ChangeNFParameters( nf ); }
 	if( c == '0' && bDown ) { gKey = 0;		nf->base_hz = 55 * pow( 2, gKey / 12.0 ); ChangeNFParameters( nf ); }

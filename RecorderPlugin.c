@@ -130,6 +130,7 @@ static void PlaybackEvent(void * v, int samples, float * samps, int channel_ct)
 	if( r != samples )
 	{
 		StopRecording( rp );
+		return;
 	}
 	rp->TimeSinceStart += samples;
 
