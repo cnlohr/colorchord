@@ -140,22 +140,16 @@ static void PlaybackEvent(void * v, int samples, float * samps, int channel_ct)
 		else
 			force_white = 0;
 
-		if( rp->TimeSinceStart > rp->BypassLength )
+		int r = fwrite( samps, channel_ct * sizeof( float ), samples, rp->fRec );
+		if( r != samples )
 		{
-			rp->DunBoop = 1;
-		}
-		else
-		{
-			int r = fwrite( samps, channel_ct * sizeof( float ), samples, rp->fRec );
-			if( r != samples )
-			{
-				StopRecording( rp );
-			}
+			StopRecording( rp );
 		}
 	}
 	else
 	{
 		force_white = 0;
+		rp->DunBoop = 1;
 	}
 }
 
