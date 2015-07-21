@@ -8,6 +8,8 @@ uint16_t ledAmpOut[NUM_LIN_LEDS];
 uint8_t ledFreqOut[NUM_LIN_LEDS];
 uint8_t ledFreqOutOld[NUM_LIN_LEDS];
 
+uint8_t RootNoteOffset;
+
 void UpdateLinearLEDs()
 {
 	//Source material:
@@ -188,7 +190,7 @@ void UpdateLinearLEDs()
 
 		uint16_t amp = ledAmpOut[j];
 		if( amp > 255 ) amp = 255;
-		uint32_t color = ECCtoHEX( ledFreqOut[j], 255, amp );
+		uint32_t color = ECCtoHEX( (ledFreqOut[j]+RootNoteOffset)%NOTERANGE, 255, amp );
 		ledOut[l*3+0] = ( color >> 0 ) & 0xff;
 		ledOut[l*3+1] = ( color >> 8 ) & 0xff;
 		ledOut[l*3+2] = ( color >>16 ) & 0xff;

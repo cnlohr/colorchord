@@ -46,6 +46,8 @@ SRC = main.c \
 	$(STLIB)/src/misc.c \
 	$(STLIB)/src/stm32f4xx_dma.c \
 	$(STLIB)/src/stm32f4xx_spi.c \
+	$(STLIB)/src/stm32f4xx_syscfg.c \
+	$(STLIB)/src/stm32f4xx_exti.c \
 	$(STLIB)/src/stm32f4xx_rcc.c \
 	$(STLIB)/src/stm32f4xx_gpio.c \
 	../embeddedcommon/DFT32.c \

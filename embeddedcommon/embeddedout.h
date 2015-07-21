@@ -19,6 +19,7 @@
 
 extern uint8_t ledArray[];
 extern uint8_t ledOut[]; //[NUM_LIN_LEDS*3]
+extern uint8_t RootNoteOffset; //Set to define what the root note is.  0 = A.
 void UpdateLinearLEDs();
 
 uint32_t ECCtoHEX( uint8_t note, uint8_t sat, uint8_t val );
