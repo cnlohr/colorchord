@@ -159,7 +159,7 @@ static uint16_t SquareRootRounded(uint32_t a_nInput)
 void UpdateOutputBins32()
 {
 	int i;
-	int * ipt = &Sdatspace32BOut[0];
+	int32_t * ipt = &Sdatspace32BOut[0];
 	for( i = 0; i < FIXBINS; i++ )
 	{
 		int16_t isps = *(ipt++)>>16;

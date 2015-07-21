@@ -42,7 +42,7 @@
 //the response for the slow-response, or what we use to determine size of
 //splotches, AMP 2 is the quick response, or what we use to see the visual
 //strength of the notes.
-#define AMP_1_IIR_BITS 5
+#define AMP_1_IIR_BITS 4
 #define AMP_2_IIR_BITS 2
 
 //This is the amplitude, coming from folded_bins.  If the value is below this

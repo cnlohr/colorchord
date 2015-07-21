@@ -10,7 +10,9 @@
 //Controls, basically, the minimum size of the splotches.
 #define NERF_NOTE_PORP 15 //value from 0 to 255
 
+#ifndef NUM_LIN_LEDS
 #define NUM_LIN_LEDS 296
+#endif
 
 #define LIN_WRAPAROUND 0 //Whether the output lights wrap around.
 #define SORT_NOTES 0     //Whether the notes will be sorted.

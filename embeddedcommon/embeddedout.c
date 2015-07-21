@@ -90,6 +90,7 @@ void UpdateLinearLEDs()
 		local_peak_amps[i] = note_peak_amps[sorted_note_map[i]] - note_nerf_a;
 		local_peak_amps2[i] = note_peak_amps2[sorted_note_map[i]];
 		local_peak_freq[i] = note_peak_freqs[sorted_note_map[i]];
+//		printf( "%5d ", local_peak_amps[i] );
 	}
 //	printf( "\n" );
 
@@ -109,12 +110,13 @@ void UpdateLinearLEDs()
 		return;
 	}
 
-	uint32_t porportional = (uint32_t)(NUM_LIN_LEDS<<8)/((uint32_t)total_size_all_notes);
+	uint32_t porportional = (uint32_t)(NUM_LIN_LEDS<<16)/((uint32_t)total_size_all_notes);
+
 	uint16_t total_accounted_leds = 0;
 
 	for( i = 0; i < sorted_map_count; i++ )
 	{
-		porpamps[i] = (local_peak_amps[i] * porportional) >> 8;
+		porpamps[i] = (local_peak_amps[i] * porportional) >> 16;
 		total_accounted_leds += porpamps[i];
 	}
 
