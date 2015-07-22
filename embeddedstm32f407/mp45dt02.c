@@ -22,7 +22,7 @@ void InitMP45DT02()
     RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_CRC, ENABLE);
 
 #ifdef ST_PDM
-	pdm_filter.LP_HZ=DFREQ/2;
+	pdm_filter.LP_HZ=DFREQ*2; //??? This is wrong, but if I make it lower, it really cuts into my bandwidth.
 	pdm_filter.HP_HZ=20;
 	pdm_filter.Fs=FS;
 	pdm_filter.Out_MicChannels=1;

@@ -1,5 +1,11 @@
 STM32F303-based ColorChord 2.0 Build
 
+Based off of other code including the ST Standard Library.
+
+Other code is under different licenses.
+
+This core project is...
+
 Copyright (c) 2015 Charles Lohr
 
 Roughly based off of: https://github.com/devthrash/0xWS2812

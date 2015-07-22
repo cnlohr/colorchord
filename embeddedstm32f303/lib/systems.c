@@ -33,13 +33,13 @@ void send_text( const char * text )
 	send_openocd_command(0x05, m);
 }
 
-int _write (int fd, const void *buf, size_t count)
+int __attribute__((used)) _write (int fd, const void *buf, size_t count)
 {
 	uint32_t m[] = { 2, (uint32_t)buf, count };
 	send_openocd_command(0x05, m);
 }
 
-void * _sbrk(int incr) {
+void __attribute__((used)) * _sbrk(int incr) {
     extern char _ebss; // Defined by the linker
     static char *heap_end;
     char *prev_heap_end;
@@ -72,16 +72,86 @@ void _delay_us(uint32_t us) {
 
 void ConfigureLED()
 {
+	ConfigureGPIO( GetGPIOFromString( "PB8" ), INOUT_OUT );
+}
+
+uint8_t GetGPIOFromString( const char * str )
+{
+	int mode = 0;
+	int port = -1;
+	int pin = -1;
+	const char * st = str;
+	for( ; *st; st++ )
+	{
+		char c = *st;
+		if( mode == 0 )
+		{
+			if( c >= 'A' && c <= 'F' )
+			{
+				port = c - 'A';
+				mode = 2;
+			}
+			else if( c >= 'a' && c <= 'f' )
+			{
+				port = c - 'a';
+				mode = 2;
+			}
+		}
+		else if( mode == 2 )
+		{
+			if( c >= '0' && c <= '9' )
+			{
+				pin = 0;
+				mode = 3;
+			}
+		}
+
+		if( mode == 3 )
+		{
+			if( c >= '0' && c <= '9' )
+			{
+				pin = pin * 10;
+				pin+= c - '0';
+			}
+			else
+			{
+				break;
+			}
+		}
+	}
+
+	if( port > 0 && pin > 0 && port <= 6 && pin <= 15)
+	{
+		return (port<<4)|pin;
+	}
+	else
+	{
+		return 0xff;
+	}
+}
+
+
+void ConfigureGPIO( uint8_t gpio, int parameters )
+{
 	GPIO_InitTypeDef  GPIO_InitStructure;
 
 	/* Enable the GPIO_LED Clock */
-	RCC_AHBPeriphClockCmd(RCC_AHBPeriph_GPIOB, ENABLE);
+	RCC_AHBPeriphClockCmd( 1<<(17+(gpio>>4)), ENABLE);
+
+	if( parameters & DEFAULT_VALUE_FLAG )
+	{
+		GPIOOn( gpio );
+	}
+	else
+	{
+		GPIOOff( gpio );
+	}
 
 	/* Configure the GPIO_LED pin */
-	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_8; //| GPIO_Pin_15 (15 = CTS)
-	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_OUT;
+	GPIO_InitStructure.GPIO_Pin = 1<<(gpio&0xf);
+	GPIO_InitStructure.GPIO_Mode = (parameters&INOUT_FLAG)?GPIO_Mode_OUT:GPIO_Mode_IN;
 	GPIO_InitStructure.GPIO_OType = GPIO_OType_PP;
-	GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_UP;
+	GPIO_InitStructure.GPIO_PuPd = (parameters&PUPD_FLAG)?( (parameters&PUPD_UP)?GPIO_PuPd_UP:GPIO_PuPd_DOWN ):GPIO_PuPd_NOPULL;
 	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_10MHz;
 	GPIO_Init(GPIOB, &GPIO_InitStructure);
 }

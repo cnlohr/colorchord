@@ -4,6 +4,7 @@
 #include <stdint.h>
 
 #define ADCFS DFREQ
+#define ADCOVERSAMP 4
 
 void InitADC();
 void ADCCallback( int16_t value );

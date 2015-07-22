@@ -17,13 +17,12 @@ BIN=$(CP) -O ihex
 DEFS =  -DSTM32F30X  -DHSE_VALUE=25000000
 STARTUP = lib/startup_stm32f30x.s
 
-MCU = cortex-m3
+MCU = cortex-m4
 MCFLAGS = -mcpu=$(MCU) -mthumb -mlittle-endian -mthumb-interwork
 
 STM32_INCLUDES = -Ilib -I. -ISTM32F30x_StdPeriph_Driver/inc
 
-
-OPTIMIZE       = -Os
+OPTIMIZE       =  -Ofast  -mfloat-abi=hard -mfpu=fpv4-sp-d16 -flto -ffunction-sections -fdata-sections  -Wl,--relax 
 
 CFLAGS	= $(MCFLAGS)  $(OPTIMIZE)  $(DEFS) \
 	-I. \
@@ -31,7 +30,7 @@ CFLAGS	= $(MCFLAGS)  $(OPTIMIZE)  $(DEFS) \
 	-I../embeddedcommon \
 	 -Wl,-T,lib/stm32f303.ld
 CFLAGS+=-DDEBUG
-CFLAGS+=-DNUM_LIN_LEDS=17 -DDFREQ=15000 -DCCEMBEDDED
+CFLAGS+=-DNUM_LIN_LEDS=17 -DDFREQ=12500 -DCCEMBEDDED
 
 AFLAGS	= $(MCFLAGS) 
 

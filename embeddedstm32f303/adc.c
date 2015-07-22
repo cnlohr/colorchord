@@ -1,4 +1,3 @@
-//TODO: Consider oversampling the ADC using DMA.
 //Mostly from: http://www.pezzino.ch/stm32-adc-voltage-monitor/
 //Also: http://www.micromouseonline.com/2009/05/26/simple-adc-use-on-the-stm32/
 
@@ -41,13 +40,7 @@ void InitADC()
 	ADC_VoltageRegulatorCmd( ADC4, ENABLE );
 
 	/* Insert delay equal to 10 µs */
-	//vTaskDelay(5);
 	_delay_us( 10 );
-
-//	ADC_SelectCalibrationMode( ADC4, ADC_CalibrationMode_Single );
-//	ADC_StartCalibration( ADC4 );
-//	while ( ADC_GetCalibrationStatus( ADC4 ) != RESET );
-//	calibration_value = ADC_GetCalibrationValue( ADC4 );
 
 	ADC_CommonInitStructure.ADC_Mode = ADC_Mode_Independent;
 	ADC_CommonInitStructure.ADC_Clock = ADC_Clock_AsynClkMode;
@@ -84,12 +77,11 @@ void InitADC()
 	NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
 	NVIC_Init (&NVIC_InitStructure);
 
-
 	/* TIM2 clock enable */
 	RCC_APB1PeriphClockCmd (RCC_APB1Periph_TIM2, ENABLE);
 	/* Time base configuration */
 	RCC->CFGR |= 0X1400;
-	TIM_TimeBaseStructure.TIM_Period = (RCC_Clocks.HCLK_Frequency/ADCFS) - 1; 
+	TIM_TimeBaseStructure.TIM_Period = (RCC_Clocks.HCLK_Frequency/(ADCFS*ADCOVERSAMP)) - 1; 
 	TIM_TimeBaseStructure.TIM_Prescaler = 1 - 1; // Operate at clock frequency
 	TIM_TimeBaseStructure.TIM_ClockDivision = 0;
 	TIM_TimeBaseStructure.TIM_CounterMode = TIM_CounterMode_Up;
@@ -99,21 +91,34 @@ void InitADC()
 	/* TIM2 enable counter */
 	TIM_Cmd (TIM2, ENABLE);
 
-
 	/* Start ADC4 Software Conversion */
 	ADC_StartConversion( ADC4 );
 }
 
 
-void TIM2_IRQHandler (void) //Timer Interupt for sending data
+void TIM2_IRQHandler (void)
 {
+	static uint8_t oversamp = 0;
 	static int32_t average = 0;
+	static int32_t oversampout = 0;
+
 	if (TIM_GetITStatus (TIM2, TIM_IT_Update) != RESET) {
 		TIM_ClearITPendingBit (TIM2, TIM_IT_Update);
 		int16_t value = ADC_GetConversionValue(ADC4);
-		average = ((average*1023) + (value*1024))/1024;
 		ADC_StartConversion( ADC4 );
-		ADCCallback( value-(average/1024));
+
+		oversampout += value;
+		oversamp++;
+
+		if( oversamp >= ADCOVERSAMP )
+		{
+			value = oversampout / ADCOVERSAMP;
+			average = ((average*1023) + (value*1024))/1024;
+			value = value-(average/1024);
+			oversamp = 0;
+			ADCCallback( value );
+			oversampout = 0;
+		}
 	}
 }
 
