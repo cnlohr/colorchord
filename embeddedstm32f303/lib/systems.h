@@ -26,18 +26,38 @@ gpio GetGPIOFromString( const char * str );
 
 void ConfigureGPIO( gpio gpio, int parameters );
 
+
+
+#ifdef STM32F30X
 #define GPIOOf(x)  ((GPIO_TypeDef *) ((((x)>>4)<=6)?(AHB2PERIPH_BASE+0x400*((x)>>4)):0x60000000) )
+#elif defined( STM32F40_41xxx )
+#define GPIOOf(x)  ((GPIO_TypeDef *) ((((x)>>4)<=6)?(AHB1PERIPH_BASE+0x400*((x)>>4)):0x60000000) )
+#endif
+
 #define GPIOPin(x)   ((1<<((x)&0x0f)))
 #define GPIOLatch(x) GPIOOf(x)->ODR
-#define GPIOOff(x)  GPIOOf(x)->BRR = (1<<((x)&0x0f));
-#define GPIOOn(x)  GPIOOf(x)->BSRR = (1<<((x)&0x0f));
 
+#ifdef STM32F30X
+#define GPIOOn(x)   GPIOOf(x)->BSRR  = (1<<((x)&0x0f));
+#define GPIOOff(x)  GPIOOf(x)->BRR   = (1<<((x)&0x0f));
+#elif defined( STM32F40_41xxx )
+#define GPIOOn(x)   GPIOOf(x)->BSRRH = (1<<((x)&0x0f));
+#define GPIOOff(x)  GPIOOf(x)->BSRRL = (1<<((x)&0x0f));
+#endif
+
+
+
+#ifdef STM32F30X
+#define LEDPIN 0x18
+#elif defined( STM32F40_41xxx )
+#define LEDPIN 0x3f
+#endif
 
 void ConfigureLED();
-#define LED_TOGGLE {GPIOB->ODR ^= GPIO_Pin_8;}
-#define LED_ON     {GPIOB->BSRR ^= GPIO_Pin_8;}
-#define LED_OFF    {GPIOB->BRR ^= GPIO_Pin_8;}
-//General notes:
+#define LED_TOGGLE {GPIOOf(LEDPIN)->ODR^=(1<<((LEDPIN)&0x0f));}
+#define LED_ON     GPIOOn(LEDPIN)
+#define LED_OFF    GPIOOff(LEDPIN)
+
 
 #endif
 

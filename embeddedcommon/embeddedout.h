@@ -14,7 +14,10 @@
 #define NUM_LIN_LEDS 296
 #endif
 
-#define LIN_WRAPAROUND 0 //Whether the output lights wrap around.
+#ifndef LIN_WRAPAROUND
+#define LIN_WRAPAROUND 0 //Whether the output lights wrap around. (Can't easily run on embedded systems)
+#endif
+
 #define SORT_NOTES 0     //Whether the notes will be sorted.
 
 extern uint8_t ledArray[];

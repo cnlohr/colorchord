@@ -1,9 +1,15 @@
 #include <stdint.h>
 #include "systems.h"
 #include <string.h>
+#ifdef STM32F30X
 #include <stm32f30x.h>
 #include <stm32f30x_rcc.h>
 #include <stm32f30x_gpio.h>
+#elif defined( STM32F40_41xxx )
+#include <stm32f4xx.h>
+#include <stm32f4xx_rcc.h>
+#include <stm32f4xx_gpio.h>
+#endif
 #include <core_cm4.h>
 #include <core_cmFunc.h>
 
@@ -72,7 +78,7 @@ void _delay_us(uint32_t us) {
 
 void ConfigureLED()
 {
-	ConfigureGPIO( GetGPIOFromString( "PB8" ), INOUT_OUT );
+	ConfigureGPIO( LEDPIN, INOUT_OUT );
 }
 
 uint8_t GetGPIOFromString( const char * str )
@@ -135,6 +141,8 @@ void ConfigureGPIO( uint8_t gpio, int parameters )
 {
 	GPIO_InitTypeDef  GPIO_InitStructure;
 
+#ifdef STM32F30X
+
 	/* Enable the GPIO_LED Clock */
 	RCC_AHBPeriphClockCmd( 1<<(17+(gpio>>4)), ENABLE);
 
@@ -153,6 +161,32 @@ void ConfigureGPIO( uint8_t gpio, int parameters )
 	GPIO_InitStructure.GPIO_OType = GPIO_OType_PP;
 	GPIO_InitStructure.GPIO_PuPd = (parameters&PUPD_FLAG)?( (parameters&PUPD_UP)?GPIO_PuPd_UP:GPIO_PuPd_DOWN ):GPIO_PuPd_NOPULL;
 	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_10MHz;
-	GPIO_Init(GPIOB, &GPIO_InitStructure);
+	GPIO_Init(GPIOOf(gpio), &GPIO_InitStructure);
+
+#elif defined( STM32F40_41xxx )
+
+
+	/* Enable the GPIO_LED Clock */
+	RCC_AHB1PeriphClockCmd( 1<<((gpio>>4)), ENABLE);
+
+	if( parameters & DEFAULT_VALUE_FLAG )
+	{
+		GPIOOn( gpio );
+	}
+	else
+	{
+		GPIOOff( gpio );
+	}
+
+	/* Configure the GPIO_LED pin */
+	GPIO_InitStructure.GPIO_Pin = 1<<(gpio&0xf);
+	GPIO_InitStructure.GPIO_Mode = (parameters&INOUT_FLAG)?GPIO_Mode_OUT:GPIO_Mode_IN;
+	GPIO_InitStructure.GPIO_OType = GPIO_OType_PP;
+	GPIO_InitStructure.GPIO_PuPd = (parameters&PUPD_FLAG)?( (parameters&PUPD_UP)?GPIO_PuPd_UP:GPIO_PuPd_DOWN ):GPIO_PuPd_NOPULL;
+	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
+	GPIO_Init(GPIOOf(gpio), &GPIO_InitStructure);
+
+#endif
+
 }
 
