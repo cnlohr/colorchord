@@ -25,7 +25,7 @@ Currently, ColorChord 2 is designed to run on Linux or Windows.  It's not partic
 ColorChord: Embedded
 --------------------
 
-There is work on an embedded version of ColorChord, which avoids floating point operations anywhere in the output pipeline.  Though I have made efforts to port it to AVRs, it doesn't seem feasable to operate on AVRs without some shifty tricks which I'd like to avoid, so I have retargeted my efforts to 32-bit systems, such as the STM32F303, STM32F407, and the (somehow) the ESP8266.  ColorChord Embedded uses a different codebase, located in the (embeddedcommon)[embeddedcommon/README.md] and distributed among the various embedded* folders.
+There is work on an embedded version of ColorChord, which avoids floating point operations anywhere in the output pipeline.  Though I have made efforts to port it to AVRs, it doesn't seem feasable to operate on AVRs without some shifty tricks which I'd like to avoid, so I have retargeted my efforts to 32-bit systems, such as the STM32F303, STM32F407, and the (somehow) the ESP8266.  ColorChord Embedded uses a different codebase, located in the [embeddedcommon](embeddedcommon/README.md) and distributed among the various embedded* folders.
 
 
 Building and Using
