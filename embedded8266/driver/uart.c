@@ -169,52 +169,30 @@ uart0_sendStr(const char *str)
  * Parameters   : void *para - point to ETS_UART_INTR_ATTACH's arg
  * Returns      : NONE
 *******************************************************************************/
-extern void at_recvTask(void);
+
+extern void charrx( uint8_t c );
 
 LOCAL void
 uart0_rx_intr_handler(void *para)
 {
-  /* uart0 and uart1 intr combine togther, when interrupt occur, see reg 0x3ff20020, bit2, bit0 represents
-    * uart1 and uart0 respectively
-    */
-//  RcvMsgBuff *pRxBuff = (RcvMsgBuff *)para;
-//  uint8 RcvChar;
-  uint8 uart_no = UART0;//UartDev.buff_uart_no;
+	static uint8_t history[4];
+	static uint8_t hhead;
 
-//  if (UART_RXFIFO_FULL_INT_ST != (READ_PERI_REG(UART_INT_ST(uart_no)) & UART_RXFIFO_FULL_INT_ST))
-//  {
-//    return;
-//  }
-  if (UART_RXFIFO_FULL_INT_ST == (READ_PERI_REG(UART_INT_ST(uart_no)) & UART_RXFIFO_FULL_INT_ST))
-  {
-    at_recvTask();
+	uint8 uart_no = UART0;//UartDev.buff_uart_no;
+	volatile uint8_t v = READ_PERI_REG(UART_FIFO(uart_no)) & 0xFF;
     WRITE_PERI_REG(UART_INT_CLR(uart_no), UART_RXFIFO_FULL_INT_CLR);
-  }
 
-//  WRITE_PERI_REG(UART_INT_CLR(uart_no), UART_RXFIFO_FULL_INT_CLR);
+	history[hhead++] = v;
+	if( hhead > 3 ) hhead = 0;
 
-//  if (READ_PERI_REG(UART_STATUS(uart_no)) & (UART_RXFIFO_CNT << UART_RXFIFO_CNT_S))
-//  {
-//    RcvChar = READ_PERI_REG(UART_FIFO(uart_no)) & 0xFF;
-//    at_recvTask();
-//    *(pRxBuff->pWritePos) = RcvChar;
+	//Detect a request to reboot into bootloader.
+	if( history[hhead&3] == 0xc2 && history[(hhead+1)&3] == 0x42 && history[(hhead+2)&3] == 0x56 && history[(hhead+3)&3] == 0xff )
+	{
+		system_restart();
+	}
 
-//    system_os_post(at_recvTaskPrio, NULL, RcvChar);
+	charrx( v );
 
-//    //insert here for get one command line from uart
-//    if (RcvChar == '\r')
-//    {
-//      pRxBuff->BuffState = WRITE_OVER;
-//    }
-//
-//    pRxBuff->pWritePos++;
-//
-//    if (pRxBuff->pWritePos == (pRxBuff->pRcvMsgBuff + RX_BUFF_SIZE))
-//    {
-//      // overflow ...we may need more error handle here.
-//      pRxBuff->pWritePos = pRxBuff->pRcvMsgBuff ;
-//    }
-//  }
 }
 
 /******************************************************************************
@@ -242,6 +220,4 @@ void ICACHE_FLASH_ATTR
 uart_reattach()
 {
 	uart_init(BIT_RATE_74880, BIT_RATE_74880);
-//  ETS_UART_INTR_ATTACH(uart_rx_intr_handler_ssc,  &(UartDev.rcv_buff));
-//  ETS_UART_INTR_ENABLE();
 }

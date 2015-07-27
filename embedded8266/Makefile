@@ -3,35 +3,35 @@ FW_FILE_1:=0x00000.bin
 FW_FILE_2:=0x40000.bin
 
 TARGET_OUT:=image.elf
-OBJS:=driver/uart.o \
-	user/mystuff.o \
-	user/ws2812.o \
-	user/colorchord.o \
-	user/user_main.o
+
 
 SRCS:=driver/uart.c \
 	user/mystuff.c \
-	user/ws2812.c \
-	user/colorchord.c \
+	user/ws2812_i2s.c \
+	user/hpatimer.c \
+	driver/adc.c \
+	../embeddedcommon/DFT32.c \
+	../embeddedcommon/embeddednf.c \
+	../embeddedcommon/embeddedout.c \
 	user/user_main.c 
 
-GCC_FOLDER:=~/esp8266/xtensa-toolchain-build/build-lx106
+GCC_FOLDER:=~/esp8266/esp-open-sdk/xtensa-lx106-elf
 ESPTOOL_PY:=~/esp8266/esptool/esptool.py
 FW_TOOL:=~/esp8266/other/esptool/esptool
-SDK:=/home/cnlohr/esp8266/esp_iot_sdk_v0.9.3
+SDK:=/home/cnlohr/esp8266/esp_iot_sdk_v1.2.0
 PORT:=/dev/ttyUSB0
 #PORT:=/dev/ttyACM0
 
 XTLIB:=$(SDK)/lib
-XTGCCLIB:=$(GCC_FOLDER)/gcc-4.9.1-elf/xtensa-lx106-elf/libgcc/libgcc.a
-FOLDERPREFIX:=$(GCC_FOLDER)/root/bin
+XTGCCLIB:=$(GCC_FOLDER)/lib/gcc/xtensa-lx106-elf/4.8.2/libgcc.a
+FOLDERPREFIX:=$(GCC_FOLDER)/bin
 PREFIX:=$(FOLDERPREFIX)/xtensa-lx106-elf-
 CC:=$(PREFIX)gcc
 
-CFLAGS:=-mlongcalls -I$(SDK)/include -Imyclib -Iinclude -Iuser -Os -I$(SDK)/include/
+CFLAGS:=-mlongcalls -I$(SDK)/include -Imyclib -Iinclude -Iuser -Os -I$(SDK)/include/ -I../embeddedcommon -Dmemcpy=ets_memcpy -Dmemset=ets_memset \
+	 -DDFREQ=16000 -DCCEMBEDDED -DNUM_LIN_LEDS=24
+#-DFREQ==12500 seems to work well.
 
-#	   \
-#
 
 LDFLAGS_CORE:=\
 	-nostdlib \
