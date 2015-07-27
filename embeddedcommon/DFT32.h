@@ -20,13 +20,9 @@
 #define FIXBPERO 24
 #endif
 
-#ifndef FIXBINS
+//Don't configure this.
 #define FIXBINS  (FIXBPERO*OCTAVES)
-#endif
-
-#ifndef BINCYCLE
 #define BINCYCLE (1<<OCTAVES)
-#endif
 
 //You may increase this past 5 but if you do, the amplitude of your incoming
 //signal must decrease.  Increasing this value makes responses slower.  Lower

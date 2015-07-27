@@ -9,7 +9,7 @@ Chromatic Sound to Light Conversion System.  It's really that simple.  Unlike so
 Background
 ----------
 
-Developed over many years, ColorChord 2 is now getting close to alpha stages.  ColorChord 2 uses the same principles as ColorChord 1.  A brief writeup on that can be seen here: http://cnlohr.blogspot.com/2010/11/colorchord-sound-lighting.html
+Developed over many years, ColorChord 2 is now at the alpha stages.  ColorChord 2 uses the same principles as ColorChord 1.  A brief writeup on that can be seen here: http://cnlohr.blogspot.com/2010/11/colorchord-sound-lighting.html
 
 The major differences in ColorChord 2 is the major rewrite to move everything back to the CPU and a multitude of algorithmic optimizations to make it possible to run on something other than the brand newest of systems.
 
@@ -25,7 +25,7 @@ Currently, ColorChord 2 is designed to run on Linux or Windows.  It's not partic
 ColorChord: Embedded
 --------------------
 
-There is work on an embedded version of ColorChord, which avoids floating point operations anywhere in the output pipeline.  Though I have made efforts to port it to AVRs, it doesn't seem feasable to operate on AVRs in the normal sense, so I have retargeted my efforts to 32-bit systems.
+There is work on an embedded version of ColorChord, which avoids floating point operations anywhere in the output pipeline.  Though I have made efforts to port it to AVRs, it doesn't seem feasable to operate on AVRs without some shifty tricks which I'd like to avoid, so I have retargeted my efforts to 32-bit systems, such as the STM32F303, STM32F407, and the (somehow) the ESP8266.  ColorChord Embedded uses a different codebase, located in the (embeddedcommon)[embeddedcommon/README.md] and distributed among the various embedded* folders.
 
 
 Building and Using

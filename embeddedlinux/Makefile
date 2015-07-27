@@ -6,8 +6,11 @@ LDFLAGS:=-ffunction-sections -Wl,--gc-sections -fno-asynchronous-unwind-tables -
 embeddedcc :  ../embeddedcommon/embeddednf.c ../embeddedcommon/DFT32.c embeddedcc.c  ../embeddedcommon/embeddedout.c
 	gcc -o $@ $^ $(CFLAGS) $(LDFLAGS)
 
+
+#SOUNDDEVICE:= --device=alsa_output.pci-0000_00_1b.0.analog-stereo.monitor 
+
 runembedded : embeddedcc
-	parec --format=u8 --rate=11025 --channels=1 --device=alsa_output.pci-0000_00_1b.0.analog-stereo.monitor --latency=128 | ./embeddedcc 192.168.4.1 0
+	parec --format=u8 --rate=11025 --channels=1 $(SOUNDDEVICE) --latency=128 | ./embeddedcc 192.168.4.1 0
 
 clean :
 	rm -rf embeddedcc *~
