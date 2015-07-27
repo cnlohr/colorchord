@@ -42,7 +42,9 @@ Linux - Not really so practical as much as it's just a test for ColorChord.  You
 
 STM32F303 - Using a STM32F303 with an analog input on the processor.  This implementation expects a 25MHz HSE crystal, with a 2x PLL, so the effective clock rate is 50 MHz.  It doesn't have much free processor, but you could do some simple tasks provided you don't have too many LEDs.  This uses SPI to output to WS2812 LEDs.
 
-STM32F407 - Using a STM32F407 with a PDM microphone .  This implementation expects a 25MHz HSE crystal, with a 2x PLL, so the effective clock rate is 50 MHz.  It doesn't have much free processor, but you could do some simple tasks provided you don't have too many LEDs.  This uses SPI to output to WS2812 LEDs.
+STM32F407 - Using a STM32F407 with a PDM microphone.  This implementation expects an 8MHz HSE crystal.  The effective clock rate is 100 MHz.  It has tons of free processor.  This also uses SPI to output to WS2812 LEDs.
+
+ESP8266 - Using an ESP8266 and the on-processor analog in.  It operates at the normal 80 MHz (not double-clocked!) Then it uses I2S to send the WS2812 data.
 
 
 TODO
