@@ -1,4 +1,4 @@
-//Public Domain 2015 <>< Charles Lohr
+//Copyright (Public Domain) 2015 <>< Charles Lohr
 //This file may be used in whole or part in any way for any purpose by anyone
 //without restriction.
 
