@@ -1,3 +1,7 @@
+//Public Domain 2015 <>< Charles Lohr
+//This file may be used in whole or part in any way for any purpose by anyone
+//without restriction.
+
 #include <ccconfig.h>
 #include <X11/Xlib.h>
 #include <stdlib.h>
@@ -99,8 +103,6 @@ int main(void)
 				XFillRectangle(d, w, dgc, x*LED_SIZE, y*LED_SIZE, LED_SIZE, LED_SIZE);
 			}
 		}
-//		if (e.type == ClientMessage )
-//			break;
 	}
 
 	XCloseDisplay(d);

@@ -2,6 +2,8 @@
 // This is the teststrap for the Embedded ColorChord System.
 // It is intended as a minimal scaffolding for testing Embedded ColorChord.
 //
+//
+// Copyright 2015 <>< Charles Lohr, See LICENSE file for license info.
 
 
 #include "embeddednf.h"
