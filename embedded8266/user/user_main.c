@@ -1,3 +1,6 @@
+//Copyright 2015 <>< Charles Lohr Under the MIT/x11 License, NewBSD License or
+// ColorChord License.  You Choose.
+
 #include "mem.h"
 #include "c_types.h"
 #include "user_interface.h"
@@ -11,7 +14,10 @@
 #include <DFT32.h>
 #include <embeddednf.h>
 #include <embeddedout.h>
+#include "ets_sys.h"
+#include "gpio.h"
 
+//#define PROFILE
 
 #define PORT 7777
 #define SERVER_TIMEOUT 1500
@@ -30,6 +36,9 @@ extern volatile uint8_t sounddata[HPABUFFSIZE];
 extern volatile uint16_t soundhead;
 uint16_t soundtail;
 
+void user_rf_pre_init()
+{
+}
 
 //Call this once we've stacked together one full colorchord frame.
 static void NewFrame()
@@ -54,8 +63,12 @@ static void procTask(os_event_t *events)
 {
 	system_os_post(procTaskPrio, 0, 0 );
 
-//	printf( "%d\n", sounddata[soundtail] );
+	CSTick( 0 );
 
+	//For profiling so we can see how much CPU is spent in this loop.
+#ifdef PROFILE
+	WRITE_PERI_REG( PERIPHS_GPIO_BASEADDR + GPIO_ID_PIN(0), 1 );
+#endif
 	while( soundtail != soundhead )
 	{
 		int16_t samp = sounddata[soundtail];
@@ -70,6 +83,9 @@ static void procTask(os_event_t *events)
 			wf = 0; 
 		}
 	}
+#ifdef PROFILE
+	WRITE_PERI_REG( PERIPHS_GPIO_BASEADDR + GPIO_ID_PIN(0), 0 );
+#endif
 
 	if( events->sig == 0 && events->par == 0 )
 	{
@@ -109,6 +125,7 @@ static void procTask(os_event_t *events)
 //Timer event.
 static void myTimer(void *arg)
 {
+	CSTick( 1 );
 //	uart0_sendStr(".");
 //	printf( "%d/%d\n",soundtail,soundhead );
 //	printf( "%d/%d\n",soundtail,soundhead );
@@ -118,15 +135,14 @@ static void myTimer(void *arg)
 
 
 //Called when new packet comes in.
-static void ICACHE_FLASH_ATTR
-udpserver_recv(void *arg, char *pusrdata, unsigned short len)
+static void udpserver_recv(void *arg, char *pusrdata, unsigned short len)
 {
 	struct espconn *pespconn = (struct espconn *)arg;
 //	uint8_t buffer[MAX_FRAME];
 
 //	uint8_t ledout[] = { 0x00, 0xff, 0xaa, 0x00, 0xff, 0xaa, };
 	uart0_sendStr("X");
-//	ws2812_push( pusrdata, len );
+	ws2812_push( pusrdata, len );
 }
 
 void ICACHE_FLASH_ATTR charrx( uint8_t c )
@@ -135,13 +151,16 @@ void ICACHE_FLASH_ATTR charrx( uint8_t c )
 }
 
 
-void user_init(void)
+void ICACHE_FLASH_ATTR user_init(void)
 {
 	uart_init(BIT_RATE_115200, BIT_RATE_115200);
 	int wifiMode = wifi_get_opmode();
 
 	uart0_sendStr("\r\nCustom Server\r\n");
 
+#ifdef PROFILE
+	GPIO_OUTPUT_SET(GPIO_ID_PIN(0), 0);
+#endif
 
 	wifi_set_opmode( 2 ); //We broadcast our ESSID, wait for peopel to join.
 
@@ -170,6 +189,8 @@ void user_init(void)
 		while(1) { uart0_sendStr( "\r\nFAULT\r\n" ); }
 	}
 
+	CSInit();
+
 	//Add a process
 	system_os_task(procTask, procTaskPrio, procTaskQueue, procTaskQueueLen);
 
@@ -178,13 +199,25 @@ void user_init(void)
 	os_timer_setfn(&some_timer, (os_timer_func_t *)myTimer, NULL);
 	os_timer_arm(&some_timer, 100, 1);
 
-	Init(); //Init colorchord
+	InitColorChord(); //Init colorchord
 
 	StartHPATimer(); //Init the high speed  ADC timer.
 
 	ws2812_init();
 
 	system_os_post(procTaskPrio, 0, 0 );
+}
+
+void EnterCritical()
+{
+	PauseHPATimer();
+	//ets_intr_lock();
+}
+
+void ExitCritical()
+{
+	//ets_intr_unlock();
+	ContinueHPATimer();
 }
 
 

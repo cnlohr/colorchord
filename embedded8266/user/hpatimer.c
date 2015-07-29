@@ -1,3 +1,5 @@
+//Copyright 2015 <>< Charles Lohr Under the MIT/x11 License, NewBSD License or
+// ColorChord License.  You Choose.
 
 #include "hpatimer.h"
 #include <driver/adc.h>
@@ -55,4 +57,21 @@ void ICACHE_FLASH_ATTR StartHPATimer()
 	system_timer_reinit();
 	hs_adc_start();
 }
+
+void ICACHE_FLASH_ATTR PauseHPATimer()
+{
+    TM1_EDGE_INT_DISABLE();
+    ETS_FRC1_INTR_DISABLE();
+	system_timer_reinit();
+}
+
+void ICACHE_FLASH_ATTR ContinueHPATimer()
+{
+    TM1_EDGE_INT_ENABLE();
+    ETS_FRC1_INTR_ENABLE();
+	system_timer_reinit();
+	hs_adc_start();
+}
+
+
 

@@ -1,4 +1,7 @@
 //I did not write this file, but I don't know where it came from.
+//It was also heavily modified by me, Charles Lohr.  I personally
+//renounce any copyright over this file, so all of my modifications
+//are hereby placed into the public domain.
 
 #include "ets_sys.h"
 #include "osapi.h"

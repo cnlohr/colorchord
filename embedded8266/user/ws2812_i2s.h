@@ -1,5 +1,8 @@
-#ifndef _I2S_TEST
-#define _I2S_TEST
+//Copyright 2015 <>< Charles Lohr, See LICENSE file.
+//WS2812 sender that abuses the I2S interface on the WS2812.
+
+#ifndef _WS2812I2S_TEST
+#define _WS2812I2S_TEST
 
 //Stuff that should be for the header:
 

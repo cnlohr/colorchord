@@ -1,7 +1,8 @@
 *Note if you use the ESP8266 port, you are bound to this license as well as
 the regular ColorChord license.*  (Yes, I'm aware one is a BSD-based license
-and the other is a MIT-based license and will consider resolving this if
-people want)
+and the other is a MIT-based license, but this is not really a problem for
+the ESP8266 as long as you follow the ColorChord license and only use it on
+the ESP8266)
 
 
 ESPRSSIF MIT License

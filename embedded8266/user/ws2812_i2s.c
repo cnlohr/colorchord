@@ -1,5 +1,6 @@
 /******************************************************************************
  * Copyright 2013-2015 Espressif Systems
+ *           2015 <>< Charles Lohr
  *
  * FileName: i2s_freertos.c
  *
@@ -26,6 +27,10 @@ Notes:
 
  The way it works right now is to keep the DMA running forever and just update
  the data in the buffer so it continues sending the frame.
+
+Extra copyright info:
+  Actually not much of this file is Copyright Espressif, comparativly little
+  mostly just the stuff to make the I2S bus go.
 
 *******************************************************************************/
 
@@ -390,6 +395,10 @@ void ICACHE_FLASH_ATTR ws2812_init()
 	//Start transmission
 	SET_PERI_REG_MASK(I2SCONF,I2S_I2S_TX_START);
 }
+
+
+//All functions below this line are Public Domain 2015 Charles Lohr.
+//this code may be used by anyone in any way without restriction or limitation.
 
 
 //Tricky, send out WS2812 bits with coded pulses, one nibble, then the other.

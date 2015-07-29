@@ -1,5 +1,7 @@
 #ESP8266 ColorChord
 
+## WARNING THIS IS UNDER CONSTRUCTION
+
 (based off of ESP8266 I2S WS2812 Driver)
 
 This project is based off of the I2S interface for the mp3 player found here:

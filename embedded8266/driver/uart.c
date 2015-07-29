@@ -8,6 +8,7 @@
  *
  * Modification history:
  *     2014/3/12, v1.0 create this file.
+ *     [various] Not released, Modified by Charles Lohr to change the RX behavior
 *******************************************************************************/
 #include <osapi.h>
 #include <ets_sys.h>

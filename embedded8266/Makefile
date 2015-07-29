@@ -6,14 +6,19 @@ TARGET_OUT:=image.elf
 
 
 SRCS:=driver/uart.c \
-	user/mystuff.c \
+	common/mystuff.c \
+	common/flash_rewriter.c \
+	common/http.c \
+	common/http_custom.c \
+	common/mfs.c \
 	user/ws2812_i2s.c \
 	user/hpatimer.c \
 	driver/adc.c \
 	../embeddedcommon/DFT32.c \
 	../embeddedcommon/embeddednf.c \
 	../embeddedcommon/embeddedout.c \
-	user/user_main.c 
+	user/user_main.c  \
+	common/commonservices.c
 
 GCC_FOLDER:=~/esp8266/esp-open-sdk/xtensa-lx106-elf
 ESPTOOL_PY:=~/esp8266/esptool/esptool.py
@@ -28,28 +33,32 @@ FOLDERPREFIX:=$(GCC_FOLDER)/bin
 PREFIX:=$(FOLDERPREFIX)/xtensa-lx106-elf-
 CC:=$(PREFIX)gcc
 
-CFLAGS:=-mlongcalls -I$(SDK)/include -Imyclib -Iinclude -Iuser -Os -I$(SDK)/include/ -I../embeddedcommon -Dmemcpy=ets_memcpy -Dmemset=ets_memset \
-	 -DDFREQ=16000 -DCCEMBEDDED -DNUM_LIN_LEDS=24
+CFLAGS:=-mlongcalls -I$(SDK)/include -Imyclib -Iinclude -Iuser -Os -I$(SDK)/include/ -I../embeddedcommon -I. -Icommon -DICACHE_FLASH
+
 #-DFREQ==12500 seems to work well.
 
 
 LDFLAGS_CORE:=\
 	-nostdlib \
-	-Wl,--relax -Wl,--gc-sections \
 	-L$(XTLIB) \
 	-L$(XTGCCLIB) \
+	$(SDK)/lib/libmain.a \
 	$(SDK)/lib/liblwip.a \
 	$(SDK)/lib/libssl.a \
 	$(SDK)/lib/libupgrade.a \
 	$(SDK)/lib/libnet80211.a \
-	$(SDK)/lib/liblwip.a \
 	$(SDK)/lib/libwpa.a \
 	$(SDK)/lib/libnet80211.a \
 	$(SDK)/lib/libphy.a \
-	$(SDK)/lib/libmain.a \
+	$(SDK)/lib/liblwip.a \
 	$(SDK)/lib/libpp.a \
+	$(SDK)/lib/libmain.a \
 	$(XTGCCLIB) \
-	-T $(SDK)/ld/eagle.app.v6.ld
+	-T $(SDK)/ld/eagle.app.v6.ld \
+	-Wl,-Map,output.map \
+
+#	-flto -Wl,--relax -Wl,--gc-sections
+
 
 LINKFLAGS:= \
 	$(LDFLAGS_CORE) \
@@ -59,7 +68,7 @@ LINKFLAGS:= \
 #	$(PREFIX)ld $^ $(LDFLAGS) -o $@
 
 $(TARGET_OUT) : $(SRCS)
-	$(PREFIX)gcc $(CFLAGS) $^  -flto $(LINKFLAGS) -o $@
+	$(PREFIX)gcc $(CFLAGS) $^   $(LINKFLAGS) -o $@
 
 
 
@@ -71,9 +80,16 @@ $(FW_FILE_2): $(TARGET_OUT)
 	@echo "FW $@"
 	$(FW_TOOL) -eo $(TARGET_OUT) -es .irom0.text $@ -ec
 
+
+IP?=192.168.4.1
+
 burn : $(FW_FILE_1) $(FW_FILE_2)
 	($(ESPTOOL_PY) --port $(PORT) write_flash 0x00000 0x00000.bin 0x40000 0x40000.bin)||(true)
 
+
+
+netburn : image.elf $(FW_FILE_1) $(FW_FILE_2)
+	web/execute_reflash $(IP) 0x00000.bin 0x40000.bin
 
 clean :
 	rm -rf user/*.o driver/*.o $(TARGET_OUT) $(FW_FILE_1) $(FW_FILE_2)
