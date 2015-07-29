@@ -1,16 +1,24 @@
-all : embeddedcc
+all : embeddedcc dummy_leds
 
-CFLAGS:=-Ofast -DCCEMBEDDED -I.. -flto -m32 -DDFREQ=11025 -I../embeddedcommon -DNUM_LIN_LEDS=20
-LDFLAGS:=-ffunction-sections -Wl,--gc-sections -fno-asynchronous-unwind-tables -Wl,--strip-all
+CFLAGS:=-Os -I. -I.. -flto -I../embeddedcommon 
+
+LDFLAGS:= -s -Wl,--relax -Wl,-Map=test.map  -Wl,--gc-sections -ffunction-sections -fdata-sections -Wl,--strip-all -fno-asynchronous-unwind-tables
+#LDFLAGS:=-O0 -g
+
 
 embeddedcc :  ../embeddedcommon/embeddednf.c ../embeddedcommon/DFT32.c embeddedcc.c  ../embeddedcommon/embeddedout.c
-	gcc -o $@ $^ $(CFLAGS) $(LDFLAGS)
+	gcc -o $@ $^ $(CFLAGS) $(LDFLAGS) -m32
 
+dummy_leds : dummy_leds.c 
+	gcc -o $@ $^ -lX11 -lpthread $(CFLAGS) $(LDFLAGS)
 
-#SOUNDDEVICE:= --device=alsa_output.pci-0000_00_1b.0.analog-stereo.monitor 
+SOUNDDEVICE:= --device=alsa_output.pci-0000_00_1b.0.analog-stereo.monitor 
+#OUTIP:=192.168.4.1
+OUTIP:=127.0.0.1
 
 runembedded : embeddedcc
-	parec --format=u8 --rate=11025 --channels=1 $(SOUNDDEVICE) --latency=128 | ./embeddedcc 192.168.4.1 0
+	parec --format=u8 --rate=16000 --channels=1 $(SOUNDDEVICE) --latency=128 | ./embeddedcc $(OUTIP) 1
+
 
 clean :
-	rm -rf embeddedcc *~
+	rm -rf embeddedcc *~ dummy_leds
