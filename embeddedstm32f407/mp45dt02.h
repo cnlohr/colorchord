@@ -3,6 +3,7 @@
 #ifndef _MP45DT02
 #define _MP45DT02
 
+#include "ccconfig.h"
 
 //sampling frequency
 #define FS DFREQ

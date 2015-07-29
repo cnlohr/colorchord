@@ -116,7 +116,7 @@ int main(void)
 //  it also takes up a bunch of space.  No printf = no space wasted in printf.
 //	printf( "Operating at %.3fMHz\n", fv );
 
-	Init();
+	InitColorChord();
 	Configure_PA0();
 	InitMP45DT02();
 	InitSPI2812();

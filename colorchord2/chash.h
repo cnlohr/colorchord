@@ -1,3 +1,9 @@
+//Generic C Hash table thing.
+//WARNING: There is a known bug somewhere in the remove entry thing.
+//I never found it...
+//
+// Copyright 2015 <>< Charles Lohr, under the NewBSD or MIT/x11 License.
+
 #ifndef _CHASH_H
 #define _CHASH_H
 

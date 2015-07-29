@@ -1,4 +1,7 @@
+//Copyright 2015 <>< Charles Lohr under the ColorChord License.
+
 //XXX TODO Figure out why it STILL fails when going around a loop
+
 
 #include "outdrivers.h"
 #include "notefinder.h"

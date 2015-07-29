@@ -1,3 +1,5 @@
+//Copyright 2015 <>< Charles Lohr under the ColorChord License.
+
 //This file is really rough.  Full duplex doesn't seem to work hardly at all.
 
 

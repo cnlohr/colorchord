@@ -1,3 +1,5 @@
+//Copyright 2015 <>< Charles Lohr under the ColorChord License.
+
 #ifndef _DECOMPOSE_H
 #define _DECOMPOSE_H
 

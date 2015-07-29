@@ -1,3 +1,5 @@
+//Copyright 2015 <>< Charles Lohr under the NewBSD OR MIT/x11 License.
+
 #include "os_generic.h"
 
 

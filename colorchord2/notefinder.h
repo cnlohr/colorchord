@@ -1,3 +1,5 @@
+//Copyright 2015 <>< Charles Lohr under the ColorChord License.
+
 #ifndef _NOTEFINDER_H
 #define _NOTEFINDER_H
 

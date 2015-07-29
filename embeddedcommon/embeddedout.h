@@ -1,3 +1,5 @@
+//Copyright 2015 <>< Charles Lohr under the ColorChord License.
+
 #ifndef _EMBEDDEDOUT_H
 #define _EMBEDDEDOUT_H
 
@@ -18,12 +20,19 @@
 #define NUM_LIN_LEDS 32
 #endif
 
-#ifndef LIN_WRAPAROUND
-#define LIN_WRAPAROUND 0 //Whether the output lights wrap around. (Can't easily run on embedded systems)
+#ifndef USE_NUM_LIN_LEDS
+#define USE_NUM_LIN_LEDS NUM_LIN_LEDS
 #endif
 
-#ifdef SORT_NOTES
-#define SORT_NOTES 0     //Whether the notes will be sorted.
+
+#ifndef LIN_WRAPAROUND
+//Whether the output lights wrap around.
+//(Can't easily run on embedded systems)
+#define LIN_WRAPAROUND 0 
+#endif
+
+#ifndef SORT_NOTES
+#define SORT_NOTES 0     //Whether the notes will be sorted. BUGGY Don't use.
 #endif
 
 extern uint8_t ledArray[];

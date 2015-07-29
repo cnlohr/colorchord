@@ -1,3 +1,5 @@
+//Copyright 2015 <>< Charles Lohr under the ColorChord License.
+
 #ifndef _PARAMETERS_H
 #define _PARAMETERS_H
 

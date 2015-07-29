@@ -1,3 +1,5 @@
+//Copyright 2015 <>< Charles Lohr under the ColorChord License.
+
 #ifndef _SOUND_H
 #define _SOUND_H
 

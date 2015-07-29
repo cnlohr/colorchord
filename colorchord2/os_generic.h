@@ -1,3 +1,5 @@
+//Copyright 2015 <>< Charles Lohr under the NewBSD or MIT/x11 License.
+
 #ifndef _OS_GENERIC_H
 #define _OS_GENERIC_H
 

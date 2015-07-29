@@ -1,3 +1,5 @@
+//Copyright 2015 <>< Charles Lohr under the ColorChord License.
+
 //Really basic driver, that just selects the most prominent color and washes all the LEDs with that.
 
 #include "outdrivers.h"

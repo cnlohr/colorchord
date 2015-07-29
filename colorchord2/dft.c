@@ -1,3 +1,5 @@
+//Copyright 2015 <>< Charles Lohr under the ColorChord License.
+
 #include "dft.h"
 #include <math.h>
 #include <stdio.h>

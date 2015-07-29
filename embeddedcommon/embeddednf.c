@@ -1,5 +1,8 @@
+//Copyright 2015 <>< Charles Lohr under the ColorChord License.
+
 #include "embeddednf.h"
 #include <stdio.h>
+#include <string.h>
 
 uint16_t folded_bins[FIXBPERO];
 uint16_t fuzzed_bins[FIXBINS];
@@ -9,6 +12,7 @@ uint16_t note_peak_amps2[MAXNOTES];
 uint8_t  note_jumped_to[MAXNOTES];
 
 
+#ifndef PRECOMPUTE_FREQUENCY_TABLE
 static const float bf_table[24] = {
         1.000000, 1.029302, 1.059463, 1.090508, 1.122462, 1.155353, 
         1.189207, 1.224054, 1.259921, 1.296840, 1.334840, 1.373954, 
@@ -36,12 +40,15 @@ int main()
 }
 */
 
+#endif
 
 #define BUILD_BUG_ON(condition) ((void)sizeof(char[1 - 2*!!(condition)]))
 
 
 void UpdateFreqs()
 {
+
+#ifndef PRECOMPUTE_FREQUENCY_TABLE
 	uint16_t fbins[FIXBPERO];
 	int i;
 
@@ -55,8 +62,18 @@ void UpdateFreqs()
 	for( i = 0; i < FIXBPERO; i++ )
 	{
 		float frq =  ( bf_table[i] * BASE_FREQ );
-		fbins[i] = ( 65536.0 ) / ( DFREQ ) * frq * 16;
+		fbins[i] = ( 65536.0 ) / ( DFREQ ) * frq * 16 + 0.5;
 	}
+#else
+
+	#define PCOMP( f )  (uint16_t)((65536.0)/(DFREQ) * (f * BASE_FREQ) * 16 + 0.5)
+
+	static const uint16_t fbins[FIXBPERO] = { 
+		PCOMP( 1.000000 ), PCOMP( 1.029302 ), PCOMP( 1.059463 ), PCOMP( 1.090508 ), PCOMP( 1.122462 ), PCOMP( 1.155353 ), 
+		PCOMP( 1.189207 ), PCOMP( 1.224054 ), PCOMP( 1.259921 ), PCOMP( 1.296840 ), PCOMP( 1.334840 ), PCOMP( 1.373954 ),
+		PCOMP( 1.414214 ), PCOMP( 1.455653 ), PCOMP( 1.498307 ), PCOMP( 1.542211 ), PCOMP( 1.587401 ), PCOMP( 1.633915 ),
+		PCOMP( 1.681793 ), PCOMP( 1.731073 ), PCOMP( 1.781797 ), PCOMP( 1.834008 ), PCOMP( 1.887749 ), PCOMP( 1.943064 ) };
+#endif
 
 #ifdef USE_32DFT
 	UpdateBins32( fbins );
@@ -65,7 +82,7 @@ void UpdateFreqs()
 #endif
 }
 
-void Init()
+void InitColorChord()
 {
 	int i;
 	//Set up and initialize arrays.
@@ -76,15 +93,8 @@ void Init()
 		note_peak_amps2[i] = 0;
 	}
 
-	for( i = 0; i < FIXBPERO; i++ )
-	{
-		folded_bins[i] = 0;
-	}
-
-	for( i = 0; i < FIXBINS; i++ )
-	{
-		fuzzed_bins[i] = 0;
-	}
+	memset( folded_bins, 0, sizeof( folded_bins ) );
+	memset( fuzzed_bins, 0, sizeof( fuzzed_bins ) );
 
 	//Step 1: Initialize the Integer DFT.
 #ifdef USE_32DFT
@@ -102,10 +112,7 @@ void HandleFrameInfo()
 {
 	int i, j, k;
 	uint8_t hitnotes[MAXNOTES];
-	for( i = 0; i < MAXNOTES; i++ )
-	{
-		hitnotes[i] = 0;
-	}
+	memset( hitnotes, 0, sizeof( hitnotes ) );
 
 #ifdef USE_32DFT
 	uint16_t * strens;

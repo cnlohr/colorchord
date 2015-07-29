@@ -1,5 +1,9 @@
+//Copyright 2015 <>< Charles Lohr under the ColorChord License.
+
 #ifndef _EMBEDDEDNF_H
 #define _EMBEDDEDNF_H
+
+#include <ccconfig.h>
 
 //Use a 32-bit DFT.  It won't work for AVRs, but for any 32-bit systems where
 //they can multiply quickly, this is the bees knees.
@@ -9,7 +13,10 @@
 #define DFREQ     8000
 #endif
 
-#define BASE_FREQ 55.0  // You may make this a float.
+//You may make this a float. If PRECOMPUTE_FREQUENCY_TABLE is defined, then
+//it will create the table at compile time, and the float will never be used
+//runtime.
+#define BASE_FREQ 55.0
 
 //The higher the number the slackier your FFT will be come.
 #define FUZZ_IIR_BITS  1
@@ -54,12 +61,12 @@
 #define MINIMUM_AMP_FOR_NOTE_TO_DISAPPEAR 64
 
 
+//This prevents compilation of any floating-point code, but it does come with
+//an added restriction: Both DFREQ and BASE_FREQ must be #defined to be
+//constants.
+#define PRECOMPUTE_FREQUENCY_TABLE
 
-#ifdef USE_32DFT
 #include "DFT32.h"
-#else
-#include "dft.h"
-#endif
 
 extern uint16_t folded_bins[]; //[FIXBPERO] <- The folded fourier output.
 extern uint16_t fuzzed_bins[]; //[FIXBINS]  <- The Full DFT after IIR, Blur and Taper
@@ -72,10 +79,13 @@ extern uint16_t note_peak_amps2[];  //[MAXNOTES]  (Responds quicker)
 extern uint8_t  note_jumped_to[]; //[MAXNOTES] When a note combines into another one,
 	//this records where it went.  I.e. if your note just disappeared, check this flag.
 
-void Init();
-void UpdateFreqs();
-void HandleFrameInfo();
+void UpdateFreqs();		//Not user-useful on most systems.
+void HandleFrameInfo();	//Not user-useful on most systems
 
+
+
+//Call this when starting.
+void InitColorChord();
 
 
 #endif

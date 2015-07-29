@@ -1,3 +1,5 @@
+//Copyright 2015 <>< Charles Lohr under the ColorChord License.
+
 #include "sound.h"
 #include <string.h>
 #include <stdio.h>

@@ -1,3 +1,5 @@
+//Copyright 2015 <>< Charles Lohr under the ColorChord License.
+
 //Output drivers, used for outputting lights, etc... However, this technique
 //may be used for unrelated-to-output plugins.
 

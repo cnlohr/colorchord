@@ -1,3 +1,7 @@
+//Copyright (Public Domain) 2015 <>< Charles Lohr, under the NewBSD License.
+//This file may be used in whole or part in any way for any purpose by anyone
+//without restriction.
+
 #include "sort.h"
 #include <string.h>
 #include <stdio.h>

@@ -1,3 +1,5 @@
+//Copyright 2015 <>< Charles Lohr under the ColorChord License.
+
 #include "outdrivers.h"
 #include <string.h>
 #include "parameters.h"

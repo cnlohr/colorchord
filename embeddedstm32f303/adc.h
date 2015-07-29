@@ -2,7 +2,7 @@
 #define _ADC_H
 
 #include <stdint.h>
-
+#include "ccconfig.h"
 #define ADCFS DFREQ
 #define ADCOVERSAMP 4
 

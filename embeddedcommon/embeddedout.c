@@ -1,3 +1,5 @@
+//Copyright 2015 <>< Charles Lohr under the ColorChord License.
+
 #include "embeddedout.h"
 
 //uint8_t ledArray[NUM_LIN_LEDS]; //Points to which notes correspond to these LEDs
@@ -105,14 +107,14 @@ void UpdateLinearLEDs()
 
 	if( total_size_all_notes == 0 )
 	{
-		for( j = 0; j < NUM_LIN_LEDS * 3; j++ )
+		for( j = 0; j < USE_NUM_LIN_LEDS * 3; j++ )
 		{
 			ledOut[j] = 0;
 		}
 		return;
 	}
 
-	uint32_t porportional = (uint32_t)(NUM_LIN_LEDS<<16)/((uint32_t)total_size_all_notes);
+	uint32_t porportional = (uint32_t)(USE_NUM_LIN_LEDS<<16)/((uint32_t)total_size_all_notes);
 
 	uint16_t total_accounted_leds = 0;
 
@@ -122,7 +124,7 @@ void UpdateLinearLEDs()
 		total_accounted_leds += porpamps[i];
 	}
 
-	int16_t total_unaccounted_leds = NUM_LIN_LEDS - total_accounted_leds;
+	int16_t total_unaccounted_leds = USE_NUM_LIN_LEDS - total_accounted_leds;
 
 	int addedlast = 1;
 	do
@@ -151,14 +153,14 @@ void UpdateLinearLEDs()
 #if LIN_WRAPAROUND
 	uint16_t midx = 0;
 	uint32_t mqty = 100000000;
-	for( j = 0; j < NUM_LIN_LEDS; j++ )
+	for( j = 0; j < USE_NUM_LIN_LEDS; j++ )
 	{
 		uint32_t dqty;
 		uint16_t localj;
 
 		dqty = 0;
 		localj = j;
-		for( l = 0; l < NUM_LIN_LEDS; l++ )
+		for( l = 0; l < USE_NUM_LIN_LEDS; l++ )
 		{
 			int32_t d = (int32_t)ledFreqOut[localj] - (int32_t)ledFreqOutOld[l];
 			if( d < 0 ) d *= -1;
@@ -166,7 +168,7 @@ void UpdateLinearLEDs()
 			dqty += ( d * d );
 
 			localj++;
-			if( localj == NUM_LIN_LEDS ) localj = 0;
+			if( localj == USE_NUM_LIN_LEDS ) localj = 0;
 		}
 
 		if( dqty < mqty )
@@ -183,9 +185,9 @@ void UpdateLinearLEDs()
 #endif
 
 	j = ledSpin;
-	for( l = 0; l < NUM_LIN_LEDS; l++, j++ )
+	for( l = 0; l < USE_NUM_LIN_LEDS; l++, j++ )
 	{
-		if( j >= NUM_LIN_LEDS ) j = 0;
+		if( j >= USE_NUM_LIN_LEDS ) j = 0;
 		ledFreqOutOld[l] = ledFreqOut[j];
 
 		uint16_t amp = ledAmpOut[j];
@@ -208,7 +210,7 @@ void UpdateLinearLEDs()
 			ledOut[j*3+2] = ( color >>16 ) & 0xff;
 
 			j++;
-			if( j == NUM_LIN_LEDS ) j = 0;
+			if( j == USE_NUM_LIN_LEDS ) j = 0;
 			porpamps[i]--;
 		}
 	}*/

@@ -1,3 +1,5 @@
+//Copyright 2015 <>< Charles Lohr under the ColorChord License.
+
 //XXX This needs to be re-worked to only output LEDs so DisplayArray can take it.
 //XXX CONSIDER DUMPING
 

@@ -1,3 +1,5 @@
+//Copyright 2015 <>< Charles Lohr under the ColorChord License.
+
 #include "parameters.h"
 #include "chash.h"
 #include <string.h>

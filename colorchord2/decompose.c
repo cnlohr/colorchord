@@ -1,3 +1,5 @@
+//Copyright 2015 <>< Charles Lohr under the ColorChord License.
+
 #include "decompose.h"
 #include <stdio.h>
 #include <math.h>

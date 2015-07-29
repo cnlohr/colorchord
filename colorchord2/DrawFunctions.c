@@ -1,5 +1,8 @@
 /*
-Copyright (c) 2010, 2011 Charles Lohr
+Copyright (c) 2010, 2011, 2015 <>< Charles Lohr
+
+This file may be licensed under the NewBSD License OR The license found
+here:
 
 Permission is hereby granted, free of charge, to any person obtaining
 a copy of this software and associated documentation files (the

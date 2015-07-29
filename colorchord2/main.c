@@ -1,3 +1,5 @@
+//Copyright 2015 <>< Charles Lohr under the ColorChord License.
+
 #include <ctype.h>
 #include "color.h"
 #include <math.h>
