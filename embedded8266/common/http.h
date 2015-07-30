@@ -22,15 +22,18 @@
 void ICACHE_FLASH_ATTR HTTPCustomStart( );
 void ICACHE_FLASH_ATTR HTTPCustomCallback( );  //called when we can send more data
 
-void ICACHE_FLASH_ATTR WebSocketData( uint8_t * data, int len );
+void ICACHE_FLASH_ATTR WebSocketData( int len );
 void ICACHE_FLASH_ATTR WebSocketTick( );
 void ICACHE_FLASH_ATTR WebSocketNew();
 
 extern struct HTTPConnection * curhttp;
 extern uint8 * curdata;
 extern uint16  curlen;
+extern uint8   wsmask[4];
+extern uint8   wsmaskplace;
 
-#define POP (*curdata++)
+uint8_t WSPOPMASK();
+#define HTTPPOP (*curdata++)
 
 #define HTTP_STATE_NONE        0
 #define HTTP_STATE_WAIT_METHOD 1
@@ -49,7 +52,10 @@ struct HTTPConnection
 {
 	uint8_t  state:4;
 	uint8_t  state_deets;
-	uint8_t  pathbuffer[MAX_PATHLEN]; //Also used for temporary and handshake information when using websockets.
+
+	//Provides path, i.e. "/index.html" but, for websockets, the last 
+	//32 bytes of the buffer are used for the websockets key.  
+	uint8_t  pathbuffer[MAX_PATHLEN];
 	uint8_t  is_dynamic:1;
 	uint16_t timeout;
 
@@ -60,6 +66,7 @@ struct HTTPConnection
 	} data;
 
 	void * rcb;
+	void * rcbDat; //For websockets primarily.
 
 	uint32_t bytesleft;
 	uint32_t bytessofar;
@@ -67,6 +74,7 @@ struct HTTPConnection
 	uint8_t  is404:1;
 	uint8_t  isdone:1;
 	uint8_t  isfirst:1;
+	uint8_t  keep_alive:1;
 	uint8_t  need_resend:1;
 
 	struct espconn * socket;

@@ -6,6 +6,12 @@
 
 #include "c_types.h"
 
+//Returns nr bytes to return.  You must allocate retdata.
+//It MUST be at least 1,300 bytes large and it MUST be 32-bit aligned.
+//NOTE: It is SAFE to use pusrdata and retdata as the same buffer.
+int ICACHE_FLASH_ATTR issue_command(char * retdata, int retsize, char *pusrdata, unsigned short len);
+
+
 //Includes UDP Control + HTTP Interfaces
 void ICACHE_FLASH_ATTR CSInit();
 void ICACHE_FLASH_ATTR CSTick( int slowtick );

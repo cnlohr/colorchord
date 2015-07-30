@@ -1,0 +1,68 @@
+<html>
+<head>
+<title>ColorChord Control Panel</title>
+<script language="javascript" type="text/javascript" src=jquery-2.1.4.min.js.gz></script>
+<script language="javascript" type="text/javascript" src=colorchord.js></script>
+<meta charset="UTF-8">
+<style>
+table { width: 100%; }
+td { vertical-align: top; }
+.collapsible { display:none; }
+</style>
+</head>
+<body>
+<h2>ColorChord: Embedded</h2>
+<hr>
+
+<table>
+
+<tr><td width=1>
+<input type=submit onclick="ShowHideEvent( 'SystemStatus' );" value="System Status" id=SystemStatusClicker></td><td>
+<div id=SystemStatus class="collapsible">
+<table width=100% border=1><tr><td>
+<div id=output></div>
+</td></tr></table></td></tr>
+
+<tr><td width=1>
+<input type=submit onclick="ShowHideEvent( 'Introduction' );" value="Introduction"></td><td>
+<div id=Introduction class="collapsible">
+<table border=1><tr><td>
+System Info...<br>line2<br>line3
+</td></tr></table></td></tr>
+
+<tr><td width=1>
+<input type=submit onclick="ShowHideEvent( 'WifiSettings' );" value="Wifi Settings"></td><td>
+<div id=WifiSettings class="collapsible">
+<table width=100% border=1><tr><td>
+Current Configuration:<form name="wifisection" action="javascript:ChangeWifiConfig();">
+<table border=1 width=1%>
+<tr><td width=1>Type:</td><td><input type="radio" name="wifitype" value=1>Station (Connect to infrastructure)<br><input type="radio" name="wifitype" value=2>AP (Broadcast a new AP)</td></tr>
+<tr><td>SSID:</td><td><input type="text" id="wificurname"></td></tr>
+<tr><td>PASS:</td><td><input type="text" id="wificurpassword"></td></tr>
+<tr><td>Enc:</td><td><input type="radio" name="wificurenctype" value="open">Open<br><input type="radio" name="wificurenctype" value="wpa-wpa2">WPA2-PSK (Ignored in Station mode)</td></tr>
+<tr><td>Chan:</td><td><input type="text" id="wificurchannel"> (Ignored in Station mode)</td></tr></tr>
+<tr><td></td><td><input type=submit value="Change Settings"></td></tr>
+</form></table>
+
+Scanned Stations:
+<div id=WifiStations></div>
+<input type=submit onclick="QueueOperation('ws', null);" value="Scan For Stations (Will disconnect!)">
+</td></tr></table></td></tr>
+
+<tr><td width=1>
+<input type=submit onclick="ShowHideEvent( 'CustomCommand' );" value="Custom Command"></td><td>
+<div id=CustomCommand class="collapsible">
+<table width=100% border=1><tr><td>
+Command: <input type=text id=custom_command>
+<input type=submit value="Submit" onclick="IssueCustomCommand()"><br>
+<textarea id=custom_command_response readonly rows=15 cols=80></textarea>
+</td></tr></table></td></tr>
+
+
+</table>
+
+
+</body>
+</html>
+
+

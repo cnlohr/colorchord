@@ -11,6 +11,9 @@ struct HTTPConnection HTTPConnections[HTTP_CONNECTIONS];
 struct HTTPConnection * curhttp;
 uint8 * curdata;
 uint16  curlen;
+uint8   wsmask[4];
+uint8   wsmaskplace;
+
 
 ICACHE_FLASH_ATTR void InternalStartHTTP( );
 ICACHE_FLASH_ATTR void HTTPHandleInternalCallback( );
@@ -29,7 +32,7 @@ void ICACHE_FLASH_ATTR HTTPGotData( )
 
 	while( curlen-- )
 	{
-		c = POP;
+		c = HTTPPOP;
 	//	sendhex2( h->state ); sendchr( ' ' );
 
 		switch( curhttp->state )
@@ -97,8 +100,15 @@ void ICACHE_FLASH_ATTR HTTPGotData( )
 			WebSocketGotData( c );
 			break;
 		case HTTP_WAIT_CLOSE:
-			//printf( "__HTTPCLose1\n" );
-			HTTPClose( );
+			if( curhttp->keep_alive )
+			{
+				curhttp->state = HTTP_STATE_WAIT_METHOD;
+			}
+			else
+			{
+				//printf( "__HTTPCLose1\n" );
+				HTTPClose( );
+			}
 			break;
 		default:
 			break;
@@ -130,8 +140,15 @@ static void DoHTTP( uint8_t timed )
 	case HTTP_WAIT_CLOSE:
 		if( TCPDoneSend( curhttp->socket ) )
 		{
-			//printf( "HTTPCLose2\n");
-			HTTPClose( );
+			if( curhttp->keep_alive )
+			{
+				curhttp->state = HTTP_STATE_WAIT_METHOD;
+			}
+			else
+			{
+				//printf( "HTTPCLose2\n");
+				HTTPClose( );
+			}
 		}
 		break;
 	case HTTP_STATE_DATA_WEBSOCKET:
@@ -187,14 +204,21 @@ void ICACHE_FLASH_ATTR HTTPHandleInternalCallback( )
 
 		START_PACK;
 		//TODO: Content Length?  MIME-Type?
-		PushString("HTTP/1.1 200 Ok\r\nConnection: close");
+		PushString("HTTP/1.1 200 Ok\r\n");
 
 		if( curhttp->bytesleft < 0xfffffffe )
 		{
-			PushString("\r\nContent-Length: ");
+			PushString("Connection: keep-alive\r\nContent-Length: ");
 			Uint32To10Str( stto, curhttp->bytesleft );
 			PushBlob( stto, os_strlen( stto ) );
+			curhttp->keep_alive = 1;
 		}
+		else
+		{
+			PushString("Connection: close\r\n");
+			curhttp->keep_alive = 0;
+		}
+
 		PushString( "\r\nContent-Type: " );
 		//Content-Type?
 		while( slen && ( curhttp->pathbuffer[--slen] != '.' ) );
@@ -202,6 +226,10 @@ void ICACHE_FLASH_ATTR HTTPHandleInternalCallback( )
 		if( strcmp( k, "mp3" ) == 0 )
 		{
 			PushString( "audio/mpeg3" );
+		}
+		else if( strcmp( k, "gz" ) == 0 )
+		{
+			PushString( "text/plain\r\nContent-Encoding: gzip\r\nCache-Control: public, max-age=3600" );			
 		}
 		else if( curhttp->bytesleft == 0xfffffffe )
 		{
@@ -410,6 +438,7 @@ void ICACHE_FLASH_ATTR WebSocketGotData( uint8_t c )
 
 #define WS_KEY_LEN 36
 #define WS_KEY "258EAFA5-E914-47DA-95CA-C5AB0DC85B11"
+#define WS_RETKEY_SIZEM1 32
 
 		while( curlen > 1 )
 		{
@@ -449,14 +478,16 @@ void ICACHE_FLASH_ATTR WebSocketGotData( uint8_t c )
 		SHA1_Update( &c, inkey, i );
 		SHA1_Final( hash, &c );
 
-		if( SHA1_HASH_LEN * 2 > MAX_PATHLEN )
-		{
-			HTDEBUG( "Pathlen too short.\n" );
-			curhttp->state = HTTP_WAIT_CLOSE;
-			return;
-		}
+#if	(WS_RETKEY_SIZE > MAX_PATHLEN - 10 )
+#error MAX_PATHLEN too short.
+#endif
 
-		my_base64_encode( hash, SHA1_HASH_LEN, curhttp->pathbuffer );
+		my_base64_encode( hash, SHA1_HASH_LEN, curhttp->pathbuffer + (MAX_PATHLEN-WS_RETKEY_SIZEM1)  );
+
+		curhttp->bytessofar = 0;
+		curhttp->bytesleft = 0;
+
+		NewWebSocket();
 
 		//Respond...
 		curhttp->state_deets = 1;
@@ -507,7 +538,16 @@ void ICACHE_FLASH_ATTR WebSocketGotData( uint8_t c )
 		{
 			payloadlen &= 0x7f;
 		}
-		WebSocketData( curdata, payloadlen );
+
+		wsmask[0] = curdata[0];
+		wsmask[1] = curdata[1];
+		wsmask[2] = curdata[2];
+		wsmask[3] = curdata[3];
+		curdata += 4;
+		curlen -= 4;
+		wsmaskplace = 0;
+
+		WebSocketData( payloadlen );
 		curlen -= payloadlen;
 		curdata += payloadlen;
 		
@@ -525,13 +565,11 @@ void ICACHE_FLASH_ATTR WebSocketTickInternal()
 	case 4: //Has key full HTTP header, etc. wants response.
 		START_PACK;
 		PushString( "HTTP/1.1 101 Switching Protocols\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Accept: " );
-		PushString( curhttp->pathbuffer );
+		PushString( curhttp->pathbuffer + (MAX_PATHLEN-WS_RETKEY_SIZEM1) );
 		PushString( "\r\n\r\n" );
 		EndTCPWrite( curhttp->socket );
 		curhttp->state_deets = 5;
-		curhttp->bytessofar = 0;
-		curhttp->bytesleft = 0;
-		NewWebSocket();
+		curhttp->keep_alive = 0;
 		break;
 	case 5:
 		WebSocketTick();
@@ -555,6 +593,13 @@ void ICACHE_FLASH_ATTR WebSocketSend( uint8_t * data, int size )
 	}
 	PushBlob( data, size );
 	EndTCPWrite( curhttp->socket );
+}
+
+uint8_t WSPOPMASK()
+{
+	uint8_t mask = wsmask[wsmaskplace];
+	wsmaskplace = (wsmaskplace+1)&3;
+	return (*curdata++)^(mask);
 }
 
 

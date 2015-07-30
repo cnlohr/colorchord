@@ -34,11 +34,16 @@ static ICACHE_FLASH_ATTR void echo()
 
 static ICACHE_FLASH_ATTR void issue()
 {
-	char mydat[512];
-	int len = URLDecode( mydat, 512, curhttp->pathbuffer+9 );
+	uint8_t  __attribute__ ((aligned (32))) buf[1300];
+	int len = URLDecode( buf, 1300, curhttp->pathbuffer+9 );
 
-	issue_command(curhttp->socket, mydat, len );
-
+	int r = issue_command(buf, 1300, buf, len );
+	if( r > 0 )
+	{
+		START_PACK;
+		PushBlob( buf, r );
+		EndTCPWrite( curhttp->socket );
+	}
 	curhttp->state = HTTP_WAIT_CLOSE;
 }
 
@@ -72,6 +77,7 @@ void ICACHE_FLASH_ATTR HTTPCustomStart( )
 }
 
 
+
 void ICACHE_FLASH_ATTR HTTPCustomCallback( )
 {
 	if( curhttp->rcb )
@@ -80,18 +86,91 @@ void ICACHE_FLASH_ATTR HTTPCustomCallback( )
 		curhttp->isdone = 1;
 }
 
-void ICACHE_FLASH_ATTR WebSocketTick()
+
+
+
+static void ICACHE_FLASH_ATTR WSEchoData(  int len )
 {
+	char cbo[len];
+	int i;
+	for( i = 0; i < len; i++ )
+	{
+		cbo[i] = WSPOPMASK();
+	}
+	WebSocketSend( cbo, len );
 }
 
-void ICACHE_FLASH_ATTR WebSocketData( uint8_t * data, int len )
+
+static void ICACHE_FLASH_ATTR WSEvalData( int len )
 {
-	char stout[128];
-	int stl = ets_sprintf( stout, "output.innerHTML = %d; doSend('x' );\n", curhttp->bytessofar++ );
-	WebSocketSend( stout, stl );
+	char cbo[128];
+	int l = ets_sprintf( cbo, "output.innerHTML = %d; doSend('x' );", curhttp->bytessofar++ );
+
+	WebSocketSend( cbo, l );
 }
+
+
+static void ICACHE_FLASH_ATTR WSCommandData(  int len )
+{
+	uint8_t  __attribute__ ((aligned (32))) buf[1300];
+	int i;
+
+	for( i = 0; i < len; i++ )
+	{
+		buf[i] = WSPOPMASK();
+	}
+
+	i = issue_command(buf, 1300, buf, len );
+
+	if( i < 0 ) i = 0;
+
+	WebSocketSend( buf, i );
+}
+
+
+//	output.innerHTML = msg++ + " " + lasthz;
+//	doSend('x' );
+
+
 
 void ICACHE_FLASH_ATTR NewWebSocket()
 {
+	if( strcmp( (const char*)curhttp->pathbuffer, "/d/ws/echo" ) == 0 )
+	{
+		curhttp->rcb = 0;
+		curhttp->rcbDat = (void*)&WSEchoData;
+	}
+	else if( strcmp( (const char*)curhttp->pathbuffer, "/d/ws/evaltest" ) == 0 )
+	{
+		curhttp->rcb = 0;
+		curhttp->rcbDat = (void*)&WSEvalData;
+	}
+	else if( strcmp( (const char*)curhttp->pathbuffer, "/d/ws/issue" ) == 0 )
+	{
+		curhttp->rcb = 0;
+		curhttp->rcbDat = (void*)&WSCommandData;
+	}
+	else
+	{
+		curhttp->is404 = 1;
+	}
 }
 
+
+
+
+void ICACHE_FLASH_ATTR WebSocketTick()
+{
+	if( curhttp->rcb )
+	{
+		((void(*)())curhttp->rcb)();
+	}
+}
+
+void ICACHE_FLASH_ATTR WebSocketData( int len )
+{	
+	if( curhttp->rcbDat )
+	{
+		((void(*)( int ))curhttp->rcbDat)(  len ); 
+	}
+}

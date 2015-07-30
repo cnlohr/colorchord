@@ -1,4 +1,4 @@
-var wsUri = "ws://" + location.host + "/d/ws";
+var wsUri = "ws://" + location.host + "/d/ws/echo";
 
 var output;
 
@@ -37,9 +37,24 @@ function onClose(evt)
 	writeToScreen("DISCONNECTED");
 }
 
+var msg = 0;
+var tickmessage = 0;
+var lasthz = 0;
+
+function Ticker()
+{
+	lasthz = msg - tickmessage;
+	tickmessage = msg;
+	setTimeout( Ticker, 1000 );
+}
+
 function onMessage(evt)
 {
-	eval( evt.data );
+//	eval( evt.data );
+
+	output.innerHTML = msg++ + " " + lasthz;
+	doSend('x' );
+
 	//	obj = JSON.parse(evt.data);
 	//	console.log( obj );
 	//	writeToScreen('<span style="color: blue;">RESPONSE: ' + evt.data+'</span>');
@@ -66,4 +81,6 @@ function writeToScreen(message)
 }
 
 window.addEventListener("load", init, false);
+
+Ticker();
 
