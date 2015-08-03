@@ -17,6 +17,8 @@ extern const char * enctypes[6];// = { "open", "wep", "wpa", "wpa2", "wpa_wpa2",
 
 #define printf( ... ) ets_sprintf( generic_print_buffer, __VA_ARGS__ );  uart0_sendStr( generic_print_buffer );
 
+char tohex1( uint8_t i );
+
 int32  my_atoi( const char * in );
 void  Uint32To10Str( char * out, uint32 dat );
 

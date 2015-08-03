@@ -13,6 +13,7 @@ SRCS:=driver/uart.c \
 	common/mfs.c \
 	user/ws2812_i2s.c \
 	user/hpatimer.c \
+	user/custom_commands.c \
 	driver/adc.c \
 	../embeddedcommon/DFT32.c \
 	../embeddedcommon/embeddednf.c \

@@ -13,11 +13,14 @@
 #include "http.h"
 #include "spi_flash.h"
 #include "esp8266_rom.h"
+#include <gpio.h>
 #include "flash_rewriter.h"
 
 static struct espconn *pUdpServer;
 static struct espconn *pHTTPServer;
 struct espconn *pespconn;
+uint16_t g_gpiooutputmask = 0;
+
 
 static int need_to_switch_back_to_soft_ap = 0; //0 = no, 1 = will need to. 2 = do it now.
 #define MAX_STATIONS 20
@@ -64,6 +67,7 @@ static void ICACHE_FLASH_ATTR scandone(void *arg, STATUS status)
 int ICACHE_FLASH_ATTR issue_command(char * buffer, int retsize, char *pusrdata, unsigned short len)
 {
 	char * buffend = buffer;
+	pusrdata[len] = 0;
 
 	switch( pusrdata[0] )
 	{
@@ -271,8 +275,68 @@ int ICACHE_FLASH_ATTR issue_command(char * buffer, int retsize, char *pusrdata, 
 		}
 		return buffend - buffer;
 	}
-	default:
-		break;
+	case 'G': case 'g':
+	{
+		static const uint32_t AFMapper[16] = {
+			0, PERIPHS_IO_MUX_U0TXD_U, 0, PERIPHS_IO_MUX_U0RXD_U,
+			0, 0, 1, 1,
+			1, 1, 1, 1,
+			PERIPHS_IO_MUX_MTDI_U, PERIPHS_IO_MUX_MTCK_U, PERIPHS_IO_MUX_MTMS_U, PERIPHS_IO_MUX_MTDO_U };
+
+		int nr = my_atoi( &pusrdata[2] );
+
+
+		if( AFMapper[nr] == 1 )
+		{
+			buffend += ets_sprintf( buffend, "!G%c%d\n", pusrdata[1], nr );
+			return buffend - buffer;
+		}
+		else if( AFMapper[nr] )
+		{
+			PIN_FUNC_SELECT( AFMapper[nr], 3);  //Select AF pin to be GPIO.
+		}
+
+		switch( pusrdata[1] )
+		{
+		case '0':
+		case '1':
+			GPIO_OUTPUT_SET(GPIO_ID_PIN(nr), pusrdata[1]-'0' );
+			buffend += ets_sprintf( buffend, "G%c%d", pusrdata[1], nr );
+			g_gpiooutputmask |= (1<<nr);
+			break;
+		case 'i': case 'I':
+			GPIO_DIS_OUTPUT(GPIO_ID_PIN(nr));
+			buffend += ets_sprintf( buffend, "GI%d\n", nr );
+			g_gpiooutputmask &= ~(1<<nr);
+			break;
+		case 'f': case 'F':
+		{
+			int on = GPIO_INPUT_GET( GPIO_ID_PIN(nr) );
+			on = !on;
+			GPIO_OUTPUT_SET(GPIO_ID_PIN(nr), on );
+			g_gpiooutputmask |= (1<<nr);
+			buffend += ets_sprintf( buffend, "GF%d:%d\n", nr, on );
+			break;
+		}
+		case 'g': case 'G':
+			buffend += ets_sprintf( buffend, "GG%d:%d\n", nr, GPIO_INPUT_GET( GPIO_ID_PIN(nr) ) );
+			break;
+		case 's': case 'S':
+		{
+			uint32_t rmask = 0;
+			int i;
+			for( i = 0; i < 16; i++ )
+			{
+				rmask |= GPIO_INPUT_GET( GPIO_ID_PIN(i) )?(1<<i):0;
+			}
+			buffend += ets_sprintf( buffend, "GS:%d:%d\n", g_gpiooutputmask, rmask );
+			break;
+		}
+		}
+		return buffend - buffer;
+	}
+	case 'c': case 'C':
+		return CustomCommand( buffer, retsize, pusrdata, len);
 	}
 	return -1;
 }
@@ -307,7 +371,6 @@ void ICACHE_FLASH_ATTR CSInit()
     espconn_regist_connectcb(pHTTPServer, httpserver_connectcb);
     espconn_accept(pHTTPServer);
     espconn_regist_time(pHTTPServer, 15, 0); //timeout
-
 }
 
 void CSTick( int slowtick )

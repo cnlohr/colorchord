@@ -12,6 +12,7 @@
 #include "ws2812_i2s.h"
 #include "hpatimer.h"
 #include <DFT32.h>
+#include "ccconfig.h"
 #include <embeddednf.h>
 #include <embeddedout.h>
 #include "ets_sys.h"
@@ -31,7 +32,6 @@ static volatile os_timer_t some_timer;
 static struct espconn *pUdpServer;
 
 
-#define HPABUFFSIZE 512
 extern volatile uint8_t sounddata[HPABUFFSIZE];
 extern volatile uint16_t soundhead;
 uint16_t soundtail;
@@ -49,7 +49,7 @@ static void NewFrame()
 	UpdateLinearLEDs();
 
 	//SendSPI2812( ledOut, NUM_LIN_LEDS );
-	ws2812_push( ledOut, NUM_LIN_LEDS * 3 );
+	ws2812_push( ledOut, USE_NUM_LIN_LEDS * 3 );
 }
 
 os_event_t    procTaskQueue[procTaskQueueLen];

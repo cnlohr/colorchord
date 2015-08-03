@@ -62,6 +62,13 @@ void Uint32To10Str( char * out, uint32 dat )
 	out[place] = 0;
 }
 
+char tohex1( uint8_t i )
+{
+	i = i&0x0f;
+	return (i<10)?('0'+i):('a'-10+i);
+}
+
+
 void ICACHE_FLASH_ATTR  EndTCPWrite( struct 	espconn * conn )
 {
 	if(generic_ptr!=generic_buffer)
