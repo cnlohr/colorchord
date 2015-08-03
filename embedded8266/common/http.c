@@ -328,12 +328,10 @@ http_recvcb(void *arg, char *pusrdata, unsigned short length)
 {
     struct espconn *pespconn = (struct espconn *) arg;
 
-	ets_intr_lock();
 	curhttp = (struct HTTPConnection * )pespconn->reverse;
 	curdata = (uint8*)pusrdata;
 	curlen = length;
 	HTTPGotData();
-	ets_intr_unlock();
 }
 
 void ICACHE_FLASH_ATTR
