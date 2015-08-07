@@ -640,12 +640,14 @@ function WifiDataTicker()
 			{
 				var params = data.split( "\t" );
 			
-				document.wifisection.wifitype.value = Number( params[0].substr(2) );
+				var opmode = Number( params[0].substr(2) );
+				document.wifisection.wifitype.value = opmode;
 				document.wifisection.wificurname.value = params[1];
 				document.wifisection.wificurpassword.value = params[2];
 				document.wifisection.wifimac.value = params[3];
 				document.wifisection.wificurchannel.value = Number( params[4] );
 
+				ClickOpmode( opmode );
 				did_wifi_get_config = true;
 			} );
 		}
