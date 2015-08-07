@@ -12,6 +12,7 @@
 int ICACHE_FLASH_ATTR issue_command(char * retdata, int retsize, char *pusrdata, unsigned short len);
 
 //Includes UDP Control + HTTP Interfaces
+void ICACHE_FLASH_ATTR CSPreInit();
 void ICACHE_FLASH_ATTR CSInit();
 void ICACHE_FLASH_ATTR CSTick( int slowtick );
 

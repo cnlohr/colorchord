@@ -316,6 +316,7 @@ int ICACHE_FLASH_ATTR issue_command(char * buffer, int retsize, char *pusrdata, 
 				else
 				{
 					struct station_config sc;
+					ets_memset( &sc, 0, sizeof( sc ) );
 					wifi_station_get_config( &sc );
 					if( sc.bssid_set )
 						ets_sprintf( macmap, MACSTR, MAC2STR( sc.bssid ) );
@@ -326,8 +327,18 @@ int ICACHE_FLASH_ATTR issue_command(char * buffer, int retsize, char *pusrdata, 
 			}
 			break;
 		case 'X': case 'x':
-			buffend += ets_sprintf( buffend, "WX%d", wifi_station_get_rssi() );
+		{
+			int rssi = wifi_station_get_rssi();
+			if( rssi >= 0 )
+			{
+				buffend += ets_sprintf( buffend, "WX-" );
+			}
+			else
+			{
+				buffend += ets_sprintf( buffend, "WX%d", wifi_station_get_rssi() );
+			}
 			break;
+		}
 		case 'S': case 's':
 			{
 				int i, r;
@@ -446,6 +457,33 @@ void ICACHE_FLASH_ATTR issue_command_udp(void *arg, char *pusrdata, unsigned sho
 	if( r > 0 )
 	{
 		espconn_sent( (struct espconn *)arg, retbuf, r );
+	}
+}
+
+void ICACHE_FLASH_ATTR CSPreInit()
+{
+	int opmode = wifi_get_opmode();
+	printf( "Opmode: %d\n", opmode );
+	if( opmode == 1 )
+	{
+		struct station_config sc;
+		wifi_station_get_config(&sc);
+		printf( "Station mode: \"%s\":\"%s\" (bssid_set:%d)\n", sc.ssid, sc.password, sc.bssid_set );
+		if( sc.ssid[0] == 0 && !sc.bssid_set )
+		{
+			wifi_set_opmode( 2 );
+			opmode = 2;
+		}
+		else
+		{
+			wifi_station_connect();
+		}
+	}
+	if( opmode == 2 )
+	{
+		struct softap_config sc;
+		wifi_softap_get_config(&sc);
+		printf( "SoftAP mode: \"%s\":\"%s\"\n", sc.ssid, sc.password );
 	}
 }
 

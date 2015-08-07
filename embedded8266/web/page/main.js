@@ -605,7 +605,27 @@ function BSSIDClick( i )
 	document.wifisection.wifimac.value = tlines[1];
 	document.wifisection.wificurchannel.value = 0;
 
+	ClickOpmode( 1 );
 	return false;
+}
+
+function ClickOpmode( i )
+{
+	if( i == 1 )
+	{
+		document.wifisection.wificurname.disabled = false;
+		document.wifisection.wificurpassword.disabled = false;
+		document.wifisection.wifimac.disabled = false;
+		document.wifisection.wificurchannel.disabled = true;
+	}
+	else
+	{
+		document.wifisection.wificurname.disabled = false;
+		document.wifisection.wificurpassword.disabled = true;
+		document.wifisection.wificurpassword.value = "";
+		document.wifisection.wifimac.disabled = true;
+		document.wifisection.wificurchannel.disabled = false;
+	}
 }
 
 function WifiDataTicker()

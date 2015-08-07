@@ -178,47 +178,16 @@ void ICACHE_FLASH_ATTR user_init(void)
 
 	uart0_sendStr("\r\nCustom Server\r\n");
 
+//Uncomment this to force a system restore.
 //	system_restore();
+
 	CustomStart();
 
 #ifdef PROFILE
 	GPIO_OUTPUT_SET(GPIO_ID_PIN(0), 0);
 #endif
-	int opmode = wifi_get_opmode();
-	printf( "Opmode: %d\n", opmode );
-	if( opmode == 1 )
-	{
-		struct station_config sc;
-		wifi_station_get_config(&sc);
-		printf( "Station mode: \"%s\":\"%s\" (bssid_set:%d)\n", sc.ssid, sc.password, sc.bssid_set );
-		if( sc.ssid[0] == 0 && !sc.bssid_set )
-		{
-			wifi_set_opmode( 2 );
-			opmode = 2;
-		}
-		else
-		{
-			wifi_station_connect();
-		}
-	}
-	if( opmode == 2 )
-	{
-		struct softap_config sc;
-		wifi_softap_get_config(&sc);
-		printf( "SoftAP mode: \"%s\":\"%s\"\n", sc.ssid, sc.password );
-	}
 
-//	wifi_set_opmode( 2 ); //We broadcast our ESSID, wait for peopel to join.
-
-/*
-	struct station_config stationConf;
-	wifi_set_opmode( 1 ); //We broadcast our ESSID, wait for peopel to join.
-	os_memcpy(&stationConf.ssid, "xxx", ets_strlen( "xxx" ) + 1);
-	os_memcpy(&stationConf.password, "yyy", ets_strlen( "yyy" ) + 1);
-
-	wifi_set_opmode( 1 );
-	wifi_station_set_config(&stationConf);
-	wifi_station_connect();**/
+	CSPreInit();
 
     pUdpServer = (struct espconn *)os_zalloc(sizeof(struct espconn));
 	ets_memset( pUdpServer, 0, sizeof( struct espconn ) );
@@ -228,8 +197,6 @@ void ICACHE_FLASH_ATTR user_init(void)
 	pUdpServer->proto.udp->local_port = 7777;
 	espconn_regist_recvcb(pUdpServer, udpserver_recv);
 
-/*	wifi_station_dhcpc_start();
-*/
 	if( espconn_create( pUdpServer ) )
 	{
 		while(1) { uart0_sendStr( "\r\nFAULT\r\n" ); }

@@ -39,7 +39,7 @@ td { vertical-align: top; }
 <table width=100% border=1><tr><td>
 Current Configuration: (May deviate from default configuration, reset here if in doubt)<form name="wifisection" action="javascript:ChangeWifiConfig();">
 <table border=1 width=1%>
-<tr><td width=1>Type:</td><td><input type="radio" name="wifitype" value=1>Station (Connect to infrastructure)<br><input type="radio" name="wifitype" value=2 onclick="document.wifisection.wificurname.value = 'ESP'">AP (Broadcast a new AP)</td></tr>
+<tr><td width=1>Type:</td><td><input type="radio" name="wifitype" value=1 onclick="ClickOpmode(1);">Station (Connect to infrastructure)<br><input type="radio" name="wifitype" value=2 onclick="ClickOpmode(2);">AP (Broadcast a new AP)</td></tr>
 <tr><td>SSID:</td><td><input type="text" id="wificurname"></td></tr>
 <tr><td>PASS:</td><td><input type="text" id="wificurpassword"></td></tr>
 <tr><td>MAC:</td><td><input type="text" id="wifimac"> (Ignored in softAP mode)</td></tr>
