@@ -31,10 +31,16 @@
 static volatile os_timer_t some_timer;
 static struct espconn *pUdpServer;
 
+void EnterCritical();
+void ExitCritical();
 
 extern volatile uint8_t sounddata[HPABUFFSIZE];
 extern volatile uint16_t soundhead;
 uint16_t soundtail;
+extern uint8_t gCOLORCHORD_ACTIVE;
+static uint8_t hpa_running = 0;
+
+void ICACHE_FLASH_ATTR CustomStart( );
 
 void user_rf_pre_init()
 {
@@ -43,6 +49,8 @@ void user_rf_pre_init()
 //Call this once we've stacked together one full colorchord frame.
 static void NewFrame()
 {
+	if( !gCOLORCHORD_ACTIVE ) return;
+
 	//uint8_t led_outs[NUM_LIN_LEDS*3];
 	int i;
 	HandleFrameInfo();
@@ -63,6 +71,18 @@ static void procTask(os_event_t *events)
 {
 	system_os_post(procTaskPrio, 0, 0 );
 
+	if( gCOLORCHORD_ACTIVE && !hpa_running )
+	{
+		ExitCritical();
+		hpa_running = 1;
+	}
+
+	if( !gCOLORCHORD_ACTIVE && hpa_running )
+	{
+		EnterCritical();
+		hpa_running = 0;
+	}
+	
 	CSTick( 0 );
 
 	//For profiling so we can see how much CPU is spent in this loop.
@@ -97,7 +117,7 @@ static void procTask(os_event_t *events)
 
 		int stat = wifi_station_get_connect_status();
 
-//		printf( "STAT: %d\n", stat );
+		//printf( "STAT: %d %d\n", stat, wifi_get_opmode() );
 
 		if( stat == STATION_WRONG_PASSWORD || stat == STATION_NO_AP_FOUND || stat == STATION_CONNECT_FAIL )
 		{
@@ -142,7 +162,7 @@ static void udpserver_recv(void *arg, char *pusrdata, unsigned short len)
 
 //	uint8_t ledout[] = { 0x00, 0xff, 0xaa, 0x00, 0xff, 0xaa, };
 	uart0_sendStr("X");
-	ws2812_push( pusrdata, len );
+	ws2812_push( pusrdata+3, len );
 }
 
 void ICACHE_FLASH_ATTR charrx( uint8_t c )
@@ -158,11 +178,37 @@ void ICACHE_FLASH_ATTR user_init(void)
 
 	uart0_sendStr("\r\nCustom Server\r\n");
 
+//	system_restore();
+	CustomStart();
+
 #ifdef PROFILE
 	GPIO_OUTPUT_SET(GPIO_ID_PIN(0), 0);
 #endif
+	int opmode = wifi_get_opmode();
+	printf( "Opmode: %d\n", opmode );
+	if( opmode == 1 )
+	{
+		struct station_config sc;
+		wifi_station_get_config(&sc);
+		printf( "Station mode: \"%s\":\"%s\" (bssid_set:%d)\n", sc.ssid, sc.password, sc.bssid_set );
+		if( sc.ssid[0] == 0 && !sc.bssid_set )
+		{
+			wifi_set_opmode( 2 );
+			opmode = 2;
+		}
+		else
+		{
+			wifi_station_connect();
+		}
+	}
+	if( opmode == 2 )
+	{
+		struct softap_config sc;
+		wifi_softap_get_config(&sc);
+		printf( "SoftAP mode: \"%s\":\"%s\"\n", sc.ssid, sc.password );
+	}
 
-	wifi_set_opmode( 2 ); //We broadcast our ESSID, wait for peopel to join.
+//	wifi_set_opmode( 2 ); //We broadcast our ESSID, wait for peopel to join.
 
 /*
 	struct station_config stationConf;
@@ -202,6 +248,7 @@ void ICACHE_FLASH_ATTR user_init(void)
 	InitColorChord(); //Init colorchord
 
 	StartHPATimer(); //Init the high speed  ADC timer.
+	hpa_running = 1;
 
 	ws2812_init();
 

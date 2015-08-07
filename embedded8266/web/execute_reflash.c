@@ -127,7 +127,8 @@ uint32_t Push( uint32_t offset, const char * file )
 			fprintf( stderr, "Error: Timeout in communications.\n" );
 			exit( -6 );
 		}
-		devo += sendsize;
+		if( reads != 0 )
+			devo += sendsize;
 	}
 
 	return devo;

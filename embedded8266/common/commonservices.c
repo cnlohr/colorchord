@@ -21,6 +21,7 @@ static struct espconn *pHTTPServer;
 struct espconn *pespconn;
 uint16_t g_gpiooutputmask = 0;
 
+int ets_str2macaddr(void *, void *);
 
 static int need_to_switch_back_to_soft_ap = 0; //0 = no, 1 = will need to. 2 = do it now.
 #define MAX_STATIONS 20
@@ -156,11 +157,48 @@ int ICACHE_FLASH_ATTR issue_command(char * buffer, int retsize, char *pusrdata, 
 		flashchip->chip_size = 0x00080000;
 		return buffend - buffer;
 	}
+	case 'i': case 'I': 	//Respond with device info.
+	{
+		buffend += ets_sprintf(buffend, "I" );
+		int i;
+		for( i = 0; i < 2 ;i++ )
+		{
+			struct ip_info ipi;
+			wifi_get_ip_info( i, &ipi );
+			buffend += ets_sprintf(buffend, "\t"IPSTR, IP2STR(&ipi.ip) );
+		}
+		buffend += ets_sprintf(buffend, "\r\n" );
+		return buffend - buffer;
+	}
 	case 'w': case 'W':	// (W1:SSID:PASSWORD) (To connect) or (W2) to be own base station.  ...or WI, to get info... or WS to scan.
 	{
-		char * colon = (char *) ets_strstr( (char*)&pusrdata[2], ":" );
-		char * colon2 = (colon)?((char *)ets_strstr( (char*)(colon+1), ":" )):0;
+		int c1l = 0;
+		int c2l = 0;
+		char * colon = (char *) ets_strstr( (char*)&pusrdata[2], "\t" );
+		char * colon2 = (colon)?((char *)ets_strstr( (char*)(colon+1), "\t" )):0;
+		char * colon3 = (colon2)?((char *)ets_strstr( (char*)(colon2+1), "\t" )):0;
+		char * colon4 = (colon3)?((char *)ets_strstr( (char*)(colon3+1), "\t" )):0;
 		char * extra = colon2;
+
+		char mac[6] = { 0xff, 0xff, 0xff, 0xff, 0xff, 0xff };
+		int bssid_set = 0;
+		if( colon ) { *colon = 0; colon++; }
+		if( colon2 ) { *colon2 = 0; colon2++; }
+		if( colon3 ) { *colon3 = 0; colon3++; }
+		if( colon4 ) { *colon4 = 0; colon4++; }
+
+		if( colon ) { c1l = ets_strlen( colon ); }
+		if( colon2 ) {  c2l = ets_strlen( colon2 );  }
+		if( colon3 )
+		{
+			bssid_set = ets_str2macaddr( mac, colon3 )?1:0;
+			if( ( mac[0] == 0x00 || mac[0] == 0xff ) &&
+				( mac[1] == 0x00 || mac[1] == 0xff ) &&  
+				( mac[2] == 0x00 || mac[2] == 0xff ) &&  
+				( mac[3] == 0x00 || mac[3] == 0xff ) &&  
+				( mac[4] == 0x00 || mac[4] == 0xff ) &&  
+				( mac[5] == 0x00 || mac[5] == 0xff ) ) bssid_set = 0;
+		}
 
 		if( extra )
 		{
@@ -178,78 +216,138 @@ int ICACHE_FLASH_ATTR issue_command(char * buffer, int retsize, char *pusrdata, 
 		{
 		case '1': //Station mode
 		case '2': //AP Mode
-			if( colon && colon2 )
+			if( colon && colon2 && ets_strlen( colon ) > 1 )
 			{
-				int c1l = 0;
-				int c2l = 0;
-				*colon = 0;  colon++;
-				*colon2 = 0; colon2++;
-				c1l = ets_strlen( colon );
-				c2l = ets_strlen( colon2 );
-				if( c1l > 32 ) c1l = 32;
-				if( c2l > 32 ) c2l = 32;
+				if( c1l > 31 ) c1l = 31;
+				if( c2l > 63 ) c2l = 63;
 
-				printf( "Switching to: \"%s\"/\"%s\".\n", colon, colon2 );
+				printf( "Switching to: \"%s\"/\"%s\" (%d/%d). BSSID_SET: %d [%c]\n", colon, colon2, c1l, c2l, bssid_set, pusrdata[1] );
 
 				if( pusrdata[1] == '1' )
 				{
 					struct station_config stationConf;
-					os_bzero( &stationConf, sizeof( stationConf ) );
+					wifi_station_get_config(&stationConf);
 
 					os_memcpy(&stationConf.ssid, colon, c1l);
 					os_memcpy(&stationConf.password, colon2, c2l);
 
+					stationConf.ssid[c1l] = 0;
+					stationConf.password[c2l] = 0;
+					stationConf.bssid_set = bssid_set;
+					os_memcpy( stationConf.bssid, mac, 6 );
+
+					printf( "-->'%s'\n",stationConf.ssid);
+					printf( "-->'%s'\n",stationConf.password);
+
+					EnterCritical();
+//					wifi_station_set_config(&stationConf);
 					wifi_set_opmode( 1 );
 					wifi_station_set_config(&stationConf);
 					wifi_station_connect();
+					ExitCritical();
+
+//					wifi_station_get_config( &stationConf );
+
 
 					buffend += ets_sprintf( buffend, "W1\r\n" );
 					printf( "Switching.\n" );
 				}
 				else
 				{
-					wifi_set_opmode_current( 1 );
+					struct softap_config config;
+					char macaddr[6];
+					wifi_softap_get_config( &config );
+
+					wifi_get_macaddr(SOFTAP_IF, macaddr);
+
+					os_memcpy( &config.ssid, colon, c1l );
+					os_memcpy( &config.password, colon2, c2l );
+					config.ssid_len = c1l;
+#if 0 //We don't support encryption.
+					config.ssid[c1l] = 0;
+					config.password[c2l] = 0;
+
+					config.authmode = 0;
+					if( colon3 )
+					{
+						int k;
+						for( k = 0; enctypes[k]; k++ )
+						{
+							if( strcmp( colon3, enctypes[k] ) == 0 )
+								config.authmode = k;
+						} 
+					}
+					
+#endif
+
+					int chan = (colon4)?my_atoi(colon4):config.channel;
+					if( chan == 0 || chan > 13 ) chan = 1;
+					config.channel = chan;
+
+//					printf( "Mode now. %s %s %d %d %d %d %d\n", config.ssid, config.password, config.ssid_len, config.channel, config.authmode, config.max_connection );
+//					printf( "Mode Set. %d\n", wifi_get_opmode() );
+
+					EnterCritical();
+					wifi_softap_set_config(&config);
 					wifi_set_opmode( 2 );
+					ExitCritical();
+					printf( "Switching SoftAP: %d %d.\n", chan, config.authmode );
+
 					buffend += ets_sprintf( buffend, "W2\r\n" );
 				}
 			}
 			break;
 		case 'I':
 			{
+				char macmap[15];
 				int mode = wifi_get_opmode();
 
 				buffend += ets_sprintf( buffend, "WI%d", mode );
 
 				if( mode == 2 )
 				{
+					uint8_t mac[6];
 					struct softap_config ap;
 					wifi_softap_get_config( &ap );
-					buffend += ets_sprintf( buffend, "\t%s\t%s\t%s\t%d", ap.ssid, ap.password, enctypes[ap.authmode], ap.channel );
+					wifi_get_macaddr( 1, mac );
+					ets_sprintf( macmap, MACSTR, MAC2STR( mac ) );
+					buffend += ets_sprintf( buffend, "\t%s\t%s\t%s\t%d", ap.ssid, ap.password, macmap, ap.channel );
 				}
 				else
 				{
 					struct station_config sc;
 					wifi_station_get_config( &sc );
-					buffend += ets_sprintf( buffend, "\t%s\t%s\tna\t%d", sc.ssid, sc.password, wifi_get_channel() );
+					if( sc.bssid_set )
+						ets_sprintf( macmap, MACSTR, MAC2STR( sc.bssid ) );
+					else
+						macmap[0] = 0;
+					buffend += ets_sprintf( buffend, "\t%s\t%s\t%s\t%d", sc.ssid, sc.password, macmap, wifi_get_channel() );
 				}
 			}
+			break;
+		case 'X': case 'x':
+			buffend += ets_sprintf( buffend, "WX%d", wifi_station_get_rssi() );
 			break;
 		case 'S': case 's':
 			{
 				int i, r;
+				struct scan_config sc;
 
 				scanplace = 0;
 
+				sc.ssid = 0;
+				sc.bssid = 0;
+				sc.channel = 0;
+				sc.show_hidden = 1;
+				EnterCritical();
 				if( wifi_get_opmode() == SOFTAP_MODE )
 				{
 					wifi_set_opmode_current( STATION_MODE );
 					need_to_switch_back_to_soft_ap = 1;
-					r = wifi_station_scan(0, scandone );
 				}
-				else
-				{
-					r = wifi_station_scan(0, scandone );
-				}
+
+				r = wifi_station_scan(&sc, scandone );
+				ExitCritical();
 
 				buffend += ets_sprintf( buffend, "WS%d\n", r );
 				uart0_sendStr(buffer);
@@ -386,7 +484,9 @@ void CSTick( int slowtick )
 	if(	need_to_switch_back_to_soft_ap == 2 )
 	{
 		need_to_switch_back_to_soft_ap = 0;
+		EnterCritical();
 		wifi_set_opmode_current( SOFTAP_MODE );
+		ExitCritical();
 	}
 
 	HTTPTick(0);

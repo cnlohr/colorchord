@@ -145,7 +145,7 @@ void ICACHE_FLASH_ATTR NewWebSocket()
 		curhttp->rcb = 0;
 		curhttp->rcbDat = (void*)&WSEvalData;
 	}
-	else if( strcmp( (const char*)curhttp->pathbuffer, "/d/ws/issue" ) == 0 )
+	else if( strncmp( (const char*)curhttp->pathbuffer, "/d/ws/issue", 11 ) == 0 )
 	{
 		curhttp->rcb = 0;
 		curhttp->rcbDat = (void*)&WSCommandData;

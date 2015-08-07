@@ -7,6 +7,9 @@
 
 #define HTDEBUG( x... ) printf( x )
 
+//#define ISKEEPALIVE "keep-alive"
+#define ISKEEPALIVE "close"
+
 struct HTTPConnection HTTPConnections[HTTP_CONNECTIONS];
 struct HTTPConnection * curhttp;
 uint8 * curdata;
@@ -208,7 +211,7 @@ void ICACHE_FLASH_ATTR HTTPHandleInternalCallback( )
 
 		if( curhttp->bytesleft < 0xfffffffe )
 		{
-			PushString("Connection: keep-alive\r\nContent-Length: ");
+			PushString("Connection: "ISKEEPALIVE"\r\nContent-Length: ");
 			Uint32To10Str( stto, curhttp->bytesleft );
 			PushBlob( stto, os_strlen( stto ) );
 			curhttp->keep_alive = 1;

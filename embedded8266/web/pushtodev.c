@@ -84,7 +84,7 @@ int main(int argc, char**argv)
 	servaddr.sin_port=htons(7878);
 
 	int devo = 0;
-	int lastsector = -1;
+	int lastsector_block = -1;
 	int resend_times = 0;
 	int r;
 	while( !feof( f ) )
@@ -96,9 +96,10 @@ int main(int argc, char**argv)
 		int reads = fread( buffer, 1, 1024, f );
 		int sendplace = offset + devo;
 		int sendsize = reads;
-		int sector = sendplace / sector_SIZE;
 
-		if( sector != lastsector )
+#ifdef SECTOR
+		int sector = sendplace / sector_SIZE;
+		if( sector != lastsector_block )
 		{
 			char se[64];
 			int sel = sprintf( se, "FE%d\r\n", sector );
@@ -120,9 +121,36 @@ int main(int argc, char**argv)
 				exit( -6 );
 			}
 
-			lastsector = sector;
+			lastsector_block = sector;
 		}
+#else //block
 
+		int block = sendplace / 65536;
+		if( block != lastsector_block )
+		{
+			char se[64];
+			int sel = sprintf( se, "FB%d\r\n", block );
+	
+			thissuccess = 0;
+			for( tries = 0; tries < 10; tries++ )
+			{
+				char match[75];
+				printf( "Erase: %d\n", block );
+				sendto( sockfd, se, sel, MSG_NOSIGNAL, (struct sockaddr *)&servaddr,sizeof(servaddr));
+				sprintf( match, "FB%d", block );
+
+				if( PushMatch(match) == 0 ) { thissuccess = 1; break; }
+				printf( "Retry.\n" );
+			}
+			if( !thissuccess )
+			{
+				fprintf( stderr, "Error: Timeout in communications.\n" );
+				exit( -6 );
+			}
+
+			lastsector_block = block;
+		}
+#endif
 		resend_times = 0;
 resend:
 		r = sprintf( bufferout, "FW%d:%d:", sendplace, sendsize );
