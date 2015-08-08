@@ -23,8 +23,12 @@ ICACHE_FLASH_ATTR void HTTPHandleInternalCallback( );
 
 ICACHE_FLASH_ATTR void HTTPClose( )
 {
-	curhttp->state = HTTP_STATE_NONE;
-	espconn_disconnect( curhttp->socket );
+	//This is dead code, but it is a testament to Charles.
+	//Do not do this here.  Wait for the ESP to tell us the
+	//socket is successfully closed.
+	//curhttp->state = HTTP_STATE_NONE;
+	curhttp->state = HTTP_WAIT_CLOSE;
+	espconn_disconnect( curhttp->socket ); 
 }
 
 
@@ -32,7 +36,6 @@ void ICACHE_FLASH_ATTR HTTPGotData( )
 {
 	uint8 c;
 	curhttp->timeout = 0;
-
 	while( curlen-- )
 	{
 		c = HTTPPOP;
@@ -109,7 +112,6 @@ void ICACHE_FLASH_ATTR HTTPGotData( )
 			}
 			else
 			{
-				//printf( "__HTTPCLose1\n" );
 				HTTPClose( );
 			}
 			break;
@@ -149,7 +151,6 @@ static void DoHTTP( uint8_t timed )
 			}
 			else
 			{
-				//printf( "HTTPCLose2\n");
 				HTTPClose( );
 			}
 		}
@@ -165,7 +166,6 @@ static void DoHTTP( uint8_t timed )
 		{
 			if( curhttp->timeout++ > HTTP_SERVER_TIMEOUT )
 			{
-				//printf( "HTTPClose3\n" );
 				HTTPClose( );
 			}
 		}
@@ -177,8 +177,10 @@ void HTTPTick( uint8_t timed )
 	uint8_t i;
 	for( i = 0; i < HTTP_CONNECTIONS; i++ )
 	{
+		if( curhttp ) { printf( "Unexpected Race Condition\n" );}
 		curhttp = &HTTPConnections[i];
 		DoHTTP( timed );
+		curhttp = 0;
 	}
 }
 
@@ -266,7 +268,7 @@ void ICACHE_FLASH_ATTR HTTPHandleInternalCallback( )
 		curhttp->isdone = 1;
 }
 
-void InternalStartHTTP( )
+void ICACHE_FLASH_ATTR InternalStartHTTP( )
 {
 	int32_t clusterno;
 	int8_t i;
@@ -322,19 +324,24 @@ void InternalStartHTTP( )
 LOCAL void ICACHE_FLASH_ATTR
 http_disconnetcb(void *arg) {
     struct espconn *pespconn = (struct espconn *) arg;
-	curhttp = (struct HTTPConnection * )pespconn->reverse;
-	curhttp->state = 0;
+	((struct HTTPConnection * )pespconn->reverse)->state = 0;
 }
 
-LOCAL void ICACHE_FLASH_ATTR
-http_recvcb(void *arg, char *pusrdata, unsigned short length)
+LOCAL void http_recvcb(void *arg, char *pusrdata, unsigned short length)
 {
     struct espconn *pespconn = (struct espconn *) arg;
+
+	//Though it might be possible for this to interrupt the other
+	//tick task, I don't know if this is actually a probelem.
+	//I'm adding this back-up-the-register just in case.
+	if( curhttp ) { printf( "Unexpected Race Condition\n" );}
 
 	curhttp = (struct HTTPConnection * )pespconn->reverse;
 	curdata = (uint8*)pusrdata;
 	curlen = length;
 	HTTPGotData();
+	curhttp = 0 ;
+
 }
 
 void ICACHE_FLASH_ATTR

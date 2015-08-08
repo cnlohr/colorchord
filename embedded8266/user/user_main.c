@@ -83,8 +83,6 @@ static void procTask(os_event_t *events)
 		hpa_running = 0;
 	}
 	
-	CSTick( 0 );
-
 	//For profiling so we can see how much CPU is spent in this loop.
 #ifdef PROFILE
 	WRITE_PERI_REG( PERIPHS_GPIO_BASEADDR + GPIO_ID_PIN(0), 1 );
@@ -109,6 +107,8 @@ static void procTask(os_event_t *events)
 
 	if( events->sig == 0 && events->par == 0 )
 	{
+		CSTick( 0 );
+
 		//Idle Event.
 		struct station_config wcfg;
 		char stret[256];

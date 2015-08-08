@@ -45,8 +45,16 @@ Extra copyright info:
 //Creates an I2S SR of 93,750 Hz, or 3 MHz Bitclock (.333us/sample)
 // 12000000L/(div*bestbck*2)
 //It is likely you could speed this up a little.
-#define WS_I2S_BCK 16
+
+#ifdef WS2812_THREE_SAMPLE
+#define WS_I2S_BCK 22  //Seems to work as low as 19, but is shakey at 18.
 #define WS_I2S_DIV 4
+#elif defined( WS2812_FOUR_SAMPLE )
+#define WS_I2S_BCK 17  //Seems to work as low as 14, shoddy at 13.
+#define WS_I2S_DIV 4
+#else
+#error You need to either define WS2812_THREE_SAMPLE or WS2812_FOUR_SAMPLE
+#endif
 
 #ifndef i2c_bbpll
 #define i2c_bbpll                                 0x67
@@ -400,7 +408,16 @@ void ICACHE_FLASH_ATTR ws2812_init()
 //All functions below this line are Public Domain 2015 Charles Lohr.
 //this code may be used by anyone in any way without restriction or limitation.
 
+#ifdef WS2812_THREE_SAMPLE
 
+static const uint16_t bitpatterns[16] = {
+	0b100100100100, 0b100100100110, 0b100100110100, 0b100100110110,
+	0b100110100100, 0b100110100110, 0b100110110100, 0b100110110110,
+	0b110100100100, 0b110100100110, 0b110100110100, 0b110100110110,
+	0b110110100100, 0b110110100110, 0b110110110100, 0b110110110110,
+};
+
+#elif defined(WS2812_FOUR_SAMPLE)
 //Tricky, send out WS2812 bits with coded pulses, one nibble, then the other.
 static const uint16_t bitpatterns[16] = {
 	0b1000100010001000, 0b1000100010001110, 0b1000100011101000, 0b1000100011101110,
@@ -408,13 +425,66 @@ static const uint16_t bitpatterns[16] = {
 	0b1110100010001000, 0b1110100010001110, 0b1110100011101000, 0b1110100011101110,
 	0b1110111010001000, 0b1110111010001110, 0b1110111011101000, 0b1110111011101110,
 };
+#endif
 
 void ws2812_push( uint8_t * buffer, uint16_t buffersize )
 {
-	uint16_t * bufferpl = (uint16_t*)&i2sBlock[0];
 	uint16_t place;
 
 //	while( !ws2812_dma_complete );
+
+#ifdef WS2812_THREE_SAMPLE
+	uint8_t * bufferpl = (uint8_t*)&i2sBlock[0];
+
+//	buffersize += 3;
+//	if( buffersize * 4 + 1 > WS_BLOCKSIZE ) return;
+
+	int pl = 0;
+	int quit = 0;
+
+	//Once for each led.
+	for( place = 0; !quit; place++ )
+	{
+		uint8_t b;
+		b = buffer[pl++]; uint16_t c1a = bitpatterns[(b&0x0f)]; uint16_t c1b = bitpatterns[(b>>4)];
+		b = buffer[pl++]; uint16_t c2a = bitpatterns[(b&0x0f)]; uint16_t c2b = bitpatterns[(b>>4)];
+		b = buffer[pl++]; uint16_t c3a = bitpatterns[(b&0x0f)]; uint16_t c3b = bitpatterns[(b>>4)];
+		b = buffer[pl++]; uint16_t c4a = bitpatterns[(b&0x0f)]; uint16_t c4b = bitpatterns[(b>>4)];
+
+		if( pl >= buffersize )
+		{
+			quit = 1;
+			if( pl-1 >= buffersize ) c4a = c4b = 0;
+			if( pl-2 >= buffersize ) c3a = c3b = 0;
+			if( pl-3 >= buffersize ) c2a = c2b = 0;
+			if( pl-4 >= buffersize ) c1a = c1b = 0;
+		}
+
+		//Order of bits on wire: Reverse from how they appear here.
+#define STEP1(x) (c##x##b >> 4 )
+#define STEP2(x) ((c##x##b << 4 ) | ( c##x##a>>8 ))
+#define STEP3(x) (c##x##a & 0xff )
+
+		*(bufferpl++) = STEP1(2);
+		*(bufferpl++) = STEP3(1);
+		*(bufferpl++) = STEP2(1);
+		*(bufferpl++) = STEP1(1);
+
+		*(bufferpl++) = STEP2(3);
+		*(bufferpl++) = STEP1(3);
+		*(bufferpl++) = STEP3(2);
+		*(bufferpl++) = STEP2(2);
+
+		*(bufferpl++) = STEP3(4);
+		*(bufferpl++) = STEP2(4);
+		*(bufferpl++) = STEP1(4);
+		*(bufferpl++) = STEP3(3);
+	}
+
+	while( bufferpl < &((uint8_t*)i2sBlock)[WS_BLOCKSIZE] ) *(bufferpl++) = 0;
+
+#elif defined(WS2812_FOUR_SAMPLE)
+	uint16_t * bufferpl = (uint16_t*)&i2sBlock[0];
 
 	if( buffersize * 4 > WS_BLOCKSIZE ) return;
 
@@ -424,6 +494,7 @@ void ws2812_push( uint8_t * buffer, uint16_t buffersize )
 		*(bufferpl++) = bitpatterns[(btosend&0x0f)];
 		*(bufferpl++) = bitpatterns[(btosend>>4)&0x0f];
 	}
+#endif
 
 #ifdef USE_2812_INTERRUPTS
 

@@ -13,8 +13,18 @@
 //#define I2SDMABUFLEN (32*2)		//Length of one buffer, in 32-bit words.
 
 //NOTE: Blocksize MUST be divisible by 4.  Cannot exceed 4092
-//Each LED takes up 12 block bytes.
+//Each LED takes up 12 block bytes in WS2812_FOUR_SAMPLE
+//Or 9 block bytes in WS2812_THREE_SAMPLE
 #define WS_BLOCKSIZE 4000
+
+//You can either have 3 or 4 samples per bit for WS2812s.
+//3 sample can't go quite as fast as 4.
+//3 sample uses more processing when updating than 4.
+//4 takes up more RAM per LED than 3.
+//3 has slightly more restrictve timing requirements.
+//4 has more DMA load when running.
+#define WS2812_THREE_SAMPLE
+//#define WS2812_FOUR_SAMPLE
 
 void ICACHE_FLASH_ATTR ws2812_init();
 void ws2812_push( uint8_t * buffer, uint16_t buffersize ); //Buffersize = Nr LEDs * 3
