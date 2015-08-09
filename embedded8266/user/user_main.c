@@ -46,6 +46,8 @@ void user_rf_pre_init()
 {
 }
 
+extern uint8_t gCOLORCHORD_OUTPUT_DRIVER;
+
 //Call this once we've stacked together one full colorchord frame.
 static void NewFrame()
 {
@@ -54,7 +56,16 @@ static void NewFrame()
 	//uint8_t led_outs[NUM_LIN_LEDS*3];
 	int i;
 	HandleFrameInfo();
-	UpdateLinearLEDs();
+
+	switch( gCOLORCHORD_OUTPUT_DRIVER )
+	{
+	case 0:
+		UpdateLinearLEDs();
+		break;
+	case 1:
+		UpdateAllSameLEDs();
+		break;
+	};
 
 	//SendSPI2812( ledOut, NUM_LIN_LEDS );
 	ws2812_push( ledOut, USE_NUM_LIN_LEDS * 3 );

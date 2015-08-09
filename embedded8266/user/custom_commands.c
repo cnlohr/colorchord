@@ -11,7 +11,7 @@ extern volatile uint8_t sounddata[];
 extern volatile uint16_t soundhead;
 
 
-#define CONFIGURABLES 16 //(plus1)
+#define CONFIGURABLES 17 //(plus1)
 
 extern uint8_t RootNoteOffset; //Set to define what the root note is.  0 = A.
 uint8_t gDFTIIR = 6;
@@ -28,23 +28,24 @@ uint8_t gNOTE_FINAL_AMP = 12;
 uint8_t gNERF_NOTE_PORP = 15;
 uint8_t gUSE_NUM_LIN_LEDS = NUM_LIN_LEDS;
 uint8_t gCOLORCHORD_ACTIVE = 1;
+uint8_t gCOLORCHORD_OUTPUT_DRIVER = 0;
 
 struct SaveLoad
 {
 	uint8_t configs[CONFIGURABLES];
 } settings;
 
-uint8_t gConfigDefaults[CONFIGURABLES] =  { 0, 6, 1, 2, 3, 4, 7, 4, 2, 80, 64, 12, 15, NUM_LIN_LEDS, 1, 0 };
+uint8_t gConfigDefaults[CONFIGURABLES] =  { 0, 6, 1, 2, 3, 4, 7, 4, 2, 80, 64, 12, 15, NUM_LIN_LEDS, 1, 0, 0 };
 
 uint8_t * gConfigurables[CONFIGURABLES] = { &RootNoteOffset, &gDFTIIR, &gFUZZ_IIR_BITS, &gFILTER_BLUR_PASSES,
 	&gSEMIBITSPERBIN, &gMAX_JUMP_DISTANCE, &gMAX_COMBINE_DISTANCE, &gAMP_1_IIR_BITS,
 	&gAMP_2_IIR_BITS, &gMIN_AMP_FOR_NOTE, &gMINIMUM_AMP_FOR_NOTE_TO_DISAPPEAR, &gNOTE_FINAL_AMP,
-	&gNERF_NOTE_PORP, &gUSE_NUM_LIN_LEDS, &gCOLORCHORD_ACTIVE, 0 };
+	&gNERF_NOTE_PORP, &gUSE_NUM_LIN_LEDS, &gCOLORCHORD_ACTIVE, &gCOLORCHORD_OUTPUT_DRIVER, 0 };
 
 char * gConfigurableNames[CONFIGURABLES] = { "gROOT_NOTE_OFFSET", "gDFTIIR", "gFUZZ_IIR_BITS", "gFILTER_BLUR_PASSES",
 	"gSEMIBITSPERBIN", "gMAX_JUMP_DISTANCE", "gMAX_COMBINE_DISTANCE", "gAMP_1_IIR_BITS",
 	"gAMP_2_IIR_BITS", "gMIN_AMP_FOR_NOTE", "gMINIMUM_AMP_FOR_NOTE_TO_DISAPPEAR", "gNOTE_FINAL_AMP",
-	"gNERF_NOTE_PORP", "gUSE_NUM_LIN_LEDS", "gCOLORCHORD_ACTIVE", 0 };
+	"gNERF_NOTE_PORP", "gUSE_NUM_LIN_LEDS", "gCOLORCHORD_ACTIVE", "gCOLORCHORD_OUTPUT_DRIVER", 0 };
 
 void ICACHE_FLASH_ATTR CustomStart( )
 {

@@ -235,6 +235,43 @@ void UpdateLinearLEDs()
 }
 
 
+
+
+void UpdateAllSameLEDs()
+{
+	int i;
+	uint8_t freq = 0;
+	uint16_t amp = 0;
+
+	for( i = 0; i < MAXNOTES; i++ )
+	{
+		uint16_t ist = note_peak_amps2[i];
+		uint8_t ifrq = note_peak_freqs[i];
+		if( ist > amp && ifrq != 255 )
+		{
+			freq = ifrq;
+			amp = ist;
+		}
+	}
+
+	amp = (((uint32_t)(amp))*NOTE_FINAL_AMP)>>10;
+
+	if( amp > 255 ) amp = 255;
+	uint32_t color = ECCtoHEX( (freq+RootNoteOffset)%NOTERANGE, 255, amp );
+
+	for( i = 0; i < USE_NUM_LIN_LEDS; i++ )
+	{
+		ledOut[i*3+0] = ( color >> 0 ) & 0xff;
+		ledOut[i*3+1] = ( color >> 8 ) & 0xff;
+		ledOut[i*3+2] = ( color >>16 ) & 0xff;
+	}
+}
+
+
+
+
+
+
 uint32_t ECCtoHEX( uint8_t note, uint8_t sat, uint8_t val )
 {
 	uint16_t hue = 0;
