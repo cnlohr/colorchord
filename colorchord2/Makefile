@@ -13,13 +13,13 @@ RAWDRAWLIBS:=-lX11 -lm -lpthread -lXinerama -lXext
 LDLIBS:=-lpthread -lasound -lm -lpulse-simple -lpulse
 
 
-CFLAGS:=-g -Os -flto -Wall -ffast-math -Iembeddedcommon
+CFLAGS:=-g -Os -flto -Wall -ffast-math -I../embeddedcommon -I.
 EXTRALIBS:=-lusb-1.0
 
-colorchord : os_generic.o main.o  dft.o decompose.o filter.o color.o sort.o notefinder.o util.o outdrivers.o $(RAWDRAW) $(SOUND) $(OUTS) parameters.o chash.o hook.o embeddedcommon/DFT32.o
+colorchord : os_generic.o main.o  dft.o decompose.o filter.o color.o sort.o notefinder.o util.o outdrivers.o $(RAWDRAW) $(SOUND) $(OUTS) parameters.o chash.o hook.o ../embeddedcommon/DFT32.o
 	gcc -o $@ $^ $(CFLAGS) $(LDLIBS) $(EXTRALIBS) $(RAWDRAWLIBS)
 
-colorchord.exe : os_generic.c main.c  dft.c decompose.c filter.c color.c sort.c notefinder.c util.c outdrivers.c DrawFunctions.c parameters.c chash.c WinDriver.c sound.c sound_null.c sound_win.c OutputVoronoi.c DisplayArray.c OutputLinear.c DisplayPie.c DisplayNetwork.c hook.c RecorderPlugin.c embeddedcommon/DFT32.c
+colorchord.exe : os_generic.c main.c  dft.c decompose.c filter.c color.c sort.c notefinder.c util.c outdrivers.c DrawFunctions.c parameters.c chash.c WinDriver.c sound.c sound_null.c sound_win.c OutputVoronoi.c DisplayArray.c OutputLinear.c DisplayPie.c DisplayNetwork.c hook.c RecorderPlugin.c ../embeddedcommon/DFT32.c
 	$(WINGCC) $(WINGCCFLAGS) -o $@ $^ $(WINLDFLAGS)
 
 
