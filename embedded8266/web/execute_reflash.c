@@ -107,7 +107,7 @@ uint32_t Push( uint32_t offset, const char * file )
 		}
 
 		
-		int r = sprintf( bufferout, "FW%d:%d:", sendplace, sendsize );
+		int r = sprintf( bufferout, "FW%d\t%d\t", sendplace, sendsize );
 		memcpy( bufferout + r, buffer, sendsize );
 
 		printf( "bufferout: %d %d\n", sendplace, sendsize );
@@ -224,11 +224,11 @@ int main(int argc, char**argv)
 
 	printf( "%s %s\n", md5_f1, md5_f2 );
 
-	//FM[from_address]:[to_address]:[size]:[MD5(key+data)]:[from_address]:[to_address]:[size]:[MD5(key+data)]
+	//FM[from_address]\t[to_address]\t[size]\t[MD5(key+data)]\t[from_address]\t[to_address]\t[size]\t[MD5(key+data)]
 
 	char cmd[1024];
 
-	sprintf( cmd, "FM%d:%d:%d:%s:%d:%d:%d:%s\n", 
+	sprintf( cmd, "FM%d\t%d\t%d\t%s\t%d\t%d\t%d\t%s\n", 
 		0x080000,
 		0x000000,
 		fs1, //roundup( fs1 ),

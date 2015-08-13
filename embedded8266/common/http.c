@@ -268,7 +268,7 @@ void ICACHE_FLASH_ATTR HTTPHandleInternalCallback( )
 		curhttp->isdone = 1;
 }
 
-void ICACHE_FLASH_ATTR InternalStartHTTP( )
+void InternalStartHTTP( )
 {
 	int32_t clusterno;
 	int8_t i;
@@ -327,7 +327,8 @@ http_disconnetcb(void *arg) {
 	((struct HTTPConnection * )pespconn->reverse)->state = 0;
 }
 
-LOCAL void http_recvcb(void *arg, char *pusrdata, unsigned short length)
+LOCAL void ICACHE_FLASH_ATTR
+http_recvcb(void *arg, char *pusrdata, unsigned short length)
 {
     struct espconn *pespconn = (struct espconn *) arg;
 

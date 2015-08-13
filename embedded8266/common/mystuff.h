@@ -10,6 +10,7 @@
 #include <user_interface.h>
 #include <ets_sys.h>
 #include <espconn.h>
+#include <esp8266_rom.h>
 
 extern char generic_print_buffer[384];
 
@@ -41,5 +42,9 @@ int ICACHE_FLASH_ATTR  ColonsToInts( const char * str, int32_t * vals, int max_q
 //As much as it pains me, we shouldn't be using the esp8266's base64_encode() function
 //as it does stuff with dynamic memory.
 void ICACHE_FLASH_ATTR my_base64_encode(const unsigned char *data, size_t input_length, uint8_t * encoded_data );
+
+
+void ICACHE_FLASH_ATTR SafeMD5Update( MD5_CTX * md5ctx, uint8_t*from, uint32_t size1 );
+
 
 #endif

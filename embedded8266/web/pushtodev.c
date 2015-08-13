@@ -153,7 +153,7 @@ int main(int argc, char**argv)
 #endif
 		resend_times = 0;
 resend:
-		r = sprintf( bufferout, "FW%d:%d:", sendplace, sendsize );
+		r = sprintf( bufferout, "FW%d\t%d\t", sendplace, sendsize );
 		printf( "bufferout: %d %d %s\n", sendplace, sendsize, bufferout );
 		memcpy( bufferout + r, buffer, sendsize );
 

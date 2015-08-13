@@ -85,13 +85,19 @@ int ICACHE_FLASH_ATTR issue_command(char * buffer, int retsize, char *pusrdata, 
 	case 'f': case 'F':  //Flashing commands (F_)
 	{
 		flashchip->chip_size = 0x01000000;
-		const char * colon = (const char *) ets_strstr( (char*)&pusrdata[2], ":" );
+		const char * colon = (const char *) ets_strstr( (char*)&pusrdata[2], "\t" );
 		int nr = my_atoi( &pusrdata[2] );
 
 		switch (pusrdata[1])
 		{
 		case 'e': case 'E':  //(FE#\n) <- # = sector.
 		{
+			if( nr < 128 )
+			{
+				buffend += ets_sprintf(buffend, "!FE%d\r\n", nr );
+				break;
+			}
+
 			EnterCritical();
 			spi_flash_erase_sector( nr );	//SPI_FLASH_SEC_SIZE      4096
 			ExitCritical();
@@ -100,8 +106,14 @@ int ICACHE_FLASH_ATTR issue_command(char * buffer, int retsize, char *pusrdata, 
 			break;
 		}
 
-		case 'b': case 'B':  //(FE#\n) <- # = sector.
+		case 'b': case 'B':  //(FB#\n) <- # = block.
 		{
+			if( nr < 8 )
+			{
+				buffend += ets_sprintf(buffend, "!FB%d\r\n", nr );
+				break;
+			}
+
 			EnterCritical();
 			SPIEraseBlock( nr );
 			ExitCritical();
@@ -120,8 +132,8 @@ int ICACHE_FLASH_ATTR issue_command(char * buffer, int retsize, char *pusrdata, 
 			if( colon )
 			{
 				colon++;
-				const char * colon2 = (const char *) ets_strstr( (char*)colon, ":" );
-				if( colon2 )
+				const char * colon2 = (const char *) ets_strstr( (char*)colon, "\t" );
+				if( colon2 && nr >= 524288)
 				{
 					colon2++;
 					int datlen = (int)len - (colon2 - pusrdata);
@@ -145,7 +157,7 @@ int ICACHE_FLASH_ATTR issue_command(char * buffer, int retsize, char *pusrdata, 
 				datlen = (datlen/4)*4; //Must be multiple of 4 bytes
 				if( datlen <= 1280 )
 				{
-					buffend += ets_sprintf(buffend, "FR%08d:%04d:", nr, datlen ); //Caution: This string must be a multiple of 4 bytes.
+					buffend += ets_sprintf(buffend, "FR%08d\t%04d\t", nr, datlen ); //Caution: This string must be a multiple of 4 bytes.
 					spi_flash_read( nr, (uint32*)buffend, datlen );
 					break;
 				}
@@ -424,11 +436,11 @@ int ICACHE_FLASH_ATTR issue_command(char * buffer, int retsize, char *pusrdata, 
 			on = !on;
 			GPIO_OUTPUT_SET(GPIO_ID_PIN(nr), on );
 			g_gpiooutputmask |= (1<<nr);
-			buffend += ets_sprintf( buffend, "GF%d:%d\n", nr, on );
+			buffend += ets_sprintf( buffend, "GF%d\t%d\n", nr, on );
 			break;
 		}
 		case 'g': case 'G':
-			buffend += ets_sprintf( buffend, "GG%d:%d\n", nr, GPIO_INPUT_GET( GPIO_ID_PIN(nr) ) );
+			buffend += ets_sprintf( buffend, "GG%d\t%d\n", nr, GPIO_INPUT_GET( GPIO_ID_PIN(nr) ) );
 			break;
 		case 's': case 'S':
 		{
@@ -438,7 +450,7 @@ int ICACHE_FLASH_ATTR issue_command(char * buffer, int retsize, char *pusrdata, 
 			{
 				rmask |= GPIO_INPUT_GET( GPIO_ID_PIN(i) )?(1<<i):0;
 			}
-			buffend += ets_sprintf( buffend, "GS:%d:%d\n", g_gpiooutputmask, rmask );
+			buffend += ets_sprintf( buffend, "GS\t%d\t%d\n", g_gpiooutputmask, rmask );
 			break;
 		}
 		}

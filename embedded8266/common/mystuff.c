@@ -174,3 +174,21 @@ void ICACHE_FLASH_ATTR my_base64_encode(const unsigned char *data, size_t input_
 	encoded_data[j] = 0;
 }
 
+
+
+void ICACHE_FLASH_ATTR SafeMD5Update( MD5_CTX * md5ctx, uint8_t*from, uint32_t size1 )
+{
+	char  __attribute__ ((aligned (32))) buffer[32];
+
+
+	while( size1 > 32 )
+	{
+		ets_memcpy( buffer, from, 32 );
+		MD5Update( md5ctx, buffer, 32 );
+		size1-=32;
+		from+=32;
+	}
+	ets_memcpy( buffer, from, 32 );
+	MD5Update( md5ctx, buffer, size1 );
+}
+

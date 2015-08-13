@@ -12,22 +12,6 @@
 static const char * key = "";
 static int keylen = 0;
 
-void SafeMD5Update( MD5_CTX * md5ctx, uint8_t*from, uint32_t size1 )
-{
-	char  __attribute__ ((aligned (32))) buffer[32];
-
-
-	while( size1 > 32 )
-	{
-		ets_memcpy( buffer, from, 32 );
-		MD5Update( md5ctx, buffer, 32 );
-		size1-=32;
-		from+=32;
-	}
-	ets_memcpy( buffer, from, 32 );
-	MD5Update( md5ctx, buffer, size1 );
-}
-
 
 static int MyRewriteFlash( char * command, int commandlen )
 {
@@ -36,7 +20,7 @@ static int MyRewriteFlash( char * command, int commandlen )
 	char * colons[8];
 	int i, ipl = 0;
 	int p;
-	//[from_address]:[to_address]:[size]:[MD5(key+data)]:[from_address]:[to_address]:[size]:[MD5(key+data)]
+	//[from_address]\t[to_address]\t[size]\t[MD5(key+data)]\t[from_address]\t[to_address]\t[size]\t[MD5(key+data)]
 	command[commandlen] = 0;
 
 	flashchip->chip_size = 0x01000000;
@@ -47,7 +31,7 @@ static int MyRewriteFlash( char * command, int commandlen )
 	for( i = 0; i < commandlen; i++ )
 	{
 		if( command[i] == 0 ) break;
-		if( command[i] == ':' )
+		if( command[i] == '\t' )
 		{
 			if( ipl >= 8 ) break;
 			command[i] = 0;

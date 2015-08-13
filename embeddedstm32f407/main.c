@@ -38,8 +38,8 @@ void NewFrame()
 	int i;
 	HandleFrameInfo();
 
-	UpdateLinearLEDs();
-//	UpdateAllSameLEDs();
+//	UpdateLinearLEDs();
+	UpdateAllSameLEDs();
 
 	SendSPI2812( ledOut, NUM_LIN_LEDS );
 }
