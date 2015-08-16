@@ -128,7 +128,7 @@ int ICACHE_FLASH_ATTR issue_command(char * buffer, int retsize, char *pusrdata, 
 				buffend += ets_sprintf( buffend, "!FM%d\r\n", r );
 				break;
 			}
-		case 'w': case 'W':	//Flash Write (FW#\n) <- # = byte pos.
+		case 'w': case 'W':	//Flash Write (FW#\n) <- # = byte pos.  Reads until end-of-packet.
 			if( colon )
 			{
 				colon++;
@@ -148,6 +148,48 @@ int ICACHE_FLASH_ATTR issue_command(char * buffer, int retsize, char *pusrdata, 
 				}
 			}
 			buffend += ets_sprintf(buffend, "!FW\r\n" );
+			break;
+		case 'x': case 'X':	//Flash Write Hex (FX#\t#\tDATTAAAAA) <- a = byte pos. b = length (in hex-pairs). Generally used for web-browser.
+			if( colon )
+			{
+				int i;
+				int siz = 0;
+				colon++;
+				char * colon2 = (char *) ets_strstr( (char*)colon, "\t" );
+				if( colon2 )
+				{
+					*colon2 = 0;
+					siz = my_atoi( colon );
+				}
+				//nr = place to write.
+				//siz = size to write.
+				//colon2 = data start.
+				if( colon2 && nr >= 524288)
+				{
+					colon2++;
+					int datlen = ((int)len - (colon2 - pusrdata))/2;
+					if( datlen > siz ) datlen = siz;
+
+					for( i = 0; i < datlen; i++ )
+					{
+						int8_t r1 = fromhex1( *(colon2++) );
+						int8_t r2 = fromhex1( *(colon2++) );
+						if( r1 == -1 || r2 == -1 ) goto failfx;
+						buffend[i] = (r1 << 4) | r2;
+					}
+
+					//ets_memcpy( buffer, colon2, datlen );
+
+					EnterCritical();
+					spi_flash_write( nr, (uint32*)buffend, (datlen/4)*4 );
+					ExitCritical();
+
+					buffend += ets_sprintf(buffend, "FX%d\t%d\r\n", nr, siz );
+					break;
+				}
+			}
+failfx:
+			buffend += ets_sprintf(buffend, "!FX\r\n" );
 			break;
 		case 'r': case 'R':	//Flash Read (FR#\n) <- # = sector.
 			if( colon )

@@ -45,7 +45,7 @@ void SHA1Transform(uint32 state[5], const uint8 buffer[64]);
 
 //SPI_FLASH_SEC_SIZE      4096
 
-void SPIEraseSector(uint16 sec); //Doesn't work?
+void SPIEraseSector(uint16 sec);
 void SPIEraseArea(uint32 start,uint32 len); //Doesn't work?
 void SPIEraseBlock(uint16 blk);
 void SPIWrite(uint32 des_addr, uint32_t *src_addr, uint32_t size);

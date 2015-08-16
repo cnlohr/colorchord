@@ -5,12 +5,21 @@
 #ifndef _MYSTUFF_H
 #define _MYSTUFF_H
 
+
 #include <mem.h>
 #include <c_types.h>
 #include <user_interface.h>
 #include <ets_sys.h>
 #include <espconn.h>
 #include <esp8266_rom.h>
+
+
+//XXX WARNING As of 1.3.0, "cansend" doesn't work.
+//the SDK seems to misbehave when trying to send without a full
+//response packet.
+
+#define SAFESEND
+
 
 extern char generic_print_buffer[384];
 
@@ -19,6 +28,7 @@ extern const char * enctypes[6];// = { "open", "wep", "wpa", "wpa2", "wpa_wpa2",
 #define printf( ... ) ets_sprintf( generic_print_buffer, __VA_ARGS__ );  uart0_sendStr( generic_print_buffer );
 
 char tohex1( uint8_t i );
+int8_t fromhex1( char c ); //returns -1 if not hex char.
 
 int32  my_atoi( const char * in );
 void  Uint32To10Str( char * out, uint32 dat );

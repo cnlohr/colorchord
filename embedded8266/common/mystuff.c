@@ -68,11 +68,26 @@ char tohex1( uint8_t i )
 	return (i<10)?('0'+i):('a'-10+i);
 }
 
+int8_t fromhex1( char c )
+{
+	if( c >= '0' && c <= '9' )
+		return c - '0';
+	else if( c >= 'a' && c <= 'f' )
+		return c - 'a' + 10;
+	else if( c >= 'A' && c <= 'F' )
+		return c - 'A' + 10;
+	else
+		return -1;
+}
+
+
 
 void ICACHE_FLASH_ATTR  EndTCPWrite( struct 	espconn * conn )
 {
 	if(generic_ptr!=generic_buffer)
-		espconn_sent(conn,generic_buffer,generic_ptr-generic_buffer);
+	{
+		int r = espconn_sent(conn,generic_buffer,generic_ptr-generic_buffer);
+	}
 }
 
 
@@ -93,6 +108,9 @@ void PushBlob( const uint8 * buffer, int len )
 
 int8_t TCPCanSend( struct espconn * conn, int size )
 {
+#ifdef SAFESEND
+	return TCPDoneSend( conn );
+#else
 	struct espconn_packet infoarg;
 	sint8 r = espconn_get_packet_info(conn, &infoarg);
 
@@ -100,6 +118,7 @@ int8_t TCPCanSend( struct espconn * conn, int size )
 		return 1;
 	else
 		return 0;
+#endif
 }
 
 int8_t ICACHE_FLASH_ATTR TCPDoneSend( struct espconn * conn )

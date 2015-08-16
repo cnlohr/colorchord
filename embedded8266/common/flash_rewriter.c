@@ -7,7 +7,7 @@
 #include <stdio.h>
 
 #define SRCSIZE 4096
-
+#define BLKSIZE 65536
 
 static const char * key = "";
 static int keylen = 0;
@@ -211,30 +211,39 @@ static int MyRewriteFlash( char * command, int commandlen )
 	//Disable all interrupts.
 	ets_intr_lock();
 
-	ipl = (size1/SRCSIZE)+1;
-	p = to1/SRCSIZE;
+	uart_tx_one_char( 'A' );
+
+	int j;
+	ipl = (size1/BLKSIZE)+1;
+	p = to1/BLKSIZE;
 	for( i = 0; i < ipl; i++ )
 	{
-		SPIEraseSector( p++ );
-		SPIWrite( to1, (uint32_t*)(0x40200000 + from1), SRCSIZE );
-		to1 += SRCSIZE;
-		from1 += SRCSIZE;
+		SPIEraseBlock( p++ );
+
+		for( j = 0; j < BLKSIZE/SRCSIZE; j++ )
+		{
+			SPIWrite( to1, (uint32_t*)(0x40200000 + from1), SRCSIZE );
+			to1 += SRCSIZE;
+			from1 += SRCSIZE;
+		}
 	}
 
 	uart_tx_one_char( 'B' );
 
-	ipl = (size2/SRCSIZE)+1;
-	p = to2/SRCSIZE;
+	ipl = (size2/BLKSIZE)+1;
+	p = to2/BLKSIZE;
 	for( i = 0; i < ipl; i++ )
 	{
-		SPIEraseSector( p++ );
-		SPIWrite( to2, (uint32_t*)(0x40200000 + from2), SRCSIZE );
-		to2 += SRCSIZE;
-		from2 += SRCSIZE;
-
+		SPIEraseBlock( p++ );
+		for( j = 0; j < BLKSIZE/SRCSIZE; j++ )
+		{
+			SPIWrite( to2, (uint32_t*)(0x40200000 + from2), SRCSIZE );
+			to2 += SRCSIZE;
+			from2 += SRCSIZE;
+		}
 	}
 
-	uart_tx_one_char( 'R' );
+	uart_tx_one_char( 'C' );
 
 
 	void(*rebootme)() = (void(*)())0x40000080;

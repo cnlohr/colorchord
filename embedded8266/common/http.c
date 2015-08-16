@@ -515,12 +515,14 @@ void ICACHE_FLASH_ATTR WebSocketGotData( uint8_t c )
 		break;
 	case 5: //Established connection.
 	{
+		//XXX TODO: Seems to malfunction on large-ish packets.  I know it has problems with 140-byte payloads.
+
 		if( curlen < 5 ) //Can't interpret packet.
 			break;
 
 		uint8_t fin = c & 1;
 		uint8_t opcode = c << 4;
-		uint32_t payloadlen = *(curdata++);
+		uint16_t payloadlen = *(curdata++);
 		curlen--;
 		if( !(payloadlen & 0x80) )
 		{
@@ -528,6 +530,8 @@ void ICACHE_FLASH_ATTR WebSocketGotData( uint8_t c )
 			curhttp->state = HTTP_WAIT_CLOSE;
 			break;
 		}
+
+		payloadlen &= 0x7f;
 
 		if( payloadlen == 127 )
 		{
@@ -543,10 +547,6 @@ void ICACHE_FLASH_ATTR WebSocketGotData( uint8_t c )
 			curdata += 2;
 			curlen -= 2;
 		}
-		else
-		{
-			payloadlen &= 0x7f;
-		}
 
 		wsmask[0] = curdata[0];
 		wsmask[1] = curdata[1];
@@ -556,10 +556,21 @@ void ICACHE_FLASH_ATTR WebSocketGotData( uint8_t c )
 		curlen -= 4;
 		wsmaskplace = 0;
 
+		//XXX Warning: When packets get larger, they may split the
+		//websockets packets into multiple parts.  We could handle this
+		//but at the cost of prescious RAM.  I am chosing to just drop those
+		//packets on the floor, and restarting the connection.
+		if( curlen < payloadlen )
+		{
+			HTDEBUG( "Websocket Fragmented. %d %d\n", curlen, payloadlen );
+			curhttp->state = HTTP_WAIT_CLOSE;
+			return;
+		}
+
 		WebSocketData( payloadlen );
-		curlen -= payloadlen;
+		curlen -= payloadlen; 
 		curdata += payloadlen;
-		
+
 		break;
 	}
 	default:

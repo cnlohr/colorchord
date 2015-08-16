@@ -107,7 +107,7 @@ int main( int argc, char ** argv )
 				int rs = buf.st_size;
 				rs = (rs+1+MFS_SECTOR)&(~(MFS_SECTOR-1));
 				datapointer += rs;
-				printf( "%s: %d (%d)\n", thisfile, rs, datapointer );
+				printf( "%s: %d (%ld)\n", thisfile, rs, datapointer );
 			}
 		}
     }
@@ -121,7 +121,7 @@ int main( int argc, char ** argv )
 		mfsfat[i].start = ENDIAN(mfsfat[i].start + rs );
 	}
 
-	printf( "%d %d\n", rs, datapointer );
+	printf( "%d %ld\n", rs, datapointer );
 
 	FILE * f = fopen( argv[2], "w" );
 

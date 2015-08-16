@@ -6,6 +6,10 @@ var output;
 var websocket;
 var commsup = 0;
 
+var mpfs_start_at = 1048576;
+var flash_scratchpad_at = 524288;
+var flash_blocksize = 65536;
+var flash_sendsize = 256;
 //Push objects that have:
 // .request
 // .callback = function( ref (this object), data );
@@ -93,20 +97,35 @@ function init()
 		<td align=center>13<input type=button id=ButtonGPIO13 value=0 onclick=\"TwiddleGPIO(13);\"><input type=button id=BGPIOIn13 value=In onclick=\"GPIOInput(13);\" class=\"inbutton\"></td> \
 		<td align=center>14<input type=button id=ButtonGPIO14 value=0 onclick=\"TwiddleGPIO(14);\"><input type=button id=BGPIOIn14 value=In onclick=\"GPIOInput(14);\" class=\"inbutton\"></td> \
 		<td align=center>15<input type=button id=ButtonGPIO15 value=0 onclick=\"TwiddleGPIO(15);\"><input type=button id=BGPIOIn15 value=In onclick=\"GPIOInput(15);\" class=\"inbutton\"></td> \
-		</tr></table></div></td></tr>");
+		</tr></table></div></td></tr>\
+\
+		<tr><td width=1>\
+		<input type=submit onclick=\"ShowHideEvent( 'SystemReflash' );\" value=\"System Reflash\"></td><td>\
+		<div id=SystemReflash class=\"collapsible\">\
+		<div id=InnerSystemReflash class=\"dragandrophandler\">\
+		<input id=\"dragndropersystem\" type=\"file\" multiple> <div id=innersystemflashtext>Drop or browse for system (0x000.. 0x400...) or web (.mpfs) reflash files.</div>\
+		</div></div></td></tr>\
+");
 		
 
-
+	MakeDragDrop( "InnerSystemReflash", DragDropSystemFiles );
+	$("#dragndropersystem").change(function() { DragDropSystemFiles(this.files ); });
 
 	$( ".collapsible" ).each(function( index ) {
 		if( localStorage["sh" + this.id] > 0.5 )
 		{
 			$( this ).show().toggleClass( 'opened' );
+//			console.log( "OPEN: " + this.id );
 		}
 	});
 
 	$("#custom_command_response").val( "" );
 
+	//Preclude drag and drop on rest of document in event user misses firmware boxes.
+	donothing = function(e) {e.stopPropagation();e.preventDefault();};
+	$(document).on('drop', donothing );
+	$(document).on('dragover', donothing );
+	$(document).on('dragenter', donothing );
 
 	output = document.getElementById("output");
 	Ticker();
@@ -146,7 +165,7 @@ function onClose(evt)
 var msg = 0;
 var tickmessage = 0;
 var lasthz = 0;
-
+var time_since_hz = 0;
 function Ticker()
 {
 	setTimeout( Ticker, 1000 );
@@ -155,14 +174,21 @@ function Ticker()
 	tickmessage = msg;
 	if( lasthz == 0 )
 	{
-		$('#SystemStatusClicker').css("color", "red" );
-		$('#SystemStatusClicker').prop( "value", "System Offline" );
-		if( commsup != 0 && !is_waiting_on_stations ) IssueSystemMessage( "Comms Lost." );
-		commsup = 0;
-		StartWebSocket();
+		time_since_hz++;
+		if( time_since_hz > 3 )
+		{
+			$('#SystemStatusClicker').css("color", "red" );
+			$('#SystemStatusClicker').prop( "value", "System Offline" );
+			if( commsup != 0 && !is_waiting_on_stations ) IssueSystemMessage( "Comms Lost." );
+			commsup = 0;
+			StartWebSocket();
+		}
+		else
+			$('#SystemStatusClicker').prop( "value", "System " + 0 + "Hz" );
 	}
 	else
 	{
+		time_since_hz = 0;
 		$('#SystemStatusClicker').prop( "value", "System " + lasthz + "Hz" );
 	}
 }
@@ -249,6 +275,52 @@ function IssueCustomCommand()
 
 
 
+
+
+
+
+function MakeDragDrop( divname, callback )
+{
+	var obj = $("#" + divname);
+	obj.on('dragenter', function (e) 
+	{
+		e.stopPropagation();
+		e.preventDefault();
+		$(this).css('border', '2px solid #0B85A1');
+	});
+
+	obj.on('dragover', function (e) 
+	{
+		e.stopPropagation();
+		e.preventDefault();
+	});
+
+	obj.on('dragend', function (e) 
+	{
+		e.stopPropagation();
+		e.preventDefault();
+		$(this).css('border', '2px dotted #0B85A1');
+	});
+
+	obj.on('drop', function (e) 
+	{
+		$(this).css('border', '2px dotted #0B85A1');
+		e.preventDefault();
+		var files = e.originalEvent.dataTransfer.files;
+
+		//We need to send dropped files to Server
+		callback(files);
+	});
+}
+
+
+
+
+
+
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+///Below here are mostly just events...
 
 did_wifi_get_config = false;
 is_data_ticker_running = false;
@@ -396,7 +468,7 @@ function GPIOInput( gp )
 }
 
 function GPIOUpdate(req,data) {
-	var secs = data.split( ":" );
+	var secs = data.split( "\t" );
 	var op = 0;
 	var n = Number(secs[2]);
 	var m = Number(secs[1]);
@@ -436,11 +508,11 @@ function GPIOUpdate(req,data) {
 				b.attr( "value", "in" );
 			}
 		}
-
-
 	}
 	if( IsTabOpen('GPIOs') )
+	{
 		QueueOperation( "GS", GPIOUpdate );
+	}
 }
 
 function GPIODataTicker()
@@ -462,6 +534,147 @@ function GPIODataTickerStart()
 
 
 
+function SystemPushImageProgress( is_ok, comment, pushop )
+{
+	if( !is_ok )
+	{
+		$("#innersystemflashtext").html( "Failed: " + comment );
+		return;
+	}
+
+	$("#innersystemflashtext").html( comment );
+
+	if( pushop.place == pushop.padlen )
+	{
+		if( pushop.ctx.current_state == 0 )		//File 1 is completing.
+		{
+			pushop.ctx.current_state = 1;
+			pushop.ctx.file1wassize = pushop.padlen;
+			pushop.ctx.file1md5 = faultylabs.MD5( pushop.paddata ).toLowerCase();
+			var reader = new FileReader();
+
+			reader.onload = function(e) { 
+				$("#innersystemflashtext").html( "Pusing second half..." );
+				PushImageTo( e.target.result, flash_scratchpad_at + 0x40000, SystemPushImageProgress, pushop.ctx );
+			}
+
+			reader.readAsArrayBuffer( pushop.ctx.file2 );
+		}
+		else if( pushop.ctx.current_state == 1 )
+		{
+			var f1s = pushop.ctx.file1wassize;
+			var f1m = pushop.ctx.file1md5;
+			var f2s = pushop.padlen;
+			var f2m = faultylabs.MD5( pushop.paddata ).toLowerCase();
+
+			$("#innersystemflashtext").html( "Issuing reflash.  Do not expect a response." );
+
+			var stf = "FM" + flash_scratchpad_at + "\t0\t" + f1s + "\t" + f1m + "\t" + (flash_scratchpad_at+0x40000) + "\t" + 0x40000 + "\t" + f2s + "\t" + f2m + "\n";
+			var fun = function( fsrd, flashresponse ) { $("#innerflashtext").html( (flashresponse[0] == '!')?"Flashing failed.":"Flash success." ) };
+			QueueOperation( stf, fun); 
+		}
+
+		return false;
+	}
+
+	return true;
+}
+
+
+function WebPagePushImageFunction( ok, comment, pushop )
+{ 
+	if( pushop.place == pushop.padlen )
+	{
+		$("#innersystemflashtext").html("Push complete. Reload page.");
+	}
+	else
+	{
+		$("#innersystemflashtext").html(comment);
+	}
+
+	return true;
+} 
+
+function DragDropSystemFiles( file )
+{
+	if( file.length == 1 )
+	{
+		//webpage ".mpfs" file.
+		var fn = file[0].name;
+		if( fn.substr( fn.length - 5 ) != ".mpfs" )
+		{
+			$("#innersystemflashtext").html( "Web files are .mfps files." );
+			return;
+		}
+
+		$("#innersystemflashtext").html( "Opening " + fn );
+
+		var reader = new FileReader();
+
+		reader.onload = function(e) { 
+			PushImageTo( e.target.result, mpfs_start_at, WebPagePushImageFunction );
+		}
+
+		reader.readAsArrayBuffer( file[0] );
+	}
+	else if( file.length == 2 )
+	{
+		var file1 = null;
+		var file2 = null;
+
+		for( var i = 0; i < file.length; i++ )
+		{
+			if( file[i].name.substr( 0, 7 ) == "0x00000" ) file1 = file[i];
+			if( file[i].name.substr( 0, 7 ) == "0x40000" ) file2 = file[i];
+		}
+
+		if( !file1 )
+		{
+			$("#innersystemflashtext").html( "Could not find a 0x00000... file." ); return;
+		}
+
+		if( !file2 )
+		{
+			$("#innersystemflashtext").html( "Could not find a 0x40000... file." ); return;
+		}
+
+		if(  file1.size > 65536 )
+		{
+			$("#innersystemflashtext").html( "0x00000 needs to fit in IRAM.  Too big." ); return;
+		}
+
+		if(  file2.size > 262144 )
+		{
+			$("#innersystemflashtext").html( "0x40000 needs to fit in 256kB.  Too big." ); return;
+		}
+
+		//Files check out.  Start pushing.
+
+		$("#innersystemflashtext").html( "Starting." );
+
+		var reader = new FileReader();
+
+		reader.onload = function(e) { 
+			var ctx = new Object();
+			ctx.file1 = file1;
+			ctx.file2 = file2;
+			ctx.current_state = 0;
+			PushImageTo( e.target.result, flash_scratchpad_at, SystemPushImageProgress, ctx );
+		}
+
+		reader.readAsArrayBuffer( file[0] );
+		return;
+	}
+	else
+	{
+		$("#innersystemflashtext").html( "Cannot accept anything other than 1 or 2 files." );
+	}
+}
+
+
+
+
+
 
 
 
@@ -471,3 +684,75 @@ function tohex8( c )
 	var hex = c.toString(16);
 	return hex.length == 1 ? "0" + hex : hex;
 }
+
+
+function ContinueSystemFlash( fsrd, flashresponse, pushop )
+{
+	if( flashresponse[0] == '!' )
+	{
+		pushop.status_callback( 0, flashresponse, pushop );
+		console.log( flashresponse );
+		return;
+	}
+
+	var cont = pushop.status_callback( 1, flashresponse, pushop );
+
+	if( !cont ) return;
+	if( pushop.place >= pushop.padlen ) return;
+
+	//If we are coming from a write, and now we need to erase the next block, do so.
+
+	if( ( pushop.place % flash_blocksize ) == 0 && flashresponse[1] != 'B' )
+	{
+		QueueOperation( "FB" + ((pushop.place+pushop.base_address)/flash_blocksize),  function( x, y ) { ContinueSystemFlash( x, y, pushop ); } );
+	}
+	else  	//Done erasing the next block, or coming off a write we don't need to erase?
+	{
+		var addy = pushop.place + pushop.base_address;
+		var sendstr = "FX" + addy + "\t" + flash_sendsize + "\t";
+		for( var i = 0; i < flash_sendsize; i++ )
+		{
+			sendstr += tohex8( pushop.paddata[pushop.place++] );
+		}
+		QueueOperation( sendstr, function( x, y ) { ContinueSystemFlash( x, y, pushop ); } );
+	}
+}
+
+//The signature for status callback is: function AVRStatusCallback( is_ok, comment, pushop )
+//If pushop.place == pushop.padlen, no further callbacks will continue, even if true is returned.
+//you must return "true."  Returning false will cease further pushing.
+//This function returns an object with all properties about the transfer.
+//WARNING: "location" must be block (65536) aligned.
+function PushImageTo( arraydata, location, status_callback, ctx )
+{
+	if( location & 0xffff != 0 )
+	{
+		console.log( "Error: to address not 65,536 aligned." );
+		return null;
+	}
+
+	var pushop = Object();
+	pushop.padlen = Math.floor(((arraydata.byteLength-1)/flash_sendsize)+1)*flash_sendsize;
+	pushop.paddata = new Uint8Array( pushop.padlen, 0 );
+	pushop.paddata.set( new Uint8Array( arraydata ), 0 );
+	pushop.status_callback = status_callback;
+	pushop.place = 0;
+	pushop.base_address = location;
+	pushop.ctx = ctx;
+
+	ContinueSystemFlash( null, "Starting", pushop );
+
+	return pushop;
+}
+
+
+
+
+
+/* MD5 implementation minified from: http://blog.faultylabs.com/files/md5.js
+ Javascript MD5 library - version 0.4 Coded (2011) by Luigi Galli - LG@4e71.org - http://faultylabs.com
+ Thanks to: Roberto Viola  The below code is PUBLIC DOMAIN - NO WARRANTY!
+ */
+"undefined"==typeof faultylabs&&(faultylabs={}),faultylabs.MD5=function(n){function r(n){var r=(n>>>0).toString(16);return"00000000".substr(0,8-r.length)+r}function t(n){for(var r=[],t=0;t<n.length;t++)r=r.concat(s(n[t]));return r}function e(n){for(var r=[],t=0;8>t;t++)r.push(255&n),n>>>=8;return r}function o(n,r){return n<<r&4294967295|n>>>32-r}function a(n,r,t){return n&r|~n&t}function f(n,r,t){return t&n|~t&r}function u(n,r,t){return n^r^t}function i(n,r,t){return r^(n|~t)}function c(n,r){return n[r+3]<<24|n[r+2]<<16|n[r+1]<<8|n[r]}function s(n){for(var r=[],t=0;t<n.length;t++)if(n.charCodeAt(t)<=127)r.push(n.charCodeAt(t));else for(var e=encodeURIComponent(n.charAt(t)).substr(1).split("%"),o=0;o<e.length;o++)r.push(parseInt(e[o],16));return r}function l(){for(var n="",t=0,e=0,o=3;o>=0;o--)e=arguments[o],t=255&e,e>>>=8,t<<=8,t|=255&e,e>>>=8,t<<=8,t|=255&e,e>>>=8,t<<=8,t|=e,n+=r(t);return n}function y(n){for(var r=new Array(n.length),t=0;t<n.length;t++)r[t]=n[t];return r}function h(n,r){return 4294967295&n+r}function p(){function n(n,r,t,e){var a=m;m=U,U=d,d=h(d,o(h(b,h(n,h(r,t))),e)),b=a}var r=A.length;A.push(128);var t=A.length%64;if(t>56){for(var s=0;64-t>s;s++)A.push(0);t=A.length%64}for(s=0;56-t>s;s++)A.push(0);A=A.concat(e(8*r));var y=1732584193,p=4023233417,g=2562383102,v=271733878,b=0,d=0,U=0,m=0;for(s=0;s<A.length/64;s++){b=y,d=p,U=g,m=v;var I=64*s;n(a(d,U,m),3614090360,c(A,I),7),n(a(d,U,m),3905402710,c(A,I+4),12),n(a(d,U,m),606105819,c(A,I+8),17),n(a(d,U,m),3250441966,c(A,I+12),22),n(a(d,U,m),4118548399,c(A,I+16),7),n(a(d,U,m),1200080426,c(A,I+20),12),n(a(d,U,m),2821735955,c(A,I+24),17),n(a(d,U,m),4249261313,c(A,I+28),22),n(a(d,U,m),1770035416,c(A,I+32),7),n(a(d,U,m),2336552879,c(A,I+36),12),n(a(d,U,m),4294925233,c(A,I+40),17),n(a(d,U,m),2304563134,c(A,I+44),22),n(a(d,U,m),1804603682,c(A,I+48),7),n(a(d,U,m),4254626195,c(A,I+52),12),n(a(d,U,m),2792965006,c(A,I+56),17),n(a(d,U,m),1236535329,c(A,I+60),22),n(f(d,U,m),4129170786,c(A,I+4),5),n(f(d,U,m),3225465664,c(A,I+24),9),n(f(d,U,m),643717713,c(A,I+44),14),n(f(d,U,m),3921069994,c(A,I),20),n(f(d,U,m),3593408605,c(A,I+20),5),n(f(d,U,m),38016083,c(A,I+40),9),n(f(d,U,m),3634488961,c(A,I+60),14),n(f(d,U,m),3889429448,c(A,I+16),20),n(f(d,U,m),568446438,c(A,I+36),5),n(f(d,U,m),3275163606,c(A,I+56),9),n(f(d,U,m),4107603335,c(A,I+12),14),n(f(d,U,m),1163531501,c(A,I+32),20),n(f(d,U,m),2850285829,c(A,I+52),5),n(f(d,U,m),4243563512,c(A,I+8),9),n(f(d,U,m),1735328473,c(A,I+28),14),n(f(d,U,m),2368359562,c(A,I+48),20),n(u(d,U,m),4294588738,c(A,I+20),4),n(u(d,U,m),2272392833,c(A,I+32),11),n(u(d,U,m),1839030562,c(A,I+44),16),n(u(d,U,m),4259657740,c(A,I+56),23),n(u(d,U,m),2763975236,c(A,I+4),4),n(u(d,U,m),1272893353,c(A,I+16),11),n(u(d,U,m),4139469664,c(A,I+28),16),n(u(d,U,m),3200236656,c(A,I+40),23),n(u(d,U,m),681279174,c(A,I+52),4),n(u(d,U,m),3936430074,c(A,I),11),n(u(d,U,m),3572445317,c(A,I+12),16),n(u(d,U,m),76029189,c(A,I+24),23),n(u(d,U,m),3654602809,c(A,I+36),4),n(u(d,U,m),3873151461,c(A,I+48),11),n(u(d,U,m),530742520,c(A,I+60),16),n(u(d,U,m),3299628645,c(A,I+8),23),n(i(d,U,m),4096336452,c(A,I),6),n(i(d,U,m),1126891415,c(A,I+28),10),n(i(d,U,m),2878612391,c(A,I+56),15),n(i(d,U,m),4237533241,c(A,I+20),21),n(i(d,U,m),1700485571,c(A,I+48),6),n(i(d,U,m),2399980690,c(A,I+12),10),n(i(d,U,m),4293915773,c(A,I+40),15),n(i(d,U,m),2240044497,c(A,I+4),21),n(i(d,U,m),1873313359,c(A,I+32),6),n(i(d,U,m),4264355552,c(A,I+60),10),n(i(d,U,m),2734768916,c(A,I+24),15),n(i(d,U,m),1309151649,c(A,I+52),21),n(i(d,U,m),4149444226,c(A,I+16),6),n(i(d,U,m),3174756917,c(A,I+44),10),n(i(d,U,m),718787259,c(A,I+8),15),n(i(d,U,m),3951481745,c(A,I+36),21),y=h(y,b),p=h(p,d),g=h(g,U),v=h(v,m)}return l(v,g,p,y).toUpperCase()}var A=null,g=null;return"string"==typeof n?A=s(n):n.constructor==Array?0===n.length?A=n:"string"==typeof n[0]?A=t(n):"number"==typeof n[0]?A=n:g=typeof n[0]:"undefined"!=typeof ArrayBuffer?n instanceof ArrayBuffer?A=y(new Uint8Array(n)):n instanceof Uint8Array||n instanceof Int8Array?A=y(n):n instanceof Uint32Array||n instanceof Int32Array||n instanceof Uint16Array||n instanceof Int16Array||n instanceof Float32Array||n instanceof Float64Array?A=y(new Uint8Array(n.buffer)):g=typeof n:g=typeof n,g&&alert("MD5 type mismatch, cannot process "+g),p()};
+
+
