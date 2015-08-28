@@ -6,6 +6,26 @@
 #include "spi_flash.h"
 #include "ets_sys.h"
 
+uint32 mfs_at = 0;
+
+void FindMPFS()
+{
+	uint32 mfs_check[2];
+	EnterCritical();
+	flashchip->chip_size = 0x01000000;
+
+	spi_flash_read( MFS_START, mfs_check, sizeof( mfs_check ) );
+	if( strncmp( "MPFSPFS", mfs_check ) == 0 ) { mfs_at = MFS_START; goto done; }
+	
+	spi_flash_read( MFS_ALTERNATIVE_START, mfs_check, sizeof( mfs_check ) );
+	if( strncmp( "MPFSPFS", mfs_check ) == 0 ) { mfs_at = MFS_ALTERNATIVE_START; goto done; }
+
+
+done:
+	flashchip->chip_size = 0x00080000;
+	ExitCritical();
+}
+
 extern SpiFlashChip * flashchip;
 
 //Returns 0 on succses.
@@ -14,9 +34,18 @@ extern SpiFlashChip * flashchip;
 //Returns -1 if can't find file or reached end of file list.
 int8_t MFSOpenFile( const char * fname, struct MFSFileInfo * mfi )
 {
+	if( mfs_at == 0 )
+	{
+		FindMPFS();
+	}
+	if( mfs_at == 0 )
+	{
+		return -1;
+	}
+
 	EnterCritical();
 	flashchip->chip_size = 0x01000000;
-	uint32 ptr = MFS_START;
+	uint32 ptr = mfs_at;
 	struct MFSFileEntry e;
 	while(1)
 	{
@@ -51,7 +80,7 @@ int32_t MFSReadSector( uint8_t* data, struct MFSFileInfo * mfi )
 
 	EnterCritical();
 	flashchip->chip_size = 0x01000000;
-	spi_flash_read( MFS_START+mfi->offset, (uint32*)data, MFS_SECTOR );
+	spi_flash_read( mfs_at+mfi->offset, (uint32*)data, MFS_SECTOR );
 	flashchip->chip_size = 0x00080000;
 	ExitCritical();
 

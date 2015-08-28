@@ -11,6 +11,10 @@
 #include "mystuff.h"
 
 //SPI_FLASH_SEC_SIZE      4096
+
+//If you are on a chip with limited space, MFS can alternatively live here, with a max size of 180kB.
+#define MFS_ALTERNATIVE_START 0x10000
+
 #define MFS_STARTFLASHSECTOR  0x100
 #define MFS_START	(MFS_STARTFLASHSECTOR*SPI_FLASH_SEC_SIZE)
 #define MFS_SECTOR	256

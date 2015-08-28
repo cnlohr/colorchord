@@ -7,6 +7,11 @@ globalParams = {};
 
 function mainticker()
 {
+	KickOscilloscope();
+	KickDFT();
+	KickNotes();
+	KickLEDs();
+
 	QueueOperation( "CVR", ReceiveParameters );
 	setTimeout( mainticker, 1000 );
 }
@@ -14,10 +19,6 @@ function mainticker()
 function maininit()
 {
 	setTimeout( mainticker, 1000 );
-	KickOscilloscope();
-	KickDFT();
-	KickNotes();
-	KickLEDs();
 }
 
 
@@ -89,7 +90,7 @@ pause_oscilloscope = false;
 function KickOscilloscope()
 {
 	$( "#OScopePauseButton" ).css( "background-color", (is_oscilloscope_running&&pause_oscilloscope)?"green":"red" );
-	if( !is_oscilloscope_running && !pause_oscilloscope)
+	if( !pause_oscilloscope)
 		OScopeDataTicker();
 }
 
@@ -169,7 +170,7 @@ pause_dft = false;
 function KickDFT()
 {
 	$( "#DFTPauseButton" ).css( "background-color", (is_dft_running&&!pause_dft)?"green":"red" );
-	if( !is_dft_running && !pause_dft )
+	if( !pause_dft )
 		DFTDataTicker();
 }
 
@@ -246,9 +247,8 @@ function KickLEDs()
 {
 	$( "#LEDPauseButton" ).css( "background-color", (is_leds_running&&!pause_led)?"green":"red" );
 
-	if( !is_leds_running && !pause_led )
+	if( !pause_led )
 		LEDDataTicker();
-
 }
 
 function ToggleLEDPause()

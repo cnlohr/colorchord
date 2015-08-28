@@ -49,6 +49,13 @@ int main( int argc, char ** argv )
 		return -2;
 	}
 
+
+	memcpy( mfsfat[fatpointer].name, "MPFSMPFS", 8 );
+	mfsfat[fatpointer].start = 0;
+	mfsfat[fatpointer].len   = 0;
+	fatpointer++;
+
+
 	while ((dir = readdir(d)) != NULL)
     {
 		if( dir->d_type & DT_REG )
