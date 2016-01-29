@@ -30,7 +30,7 @@ extern const char * enctypes[6];// = { "open", "wep", "wpa", "wpa2", "wpa_wpa2",
 char tohex1( uint8_t i );
 int8_t fromhex1( char c ); //returns -1 if not hex char.
 
-int32  my_atoi( const char * in );
+int32 my_atoi( const char * in );
 void  Uint32To10Str( char * out, uint32 dat );
 
 //For holding TX packet buffers

@@ -106,7 +106,7 @@ void PushBlob( const uint8 * buffer, int len )
 }
 
 
-int8_t TCPCanSend( struct espconn * conn, int size )
+int8_t ICACHE_FLASH_ATTR TCPCanSend( struct espconn * conn, int size )
 {
 #ifdef SAFESEND
 	return TCPDoneSend( conn );

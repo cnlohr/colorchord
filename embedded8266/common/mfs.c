@@ -8,20 +8,24 @@
 
 uint32 mfs_at = 0;
 
-void FindMPFS()
+void ICACHE_FLASH_ATTR FindMPFS()
 {
 	uint32 mfs_check[2];
 	EnterCritical();
 	flashchip->chip_size = 0x01000000;
 
 	spi_flash_read( MFS_START, mfs_check, sizeof( mfs_check ) );
-	if( strncmp( "MPFSPFS", mfs_check ) == 0 ) { mfs_at = MFS_START; goto done; }
+	if( strncmp( "MPFSMPFS", mfs_check, 8 ) == 0 ) { mfs_at = MFS_START; goto done; }
 	
-	spi_flash_read( MFS_ALTERNATIVE_START, mfs_check, sizeof( mfs_check ) );
-	if( strncmp( "MPFSPFS", mfs_check ) == 0 ) { mfs_at = MFS_ALTERNATIVE_START; goto done; }
+	printf( "MFS Not found at regular address (%08x).\n", mfs_check[0], mfs_check[1] );
 
+	spi_flash_read( MFS_ALTERNATIVE_START, mfs_check, sizeof( mfs_check ) );
+	if( strncmp( "MPFSMPFS", mfs_check, 8 ) == 0 ) { mfs_at = MFS_ALTERNATIVE_START; goto done; }
+
+	printf( "MFS Not found at alternative address (%08x%08x).\n", mfs_check[0], mfs_check[1] );
 
 done:
+	printf( "MFS Found at: %08x\n", mfs_at );
 	flashchip->chip_size = 0x00080000;
 	ExitCritical();
 }
@@ -32,7 +36,7 @@ extern SpiFlashChip * flashchip;
 //Returns size of file if non-empty
 //If positive, populates mfi.
 //Returns -1 if can't find file or reached end of file list.
-int8_t MFSOpenFile( const char * fname, struct MFSFileInfo * mfi )
+int8_t ICACHE_FLASH_ATTR MFSOpenFile( const char * fname, struct MFSFileInfo * mfi )
 {
 	if( mfs_at == 0 )
 	{

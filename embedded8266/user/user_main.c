@@ -42,7 +42,7 @@ static uint8_t hpa_running = 0;
 
 void ICACHE_FLASH_ATTR CustomStart( );
 
-void user_rf_pre_init()
+void ICACHE_FLASH_ATTR user_rf_pre_init()
 {
 }
 
@@ -77,6 +77,39 @@ uint32_t samp_iir = 0;
 int wf = 0;
 
 //Tasks that happen all the time.
+
+static void ICACHE_FLASH_ATTR HandleIPStuff()
+{
+		//Idle Event.
+		struct station_config wcfg;
+		char stret[256];
+		char *stt = &stret[0];
+		struct ip_info ipi;
+
+		int stat = wifi_station_get_connect_status();
+
+		//printf( "STAT: %d %d\n", stat, wifi_get_opmode() );
+
+		if( stat == STATION_WRONG_PASSWORD || stat == STATION_NO_AP_FOUND || stat == STATION_CONNECT_FAIL )
+		{
+			wifi_set_opmode_current( 2 );
+			stt += ets_sprintf( stt, "Connection failed: %d\n", stat );
+			uart0_sendStr(stret);
+		}
+
+		if( stat == STATION_GOT_IP && !printed_ip )
+		{
+			wifi_station_get_config( &wcfg );
+			wifi_get_ip_info(0, &ipi);
+			stt += ets_sprintf( stt, "STAT: %d\n", stat );
+			stt += ets_sprintf( stt, "IP: %d.%d.%d.%d\n", (ipi.ip.addr>>0)&0xff,(ipi.ip.addr>>8)&0xff,(ipi.ip.addr>>16)&0xff,(ipi.ip.addr>>24)&0xff );
+			stt += ets_sprintf( stt, "NM: %d.%d.%d.%d\n", (ipi.netmask.addr>>0)&0xff,(ipi.netmask.addr>>8)&0xff,(ipi.netmask.addr>>16)&0xff,(ipi.netmask.addr>>24)&0xff );
+			stt += ets_sprintf( stt, "GW: %d.%d.%d.%d\n", (ipi.gw.addr>>0)&0xff,(ipi.gw.addr>>8)&0xff,(ipi.gw.addr>>16)&0xff,(ipi.gw.addr>>24)&0xff );
+			stt += ets_sprintf( stt, "WCFG: /%s/%s/\n", wcfg.ssid, wcfg.password );
+			uart0_sendStr(stret);
+			printed_ip = 1;
+		}
+}
 
 static void procTask(os_event_t *events)
 {
@@ -119,42 +152,13 @@ static void procTask(os_event_t *events)
 	if( events->sig == 0 && events->par == 0 )
 	{
 		CSTick( 0 );
-
-		//Idle Event.
-		struct station_config wcfg;
-		char stret[256];
-		char *stt = &stret[0];
-		struct ip_info ipi;
-
-		int stat = wifi_station_get_connect_status();
-
-		//printf( "STAT: %d %d\n", stat, wifi_get_opmode() );
-
-		if( stat == STATION_WRONG_PASSWORD || stat == STATION_NO_AP_FOUND || stat == STATION_CONNECT_FAIL )
-		{
-			wifi_set_opmode_current( 2 );
-			stt += ets_sprintf( stt, "Connection failed: %d\n", stat );
-			uart0_sendStr(stret);
-		}
-
-		if( stat == STATION_GOT_IP && !printed_ip )
-		{
-			wifi_station_get_config( &wcfg );
-			wifi_get_ip_info(0, &ipi);
-			stt += ets_sprintf( stt, "STAT: %d\n", stat );
-			stt += ets_sprintf( stt, "IP: %d.%d.%d.%d\n", (ipi.ip.addr>>0)&0xff,(ipi.ip.addr>>8)&0xff,(ipi.ip.addr>>16)&0xff,(ipi.ip.addr>>24)&0xff );
-			stt += ets_sprintf( stt, "NM: %d.%d.%d.%d\n", (ipi.netmask.addr>>0)&0xff,(ipi.netmask.addr>>8)&0xff,(ipi.netmask.addr>>16)&0xff,(ipi.netmask.addr>>24)&0xff );
-			stt += ets_sprintf( stt, "GW: %d.%d.%d.%d\n", (ipi.gw.addr>>0)&0xff,(ipi.gw.addr>>8)&0xff,(ipi.gw.addr>>16)&0xff,(ipi.gw.addr>>24)&0xff );
-			stt += ets_sprintf( stt, "WCFG: /%s/%s/\n", wcfg.ssid, wcfg.password );
-			uart0_sendStr(stret);
-			printed_ip = 1;
-		}
+		HandleIPStuff();
 	}
 
 }
 
 //Timer event.
-static void myTimer(void *arg)
+static void ICACHE_FLASH_ATTR myTimer(void *arg)
 {
 	CSTick( 1 );
 //	uart0_sendStr(".");
@@ -166,11 +170,10 @@ static void myTimer(void *arg)
 
 
 //Called when new packet comes in.
-static void udpserver_recv(void *arg, char *pusrdata, unsigned short len)
+static void ICACHE_FLASH_ATTR udpserver_recv(void *arg, char *pusrdata, unsigned short len)
 {
 	struct espconn *pespconn = (struct espconn *)arg;
 //	uint8_t buffer[MAX_FRAME];
-
 //	uint8_t ledout[] = { 0x00, 0xff, 0xaa, 0x00, 0xff, 0xaa, };
 	uart0_sendStr("X");
 	ws2812_push( pusrdata+3, len );
@@ -187,7 +190,7 @@ void ICACHE_FLASH_ATTR user_init(void)
 	uart_init(BIT_RATE_115200, BIT_RATE_115200);
 	int wifiMode = wifi_get_opmode();
 
-	uart0_sendStr("\r\nCustom Server\r\n");
+	uart0_sendStr("\r\nColorChord\r\n");
 
 //Uncomment this to force a system restore.
 //	system_restore();
