@@ -59,6 +59,7 @@ static void LEDUpdate(void * id, struct NoteFinder*nf)
 
 //	if( totbins > led_bins ) totbins = led_bins;
 
+
 	for( i = 0; i < totbins; i++ )
 	{
 		binpos[i] = nf->note_positions[i] / nf->freqbins;
@@ -72,6 +73,7 @@ static void LEDUpdate(void * id, struct NoteFinder*nf)
 	}
 
 	float newtotal = 0;
+
 	for( i = 0; i < totbins; i++ )
 	{
 
@@ -84,7 +86,6 @@ static void LEDUpdate(void * id, struct NoteFinder*nf)
 		if( binvals[i] / totalbinval < led->led_floor )
 			binvals[i] = binvalsQ[i] = 0;
 #endif
-
 		newtotal += binvals[i];
 	}
 	totalbinval = newtotal;
@@ -93,6 +94,8 @@ static void LEDUpdate(void * id, struct NoteFinder*nf)
 	float rledamp[led->total_leds];
 	float rledampQ[led->total_leds];
 	int rbinout = 0;
+
+
 
 	for( i = 0; i < totbins; i++ )
 	{
@@ -107,13 +110,22 @@ static void LEDUpdate(void * id, struct NoteFinder*nf)
 		}
 	}
 
+	if( rbinout == 0 )
+	{
+		rledpos[0] = 0;
+		rledamp[0] = 0;
+		rledampQ[0] = 0;
+		rbinout++;
+	}
+
 	for( ; rbinout < led->total_leds; rbinout++ )
 	{
 		rledpos[rbinout] = rledpos[rbinout-1];
 		rledamp[rbinout] = rledamp[rbinout-1];
 		rledampQ[rbinout] = rledampQ[rbinout-1];
-	}
 
+	}
+	
 	//Now we have to minimize "advance".
 	int minadvance = 0;
 

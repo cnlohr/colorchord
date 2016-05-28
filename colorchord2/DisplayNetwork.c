@@ -27,9 +27,11 @@ struct DPODriver
 {
 	int leds;
 	int skipfirst;
+	int fliprg;
 	int firstval;
 	int port;
 	int oldport;
+	int skittlequantity; //When LEDs are in a ring, backwards and forwards  This is the number of LEDs in the ring.
 	char address[PARAM_BUFF];
 	char oldaddress[PARAM_BUFF];
 	struct sockaddr_in servaddr;
@@ -75,7 +77,9 @@ static void DPOUpdate(void * id, struct NoteFinder*nf)
 
 	if( d->socket > 0 )
 	{
-		char buffer[MAX_BUFFER];
+		uint8_t buffer[MAX_BUFFER];
+		uint8_t lbuff[MAX_BUFFER];
+
 		i = 0;
 		while( i < d->skipfirst )
 			buffer[i++] = d->firstval;
@@ -83,12 +87,54 @@ static void DPOUpdate(void * id, struct NoteFinder*nf)
 		if( d->leds * 3 + i >= MAX_BUFFER )
 			d->leds = (MAX_BUFFER-1)/3;
 
-		for( j = 0; j < d->leds; j++ )
+		if( d->fliprg )
 		{
-			buffer[i++] = OutLEDs[j*3+0];  //RED
-			buffer[i++] = OutLEDs[j*3+2];  //BLUE
-			buffer[i++] = OutLEDs[j*3+1];  //GREEN
+			for( j = 0; j < d->leds; j++ )
+			{
+				lbuff[i++] = OutLEDs[j*3+1]; //GREEN??
+				lbuff[i++] = OutLEDs[j*3+0]; //RED??
+				lbuff[i++] = OutLEDs[j*3+2]; //BLUE
+			}
 		}
+		else
+		{
+			for( j = 0; j < d->leds; j++ )
+			{
+				lbuff[i++] = OutLEDs[j*3+0];  //RED
+				lbuff[i++] = OutLEDs[j*3+2];  //BLUE
+				lbuff[i++] = OutLEDs[j*3+1];  //GREEN
+			}
+		}
+
+		if( d->skittlequantity )
+		{
+			i = d->skipfirst;
+			for( j = 0; j < d->leds; j++ )
+			{
+				int ledw = j;
+				int ledpor = ledw % d->skittlequantity;
+				int ol;
+
+				if( ledw >= d->skittlequantity )
+				{
+					ol = ledpor*2-1;
+					ol = d->skittlequantity*2 - ol -2;
+				}
+				else
+				{
+					ol = ledpor*2;
+				}
+
+				buffer[i++] = lbuff[ol*3+0+d->skipfirst];
+				buffer[i++] = lbuff[ol*3+1+d->skipfirst];
+				buffer[i++] = lbuff[ol*3+2+d->skipfirst];
+			}
+		}
+		else
+		{
+			memcpy( buffer, lbuff, i );
+		}
+
 		int r = sendto( d->socket, buffer, i, MSG_NOSIGNAL,(const struct sockaddr *) &d->servaddr, sizeof( d->servaddr ) );
 		if( r < 0 )
 		{
@@ -110,6 +156,8 @@ static void DPOParams(void * id )
 	d->port = 7777;		RegisterValue(  "port", PAINT, &d->port, sizeof( d->port ) );
 	d->firstval = 0;	RegisterValue(  "firstval", PAINT, &d->firstval, sizeof( d->firstval ) );
 						RegisterValue(  "address", PABUFFER, d->address, sizeof( d->address ) );
+	d->fliprg = 0;		RegisterValue(  "fliprg", PAINT, &d->fliprg, sizeof( d->fliprg ) );
+	d->skittlequantity=0;RegisterValue(  "skittlequantity", PAINT, &d->skittlequantity, sizeof( d->skittlequantity ) );
 	d->socket = -1;
 	d->oldaddress[0] = 0;
 }
