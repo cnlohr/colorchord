@@ -3,7 +3,7 @@
 #ifndef _PARAMETERS_H
 #define _PARAMETERS_H
 
-#define PARAM_BUFF 128
+#define PARAM_BUFF 160
 
 enum ParamType
 {

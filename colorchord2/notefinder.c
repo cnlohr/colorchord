@@ -43,6 +43,9 @@ struct NoteFinder * CreateNoteFinder( int spsRec )
 	ret->current_note_id = 1;
 	ret->amplify = 1;
 
+	ret->compress_coefficient = 1.0;
+	ret->compress_exponenet   = .5;
+
 	ret->ofreqs = 0; //force a re-init.
 
 	RegisterValue( "octaves", PAINT, &ret->octaves, sizeof( ret->octaves ) );
@@ -52,6 +55,8 @@ struct NoteFinder * CreateNoteFinder( int spsRec )
 	RegisterValue( "filter_iter", PAINT, &ret->filter_iter, sizeof( ret->filter_iter ) );
 	RegisterValue( "decompose_iterations", PAINT, &ret->decompose_iterations, sizeof( ret->decompose_iterations ) );
 	RegisterValue( "amplify", PAFLOAT, &ret->amplify, sizeof( ret->amplify ) );
+	RegisterValue( "compress_exponent", PAFLOAT, &ret->compress_exponenet, sizeof( ret->compress_exponenet ) );
+	RegisterValue( "compress_coefficient", PAFLOAT, &ret->compress_coefficient, sizeof( ret->compress_coefficient ) );
 	RegisterValue( "dft_speedup", PAFLOAT, &ret->dft_speedup, sizeof( ret->dft_speedup ) );
 	RegisterValue( "dft_q", PAFLOAT, &ret->dft_q, sizeof( ret->dft_q ) );
 	RegisterValue( "default_sigma", PAFLOAT, &ret->default_sigma, sizeof( ret->default_sigma ) );
@@ -239,6 +244,21 @@ void RunNoteFinder( struct NoteFinder * nf, const float * audio_stream, int head
 
 	memset( nf->dist_takens, 0, sizeof( unsigned char ) * maxdists  );
 	nf->dists = DecomposeHistogram( nf->folded_bins, freqbins, nf->dist_means, nf->dist_amps, nf->dist_sigmas, maxdists, nf->default_sigma, nf->decompose_iterations );
+
+	//Compress/normalize dist_amps
+	float total_dist = 0;
+
+	for( i = 0; i < nf->dists; i++ )
+	{
+		total_dist += nf->dist_amps[i];
+	}
+	float muxer = nf->compress_coefficient/powf( total_dist * nf->compress_coefficient, nf->compress_exponenet );
+	total_dist = muxer;
+	for( i = 0; i < nf->dists; i++ )
+	{
+		nf->dist_amps[i]*=total_dist;
+	}
+
 	{
 		int dist_sorts[nf->dists];
 		SortFloats( dist_sorts, nf->dist_amps, nf->dists );

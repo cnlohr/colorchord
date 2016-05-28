@@ -19,6 +19,10 @@ struct NoteFinder
 	int filter_iter;// = 1;
 	int decompose_iterations;// = 1000;
 	float amplify; // =1 (amplify input across the board)
+
+	float compress_coefficient; // = 1.0; How much to compress the sound by before putting it into the compressor. 
+	float compress_exponenet; //   = .5; Exponent of the compressor lower = make more uniform.
+
 	int do_progressive_dft; //= 1
 
 	//at 300, there is still some minimal aliasing at higher frequencies.  Increase this for less low-end distortion

@@ -30,6 +30,9 @@ void WindowsTerm()
 
 #endif
 
+float DeltaFrameTime = 0;
+double Now = 0;
+
 int lastfps;
 short screenx, screeny;
 int gargc;
@@ -183,7 +186,7 @@ const char * InitialFile[NRDEFFILES];
 double FileTimes[NRDEFFILES];
 int InitialFileCount = 1;
 
-void SetEnvValues()
+void SetEnvValues( int force )
 {
 	int i;
 	int hits = 0;
@@ -197,7 +200,7 @@ void SetEnvValues()
 		}
 	}
 
-	if( !hits ) return;
+	if( !hits && !force ) return;
 
 	//Otherwise, something changed.
 
@@ -233,12 +236,18 @@ void ProcessArgs()
 		}
 	}
 
-	SetEnvValues();
+	SetEnvValues( 1 );
 }
 
 int main(int argc, char ** argv)
 {
 	int i;
+
+	printf( "Output Drivers:\n" );
+	for( i = 0; i < MAX_OUT_DRIVERS; i++ )
+	{
+		if( ODList[i].Name ) printf( "\t%s\n", ODList[i].Name );
+	}
 
 #ifdef WIN32
     WSADATA wsaData;
@@ -324,10 +333,18 @@ int main(int argc, char ** argv)
 	nf = CreateNoteFinder( sd->spsRec );
 
 
+	//Once everything was reinitialized, re-read the ini files.
+	SetEnvValues( 1 );
+
+	Now = OGGetAbsoluteTime();
+	double Last = Now;
 	while(1)
 	{
 		char stt[1024];
 		//Handle Rawdraw frame swappign
+
+		Now = OGGetAbsoluteTime();
+		DeltaFrameTime = Now - Last;
 
 		if( !headless )
 		{
@@ -369,12 +386,16 @@ int main(int argc, char ** argv)
 			//Do a bunch of debugging.
 			if( show_debug_basic )
 			{
+				//char sttdebug[1024];
+				//char * sttend = sttdebug;
+
 				for( i = 0; i < nf->dists; i++ )
 				{
 					CNFGPenX = (nf->dist_means[i] + 0.5) / freqbins * screenx;  //Move over 0.5 for visual purposes.  The means is correct.
 					CNFGPenY = 400-nf->dist_amps[i] * 150.0 / nf->dist_sigmas[i];
 					//printf( "%f %f\n", dist_means[i], dist_amps[i] );
 					sprintf( stt, "%f\n%f\n", nf->dist_means[i], nf->dist_amps[i] );
+//					sttend += sprintf( sttend, "%f/%f ",nf->dist_means[i], nf->dist_amps[i] );
 					CNFGDrawText( stt, 2 );
 				}
 				CNFGColor( 0xffffff );
@@ -399,6 +420,7 @@ int main(int argc, char ** argv)
 					CNFGPenX = ((float)(i+.4) / note_peaks) * screenx;
 					CNFGPenY = screeny - 30;
 					sprintf( stt, "%d\n%0.0f", nf->enduring_note_id[i], nf->note_amplitudes2[i]*1000.0 );
+					//sttend += sprintf( sttend, "%5d/%5.0f ", nf->enduring_note_id[i], nf->note_amplitudes2[i]*1000.0 );
 					CNFGDrawText( stt, 2 );
 
 				}
@@ -415,6 +437,7 @@ int main(int argc, char ** argv)
 					lasty = thisy;
 					thisy = sound[thissoundhead] * 128 + 128; thissoundhead = (thissoundhead-1+SOUNDCBSIZE)%SOUNDCBSIZE;
 				}
+				//puts( sttdebug );
 			}
 
 			//Extra debugging?
@@ -498,8 +521,8 @@ int main(int argc, char ** argv)
 				OGUSleep( (int)( SecToWait * 1000000 ) );
 		}
 
-		SetEnvValues();
-
+		SetEnvValues( 0 );
+		Last = Now;
 	}
 
 }
