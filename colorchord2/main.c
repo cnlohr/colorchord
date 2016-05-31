@@ -95,15 +95,17 @@ void SoundCB( float * out, float * in, int samplesr, int * samplesp, struct Soun
 
 	//Load the samples into a ring buffer.  Split the channels from interleved to one per buffer.
 
-
 	int i;
 	int j;
 
 	for( i = 0; i < samplesr; i++ )
 	{
-		for( j = 0; j < channelin; j++ )
+		if( out )
 		{
-			out[i*channelin+j] = 0;
+			for( j = 0; j < channelin; j++ )
+			{
+				out[i*channelin+j] = 0;
+			}
 		}
 
 		if( sample_channel < 0 )
@@ -145,7 +147,10 @@ void SoundCB( float * out, float * in, int samplesr, int * samplesp, struct Soun
 	}
 
 	SoundEventHappened( samplesr, in, 0, channelin );
-	SoundEventHappened( samplesr, out, 1, sd->channelsPlay );
+	if( out )
+	{
+		SoundEventHappened( samplesr, out, 1, sd->channelsPlay );
+	}
 	*samplesp = samplesr;
 }
 
@@ -335,7 +340,7 @@ int main(int argc, char ** argv)
 
 	//Once everything was reinitialized, re-read the ini files.
 	SetEnvValues( 1 );
-
+printf( "OK\n" );
 	Now = OGGetAbsoluteTime();
 	double Last = Now;
 	while(1)
