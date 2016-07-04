@@ -82,7 +82,9 @@ $(FW_FILE_2): $(TARGET_OUT)
 	$(FW_TOOL) -eo $(TARGET_OUT) -es .irom0.text $@ -ec
 
 burn : $(FW_FILE_1) $(FW_FILE_2)
-	($(ESPTOOL_PY) --port $(PORT) write_flash 0x00000 0x00000.bin 0x40000 0x40000.bin)||(true)
+	#($(ESPTOOL_PY) --port $(PORT) write_flash 0x00000 0x00000.bin 0x40000 0x40000.bin)||(true) #for '8266
+	($(ESPTOOL_PY) --port $(PORT) write_flash -fs 8m -fm dout 0x00000 0x00000.bin 0x40000 0x40000.bin)||(true) #for '8285
+
 
 
 #If you have space, MFS should live at 0x100000, if you don't it can also live at
