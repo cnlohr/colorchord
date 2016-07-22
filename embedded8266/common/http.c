@@ -601,7 +601,7 @@ void ICACHE_FLASH_ATTR WebSocketSend( uint8_t * data, int size )
 {
 	START_PACK;
 	PushByte( 0x81 );
-	if( size > 126 )
+	if( size >= 126 )
 	{
 		PushByte( 0x00 | 126 );
 		PushByte( size>>8 );
