@@ -14,6 +14,11 @@
 #define BLOCK_SIZE 65536
 #define SECTOR_SIZE 4096
 #define PADDING 1024
+
+#ifndef MSG_NOSIGNAL
+	#define MSG_NOSIGNAL 0x0 //Don't request NOSIGNAL on systems where this is not implemented.
+#endif
+
 int sockfd;
 	struct sockaddr_in servaddr,cliaddr;
 

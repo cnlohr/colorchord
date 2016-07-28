@@ -102,6 +102,8 @@ function ToggleOScopePause()
 
 function GotOScope(req,data)
 {
+	var mult = Number(document.getElementById('OSCMultIn').value);
+	document.getElementById('OSCMultOut').innerHTML = mult;
 	var canvas = document.getElementById('OScopeCanvas');
 	var ctx = canvas.getContext('2d');
 	var h = canvas.height;
@@ -122,12 +124,12 @@ function GotOScope(req,data)
 	{
 		var x2 = (i+1) * canvas.clientWidth / samps;
 		var samp = parseInt( data.substr(i*2+2,2),16 );
-		var y2 = ( 1.-samp / 255 ) * canvas.clientHeight;
+		var y2 = ( 1.-mult*samp / 255 ) * canvas.clientHeight;
 		
 		if( i == 0 )
 		{
 			var x1 = i * canvas.clientWidth / samps;
-			var y1 = ( 1.-lastsamp / 255 ) * canvas.clientHeight;
+			var y1 = ( 1.-mult*lastsamp / 255 ) * canvas.clientHeight;
 			ctx.moveTo( x1, y1 );
 		}
 
@@ -184,6 +186,8 @@ function ToggleDFTPause()
 
 function GotDFT(req,data)
 {
+	var mult = Number(document.getElementById('DFTMultIn').value);
+	document.getElementById('DFTMultOut').innerHTML = mult;
 	var canvas = document.getElementById('DFTCanvas');
 	var ctx = canvas.getContext('2d');
 	var h = canvas.height;
@@ -205,7 +209,7 @@ function GotDFT(req,data)
 	{
 		var x2 = i * canvas.clientWidth / samps;
 		var samp = parseInt( data.substr(i*4,4),16 );
-		var y2 = ( 1.-samp / 2047 ) * canvas.clientHeight;
+		var y2 = ( 1.-mult*samp / 2047 ) * canvas.clientHeight;
 
 		ctx.fillStyle = CCColor( i % globalParams["rFIXBPERO"] );
 		ctx.fillRect( x2, y2, canvas.clientWidth / samps, canvas.clientHeight-y2 );
