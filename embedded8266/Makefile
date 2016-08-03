@@ -18,8 +18,8 @@ OPTS += -DICACHE_FLASH
 .PHONY : all clean cleanall netburn burnweb burn
 uniq = $(if $1,$(firstword $1) $(call uniq,$(filter-out $(firstword $1),$1)))
 
-FW_FILE_1 = 0x00000.bin
-FW_FILE_2 = 0x40000.bin
+FW_FILE1 = image.elf-0x00000.bin
+FW_FILE2 = image.elf-0x40000.bin
 TARGET = image.elf
 
 SRCS = \
@@ -44,7 +44,6 @@ INCL = $(SDK)/include myclib include .
 
 GCC_FOLDER = $(ESP_ROOT)/xtensa-lx106-elf
 ESPTOOL_PY = $(ESP_ROOT)/esptool/esptool.py
-FW_TOOL    = $(ESP_ROOT)/../esptool-ck/esptool
 SDK        = $(ESP_ROOT)/sdk
 
 XTLIB        = $(SDK)/lib
@@ -64,26 +63,21 @@ LINKFLAGS = $(LDFLAGS_CORE) -B$(XTLIB)
 
 ##########################################################################RULES
 
-all : $(FW_FILE_1) $(FW_FILE_2)
+all : $(FW_FILE1) $(FW_FILE2)
 
-$(FW_FILE_1): $(TARGET)
+$(FW_FILE1) $(FW_FILE2) : $(TARGET)
 	@echo "FW $@"
-	$(FW_TOOL) -eo $(TARGET) -bo $@ -bs .text -bs .data -bs .rodata -bc -ec
-
-$(FW_FILE_2): $(TARGET)
-	@echo "FW $@"
-	$(FW_TOOL) -eo $(TARGET) -es .irom0.text $@ -ec
+	PATH=$(FOLDERPREFIX):$$PATH;$(ESPTOOL_PY) elf2image $(TARGET)
 
 $(TARGET) : $(SRCS)
 	$(CC) $(CFLAGS) $^   $(LINKFLAGS) -o $@
-#	$(LD) $^ $(LDFLAGS) -o $@
 
 ifeq ($(CHIP), 8285)
 burn : $(FW_FILE_1) $(FW_FILE_2)
 	($(ESPTOOL_PY) --port $(PORT) write_flash -fs 8m -fm dout 0x00000 0x00000.bin 0x40000 0x40000.bin)||(true)
 else ifeq ($(CHIP), 8266)
 burn : $(FW_FILE_1) $(FW_FILE_2)
-	($(ESPTOOL_PY) --port $(PORT) write_flash 0x00000 0x00000.bin 0x40000 0x40000.bin)||(true)
+	($(ESPTOOL_PY) --port $(PORT) write_flash 0x00000 $(FW_FILE1) 0x40000 $(FW_FILE2))||(true)
 else
 	$(error Error: Unknown chip '$(CHIP)')
 endif
@@ -95,8 +89,8 @@ endif
 burnweb : web/page.mpfs
 	($(ESPTOOL_PY) --port $(PORT) write_flash 0x10000 web/page.mpfs)||(true)
 
-netburn : image.elf $(FW_FILE_1) $(FW_FILE_2)
-	web/execute_reflash $(IP) 0x00000.bin 0x40000.bin
+netburn : $(FW_FILE1) $(FW_FILE2) web/execute_reflash
+	web/execute_reflash $(IP) $(FW_FILE1) $(FW_FILE2)
 
 clean :
 	$(RM) $(patsubst %.c,%.o,$(SRCS)) $(TARGET)
