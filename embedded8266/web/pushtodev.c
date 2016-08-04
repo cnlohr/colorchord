@@ -12,6 +12,11 @@
 #include <string.h>
 
 #define sector_SIZE 4096
+
+#ifndef MSG_NOSIGNAL
+	#define MSG_NOSIGNAL 0x0 //Don't request NOSIGNAL on systems where this is not implemented.
+#endif
+
 int sockfd;
 char recvline[10000];
 

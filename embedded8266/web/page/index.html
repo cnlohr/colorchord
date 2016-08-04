@@ -14,6 +14,9 @@ td { vertical-align: top; }
 .inbutton { background-color:blue; }
 #SystemMessage { position: fixed; top: 5px; background-color: DarkSlateBlue; color: #ffffff; left: 5px; display:none; }
 .dragandrophandler { border:2px dotted #0B85A1; color:#92AAB0;vertical-align:middle;padding:10px 10px 10 10px;margin-bottom:10px;font-size:200%;}
+input[type="range"] {position: relative;margin-left: 1em;}
+input[type="range"]:after, input[type="range"]:before {position: absolute;top: 1em;color: #aaa;}
+input[type="range"]:before {left:0em; content: attr(min);}input[type="range"]:after {right: 0em;content: attr(max);}
 </style>
 </head>
 <body>
@@ -38,7 +41,7 @@ td { vertical-align: top; }
 <div id=OScope class="collapsible">
 <table width=100% border=1><tr><td width=10%>
 <CANVAS id=OScopeCanvas width=512></CANVAS>
-</td><td><input type=button onclick="ToggleOScopePause();" id=OScopePauseButton value="|| / >"></td></tr></table></div></td></tr>
+</td><td><input type=button onclick="ToggleOScopePause();" id=OScopePauseButton value="|| / >"><input id="OSCMultIn" type="range" value="1" max="5" min="0" step="0.1"><output id="OSCMultOut"></output></td></tr></table></div></td></tr>
 
 
 <tr><td width=1>
@@ -47,7 +50,7 @@ td { vertical-align: top; }
 <table width=100% border=1><tr><td width=10%>
 <CANVAS id=DFTCanvas width=512></CANVAS>
 </td><td><select id=WhichCanvas><option value=0>DFT</option><option value=1>Fuzzed</option><option value=2>Folded</option></select>
-<br><input type=button onclick="ToggleDFTPause();" id=DFTPauseButton value="|| / >"></td></tr></table></div></td></tr>
+<br><input type=button onclick="ToggleDFTPause();" id=DFTPauseButton value="|| / >"><input id="DFTMultIn" type="range" value="1" max="20" min="0" step="0.1"><output id="DFTMultOut"></output></td></tr></table></div></td></tr>
 
 
 <tr><td width=1>
