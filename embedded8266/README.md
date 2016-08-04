@@ -18,3 +18,9 @@ Unfortunately the I2S Out (WS2812 in) pin is the same as RX1 (pin 25), which mea
 
 The audio data is taken from TOUT, but must be kept between 0 and 1V.
 
+## Notes
+
+./makeconf.inc has a few variables that make uses for building and flashing the firmware. 
+Most notably the location of the toolchain for the esp8266/85 on your system.
+You should edit them according to your preferences or better add `export ESP_ROOT='/path/to/the/esp-open-sdk'` to your bashrc.
+
