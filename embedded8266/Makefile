@@ -42,7 +42,7 @@ all : $(FW_FILE1) $(FW_FILE2)
 
 $(FW_FILE1) $(FW_FILE2) : $(TARGET)
 	@echo "FW $@"
-	export PATH="$(FOLDERPREFIX):$$PATH" $(ESPTOOL_PY) elf2image $(TARGET)
+	export PATH="$(FOLDERPREFIX):$$PATH"; $(ESPTOOL_PY) elf2image $(TARGET)
 
 $(TARGET) : $(SRCS)
 	$(CC) $(CFLAGS) $^   $(LINKFLAGS) -o $@
