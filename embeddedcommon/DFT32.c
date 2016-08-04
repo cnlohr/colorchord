@@ -325,7 +325,7 @@ void DoDFTProgressive32( float * outbins, float * frequencies, int bins, const f
 
 	if( FIXBINS != bins )
 	{
-		fprintf( stderr, "Error: Bins was reconfigured.  skippy requires a constant number of bins.\n" );
+		fprintf( stderr, "Error: Bins was reconfigured.  skippy requires a constant number of bins (%d != %d).\n", FIXBINS, bins );
 		return;
 	}
 

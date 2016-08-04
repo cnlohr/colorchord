@@ -80,9 +80,13 @@ static void DPOUpdate(void * id, struct NoteFinder*nf)
 		uint8_t buffer[MAX_BUFFER];
 		uint8_t lbuff[MAX_BUFFER];
 
+		d->firstval = 0;
 		i = 0;
 		while( i < d->skipfirst )
+		{
+			lbuff[i] = d->firstval;
 			buffer[i++] = d->firstval;
+		}
 
 		if( d->leds * 3 + i >= MAX_BUFFER )
 			d->leds = (MAX_BUFFER-1)/3;
@@ -134,7 +138,6 @@ static void DPOUpdate(void * id, struct NoteFinder*nf)
 		{
 			memcpy( buffer, lbuff, i );
 		}
-
 		int r = sendto( d->socket, buffer, i, MSG_NOSIGNAL,(const struct sockaddr *) &d->servaddr, sizeof( d->servaddr ) );
 		if( r < 0 )
 		{
