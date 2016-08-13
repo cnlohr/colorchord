@@ -170,7 +170,7 @@ void LoadRaw()
 	FILE * f = fopen( rawfilename, "rb" );
 	if( !f )
 	{
-		fprintf( stderr, "Error: Can't open the specified rawfile.\n" );
+		fprintf( stderr, "Error: Can't open the specified rawfile. %s\n", rawfilename );
 		exit( -20 );
 	}
 
@@ -199,6 +199,9 @@ void LoadRaw()
 	int sbs = (int)SoundPictureTime + 4;
 	int sbp = 0;
 	float IntSoundBuffer[sbs];
+
+
+	FILE * fr = fopen( "folded_data.txt", "w" );
 
 	for( i = 0; i < SoundPictureStacks; i++ )
 	{
@@ -233,7 +236,15 @@ void LoadRaw()
 		{
 			SoundPicture[i*SoundPictureBins+j] = nf->outbins[j];
 		}
+
+		for( j = 0; j < nf->freqbins; j++ )
+		{
+			fprintf( fr, "%f ", nf->folded_bins[j] );
+		}
+		fprintf( fr, "\n" );
 	}
+
+	fclose( fr );
 
 	FILE * pic = fopen( "pic.pgm", "wb" );
 	fprintf( pic, "P6\n%d %d\n255\n", SoundPictureStacks, SoundPictureBins );
@@ -257,6 +268,8 @@ void LoadRaw()
 		}
 	}
 	fclose( pic );
+
+
 
 }
 

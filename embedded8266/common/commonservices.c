@@ -201,6 +201,7 @@ failfx:
 				{
 					buffend += ets_sprintf(buffend, "FR%08d\t%04d\t", nr, datlen ); //Caution: This string must be a multiple of 4 bytes.
 					spi_flash_read( nr, (uint32*)buffend, datlen );
+					buffend += datlen;
 					break;
 				}
 			}
