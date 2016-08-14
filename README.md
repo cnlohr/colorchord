@@ -7,9 +7,11 @@ What is ColorChord?
 Chromatic Sound to Light Conversion System.  It's really that simple.  Unlike so many of the sound responsive systems out there, ColorChord looks at the chromatic properties of the sound.  It looks for notes, not ranges.  If it hears an "E" it doesn't care what octave it's in, it's an E.  This provides a good deal more interesting patterns between instruments and music than would be available otherwise.
 
 Background Video here:
+
 [![What Is ColorChord?](https://img.youtube.com/vi/qE3zEM8qM00/0.jpg)](https://www.youtube.com/watch?v=qE3zEM8qM00)
 
 ColorChord on an ESP8266:
+
 [![Websockets for Awesome on an ESP8266](https://img.youtube.com/vi/8ISbmQTbjDI/0.jpg)](https://www.youtube.com/watch?v=8ISbmQTbjDI)
 
 More videos below!
