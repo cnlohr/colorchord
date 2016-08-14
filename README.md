@@ -23,9 +23,16 @@ Developed over many years, ColorChord 2 is now at the alpha stages.  ColorChord 
 
 The major differences in ColorChord 2 is the major rewrite to move everything back to the CPU and a multitude of algorithmic optimizations to make it possible to run on something other than the brand newest of systems.
 
-TODO: add a link to the new video.
+Feuge in D Minor (ColorChord 2 running a strip of WS2812 LEDs):
 
-Here's a video of it running: https://www.youtube.com/watch?v=UI4eqOP2AU0
+[![ColorChord](https://img.youtube.com/vi/s8qWqYTpCN4/0.jpg)](https://www.youtube.com/watch?v=s8qWqYTpCN4)
+
+ColorChord 2 running a voronoi diagram with Mayhem's Dr. Rocker
+
+[![ColorChord 2 Preview: Dr Rocker by Mayhem](https://img.youtube.com/vi/UI4eqOP2AU0/0.jpg)](https://www.youtube.com/watch?v=UI4eqOP2AU0)
+
+
+Here's a video of it running: https://www.youtube.com/watch?v=
 
 Current State of Affairs
 ------------------------
