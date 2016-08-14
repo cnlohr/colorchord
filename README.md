@@ -32,8 +32,6 @@ ColorChord 2 running a voronoi diagram with Mayhem's Dr. Rocker
 [![ColorChord 2 Preview: Dr Rocker by Mayhem](https://img.youtube.com/vi/UI4eqOP2AU0/0.jpg)](https://www.youtube.com/watch?v=UI4eqOP2AU0)
 
 
-Here's a video of it running: https://www.youtube.com/watch?v=
-
 Current State of Affairs
 ------------------------
 
