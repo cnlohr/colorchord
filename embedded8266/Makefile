@@ -3,9 +3,9 @@ include makeconf.inc   # Look here for user configuration
 .PHONY : all clean cleanall netburn burnweb burn
 uniq = $(if $1,$(firstword $1) $(call uniq,$(filter-out $(firstword $1),$1)))
 
-FW_FILE1 = image.elf-0x00000.bin
-FW_FILE2 = image.elf-0x40000.bin
 TARGET = image.elf
+FW_FILE1 = $(TARGET)-0x00000.bin
+FW_FILE2 = $(TARGET)-0x40000.bin
 
 SRCS = \
 	driver/uart.c \
@@ -49,7 +49,7 @@ $(TARGET) : $(SRCS)
 
 ifeq ($(CHIP), 8285)
 burn : $(FW_FILE1) $(FW_FILE2)
-	($(ESPTOOL_PY) --port $(PORT) write_flash -fs 8m -fm dout 0x00000 0x00000.bin 0x40000 0x40000.bin)||(true)
+	($(ESPTOOL_PY) --port $(PORT) write_flash -fs 8m -fm dout 0x00000 $(FW_FILE1) 0x40000 $(FW_FILE2))||(true)
 else ifeq ($(CHIP), 8266)
 burn : $(FW_FILE1) $(FW_FILE2)
 	($(ESPTOOL_PY) --port $(PORT) write_flash 0x00000 $(FW_FILE1) 0x40000 $(FW_FILE2))||(true)
@@ -68,10 +68,12 @@ netburn : $(FW_FILE1) $(FW_FILE2)
 	@cd web && $(MAKE) $(MFLAGS) $(MAKEOVERRIDES) execute_reflash
 	web/execute_reflash $(IP) $(FW_FILE1) $(FW_FILE2)
 
+netweb :
+	@cd web && $(MAKE) $(MFLAGS) $(MAKEOVERRIDES) push
+
 clean :
 	$(RM) $(patsubst %.c,%.o,$(SRCS)) $(TARGET)
 
 purge : clean
 	@cd web && $(MAKE) $(MFLAGS) $(MAKEOVERRIDES) clean
 	$(RM) $(FW_FILE1) $(FW_FILE2)
-

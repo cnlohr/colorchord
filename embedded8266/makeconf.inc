@@ -11,6 +11,8 @@ SDK_DEFAULT  ?= $(HOME)/esp8266/esp-open-sdk
 ESP_GCC_VERS ?= 4.8.5
 
 OPTS += -DICACHE_FLASH
+#OPTS += THIS_DEBUG
+#OPTS += -DVERIFY_FLASH_WRITE
 #OPTS += -DFREQ=12500
 
 ###########################################################################VARS
@@ -32,3 +34,4 @@ ifeq ($(strip $(ESP_ROOT)),)
 $(warning Warning: No shell variable 'ESP_ROOT', using '$(SDK_DEFAULT)')
 ESP_ROOT := $(SDK_DEFAULT)
 endif
+
