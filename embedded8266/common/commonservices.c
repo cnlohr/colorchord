@@ -148,7 +148,7 @@ int ICACHE_FLASH_ATTR issue_command(char * buffer, int retsize, char *pusrdata, 
 					int jj;
 					uint8_t  __attribute__ ((aligned (32))) buf[VFW_SIZE];
 					for(jj=0; jj<datlen; jj+=VFW_SIZE) {
-						spi_flash_read( nr+jj, (uint32*)buf, (datlen/4)*4 );
+						spi_flash_read( nr+jj, (uint32*)buf, VFW_SIZE );
 						if( ets_memcmp( buf, buffer+jj, VFW_SIZE ) != 0 ) goto failw;
 					}
 					#endif
@@ -204,7 +204,7 @@ int ICACHE_FLASH_ATTR issue_command(char * buffer, int retsize, char *pusrdata, 
 					int jj;
 					uint8_t  __attribute__ ((aligned (32))) buf[VFW_SIZE];
 					for(jj=0; jj<datlen; jj+=VFW_SIZE) {
-						spi_flash_read( nr+jj, (uint32*)buf, (datlen/4)*4 );
+						spi_flash_read( nr+jj, (uint32*)buf, VFW_SIZE );
 						if( ets_memcmp( buf, buffer+jj, VFW_SIZE ) != 0 ) goto failfx;
 					}
 					#endif
