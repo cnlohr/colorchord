@@ -1,10 +1,18 @@
-colorchord
+ColorChord
 ==========
 
 What is ColorChord?
 -------------------
 
 Chromatic Sound to Light Conversion System.  It's really that simple.  Unlike so many of the sound responsive systems out there, ColorChord looks at the chromatic properties of the sound.  It looks for notes, not ranges.  If it hears an "E" it doesn't care what octave it's in, it's an E.  This provides a good deal more interesting patterns between instruments and music than would be available otherwise.
+
+Background Video here:
+[![What Is ColorChord?](https://img.youtube.com/vi/qE3zEM8qM00/0.jpg)](https://www.youtube.com/watch?v=qE3zEM8qM00)
+
+ColorChord on an ESP8266:
+[![Websockets for Awesome on an ESP8266](https://img.youtube.com/vi/8ISbmQTbjDI/0.jpg)](https://www.youtube.com/watch?v=8ISbmQTbjDI)
+
+More videos below!
 
 Background
 ----------
@@ -49,5 +57,13 @@ Then, to run it, use the following syntax:
 ```
 
 If you edit default.conf while the program is running and resave it, it will use the settings in the newly saved file.
+
+
+Additional Videos
+-----------------
+
+[![Come Thou Fount of Every Blessing](https://img.youtube.com/vi/aaB4Afyh5z0/0.jpg)](https://www.youtube.com/watch?v=aaB4Afyh5z0)
+
+[![ColorChord 2 - David Chapman Plays Sax](https://img.youtube.com/vi/DYoK4cZoZ_0/0.jpg)](https://www.youtube.com/watch?v=DYoK4cZoZ_0)
 
 
