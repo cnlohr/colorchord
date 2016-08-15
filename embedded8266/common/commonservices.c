@@ -145,11 +145,12 @@ int ICACHE_FLASH_ATTR issue_command(char * buffer, int retsize, char *pusrdata, 
 
 					#ifdef VERIFY_FLASH_WRITE
 					#define VFW_SIZE 128
+					printf( "FW%d\r\n", nr );
 					int jj;
 					uint8_t  __attribute__ ((aligned (32))) buf[VFW_SIZE];
 					for(jj=0; jj<datlen; jj+=VFW_SIZE) {
 						spi_flash_read( nr+jj, (uint32*)buf, VFW_SIZE );
-						if( ets_memcmp( buf, buffer+jj, VFW_SIZE ) != 0 ) goto failw;
+						if( ets_memcmp( buf, buffer+jj, jj+VFW_SIZE>datlen ? datlen%VFW_SIZE : VFW_SIZE ) != 0 ) goto failw;
 					}
 					#endif
 
@@ -201,11 +202,12 @@ int ICACHE_FLASH_ATTR issue_command(char * buffer, int retsize, char *pusrdata, 
 					// if( ets_memcmp( buf, buffer, (datlen/4)*4 ) != 0 ) break;
 					// Rather do it in chunks, to avoid allocationg huge buf
 					#define VFW_SIZE 128
+					printf( "FW%d\r\n", nr );
 					int jj;
 					uint8_t  __attribute__ ((aligned (32))) buf[VFW_SIZE];
 					for(jj=0; jj<datlen; jj+=VFW_SIZE) {
 						spi_flash_read( nr+jj, (uint32*)buf, VFW_SIZE );
-						if( ets_memcmp( buf, buffer+jj, VFW_SIZE ) != 0 ) goto failfx;
+						if( ets_memcmp( buf, buffer+jj, jj+VFW_SIZE>datlen ? datlen%VFW_SIZE : VFW_SIZE ) != 0 ) goto failfx;
 					}
 					#endif
 
