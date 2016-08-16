@@ -36,8 +36,8 @@ struct totalscan_t
 int scanplace = 0;
 static void ICACHE_FLASH_ATTR scandone(void *arg, STATUS status)
 {
-	scaninfo *c = arg; 
-	struct bss_info *inf; 
+	scaninfo *c = arg;
+	struct bss_info *inf;
 
 	if( need_to_switch_back_to_soft_ap == 1 )
 		need_to_switch_back_to_soft_ap = 2;
@@ -143,11 +143,23 @@ int ICACHE_FLASH_ATTR issue_command(char * buffer, int retsize, char *pusrdata, 
 					spi_flash_write( nr, (uint32*)buffer, (datlen/4)*4 );
 					ExitCritical();
 
+					#ifdef VERIFY_FLASH_WRITE
+					#define VFW_SIZE 128
+					printf( "FW%d\r\n", nr );
+					int jj;
+					uint8_t  __attribute__ ((aligned (32))) buf[VFW_SIZE];
+					for(jj=0; jj<datlen; jj+=VFW_SIZE) {
+						spi_flash_read( nr+jj, (uint32*)buf, VFW_SIZE );
+						if( ets_memcmp( buf, buffer+jj, jj+VFW_SIZE>datlen ? datlen%VFW_SIZE : VFW_SIZE ) != 0 ) goto failw;
+					}
+					#endif
+
 					buffend += ets_sprintf(buffend, "FW%d\r\n", nr );
 					break;
 				}
 			}
-			buffend += ets_sprintf(buffend, "!FW\r\n" );
+			failw:
+				buffend += ets_sprintf(buffend, "!FW\r\n" );
 			break;
 		case 'x': case 'X':	//Flash Write Hex (FX#\t#\tDATTAAAAA) <- a = byte pos. b = length (in hex-pairs). Generally used for web-browser.
 			if( colon )
@@ -183,6 +195,21 @@ int ICACHE_FLASH_ATTR issue_command(char * buffer, int retsize, char *pusrdata, 
 					EnterCritical();
 					spi_flash_write( nr, (uint32*)buffend, (datlen/4)*4 );
 					ExitCritical();
+
+					#ifdef VERIFY_FLASH_WRITE
+					// uint8_t  __attribute__ ((aligned (32))) buf[1300];
+					// spi_flash_read( nr, (uint32*)buf, (datlen/4)*4 );
+					// if( ets_memcmp( buf, buffer, (datlen/4)*4 ) != 0 ) break;
+					// Rather do it in chunks, to avoid allocationg huge buf
+					#define VFW_SIZE 128
+					printf( "FW%d\r\n", nr );
+					int jj;
+					uint8_t  __attribute__ ((aligned (32))) buf[VFW_SIZE];
+					for(jj=0; jj<datlen; jj+=VFW_SIZE) {
+						spi_flash_read( nr+jj, (uint32*)buf, VFW_SIZE );
+						if( ets_memcmp( buf, buffer+jj, jj+VFW_SIZE>datlen ? datlen%VFW_SIZE : VFW_SIZE ) != 0 ) goto failfx;
+					}
+					#endif
 
 					buffend += ets_sprintf(buffend, "FX%d\t%d\r\n", nr, siz );
 					break;
@@ -248,10 +275,10 @@ failfx:
 		{
 			bssid_set = ets_str2macaddr( mac, colon3 )?1:0;
 			if( ( mac[0] == 0x00 || mac[0] == 0xff ) &&
-				( mac[1] == 0x00 || mac[1] == 0xff ) &&  
-				( mac[2] == 0x00 || mac[2] == 0xff ) &&  
-				( mac[3] == 0x00 || mac[3] == 0xff ) &&  
-				( mac[4] == 0x00 || mac[4] == 0xff ) &&  
+				( mac[1] == 0x00 || mac[1] == 0xff ) &&
+				( mac[2] == 0x00 || mac[2] == 0xff ) &&
+				( mac[3] == 0x00 || mac[3] == 0xff ) &&
+				( mac[4] == 0x00 || mac[4] == 0xff ) &&
 				( mac[5] == 0x00 || mac[5] == 0xff ) ) bssid_set = 0;
 		}
 
@@ -330,9 +357,9 @@ failfx:
 						{
 							if( strcmp( colon3, enctypes[k] ) == 0 )
 								config.authmode = k;
-						} 
+						}
 					}
-					
+
 #endif
 
 					int chan = (colon4)?my_atoi(colon4):config.channel;
@@ -426,10 +453,10 @@ failfx:
 				int i, r;
 
 				buffend += ets_sprintf( buffend, "WR%d\n", scanplace );
-				
+
 				for( i = 0; i < scanplace && buffend - buffer < retsize - 64; i++ )
 				{
-					buffend += ets_sprintf( buffend, "#%s\t%s\t%d\t%d\t%s\n", 
+					buffend += ets_sprintf( buffend, "#%s\t%s\t%d\t%d\t%s\n",
 						totalscan[i].name, totalscan[i].mac, totalscan[i].rssi, totalscan[i].channel, enctypes[totalscan[i].encryption] );
 				}
 
