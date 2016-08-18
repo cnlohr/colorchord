@@ -1,7 +1,7 @@
 #ifndef _CCCONFIG_H
 #define _CCCONFIG_H
 
-#include "c_types.h"
+#include <c_types.h>
 
 #define HPABUFFSIZE 512
 

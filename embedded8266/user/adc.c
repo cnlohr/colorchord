@@ -6,7 +6,7 @@
 #include "ets_sys.h"
 #include "osapi.h"
 
-#include "driver/adc.h"
+#include "adc.h"
 
 #define i2c_bbpll                           0x67
 #define i2c_bbpll_en_audio_clock_out        4

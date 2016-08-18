@@ -2,7 +2,7 @@
 // ColorChord License.  You Choose.
 
 #include "hpatimer.h"
-#include <driver/adc.h>
+#include "adc.h"
 #include "osapi.h"
 #include "mem.h"
 #include "eagle_soc.h"
