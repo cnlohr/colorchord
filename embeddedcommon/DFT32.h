@@ -4,7 +4,12 @@
 #define _DFT32_H
 
 #include <ccconfig.h>
+
+#ifdef ICACHE_FLASH
+#include <c_types.h> //If on ESP8266
+#else
 #include <stdint.h>
+#endif
 
 //A 32-bit version of the DFT used for ColorChord.
 //This header makes it convenient to use for an embedded system.
