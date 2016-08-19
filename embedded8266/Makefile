@@ -11,3 +11,9 @@ SRCS += user/ws2812_i2s.c \
 
 LDFLAGS_CORE += -Wl,-Map,output.map
 
+
+#Useful git commands
+
+init_submodule :
+	git submodule update --init --recursive
+
