@@ -5,13 +5,13 @@
 #include "c_types.h"
 #include "user_interface.h"
 #include "ets_sys.h"
-#include "driver/uart.h"
+#include "uart.h"
 #include "osapi.h"
 #include "espconn.h"
 #include "mystuff.h"
 #include "ws2812_i2s.h"
 #include "hpatimer.h"
-#include <DFT32.h>
+#include "DFT32.h"
 #include "ccconfig.h"
 #include <embeddednf.h>
 #include <embeddedout.h>

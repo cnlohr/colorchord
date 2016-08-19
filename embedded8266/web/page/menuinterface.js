@@ -47,6 +47,13 @@ function QueueOperation( command, callback )
 
 function init()
 {
+	GPIOlines = '';
+	for(var i=0; i<16; ++i)
+		GPIOlines += "<td align=center>"+ i
+			+ "<input type=button id=ButtonGPIO"+ i +" value=0 onclick=\"TwiddleGPIO("+ i +");\">"
+			+ "<input type=button id=BGPIOIn"+ i +" value=In onclick=\"GPIOInput("+ i +");\" class=\"inbutton\">"
+			+ "</td>";
+
 	$('#MainMenu > tbody:first-child').before( "\
 		<tr><td width=1> \
 		<input type=submit onclick=\"ShowHideEvent( 'SystemStatus' );\" value='System Status' id=SystemStatusClicker></td><td> \
@@ -85,28 +92,17 @@ function init()
 		<tr><td width=1> \
 		<input type=submit onclick=\"ShowHideEvent( 'GPIOs' ); GPIODataTicker();\" value=\"GPIOs\"></td><td> \
 		<div id=GPIOs class=\"collapsible\"> \
-		<table width=100% border=1><tr> \
-		<td align=center>0<input type=button id=ButtonGPIO0 value=0 onclick=\"TwiddleGPIO(0);\"><input type=button id=BGPIOIn0 value=In onclick=\"GPIOInput(0);\" class=\"inbutton\"></td> \
-		<td align=center>1<input type=button id=ButtonGPIO1 value=0 onclick=\"TwiddleGPIO(1);\"><input type=button id=BGPIOIn1 value=In onclick=\"GPIOInput(1);\" class=\"inbutton\"></td> \
-		<td align=center>2<input type=button id=ButtonGPIO2 value=0 onclick=\"TwiddleGPIO(2);\"><input type=button id=BGPIOIn2 value=In onclick=\"GPIOInput(2);\" class=\"inbutton\"></td> \
-		<td align=center>3<input type=button id=ButtonGPIO3 value=0 onclick=\"TwiddleGPIO(3);\"><input type=button id=BGPIOIn3 value=In onclick=\"GPIOInput(3);\" class=\"inbutton\"></td> \
-		<td align=center>4<input type=button id=ButtonGPIO4 value=0 onclick=\"TwiddleGPIO(4);\"><input type=button id=BGPIOIn4 value=In onclick=\"GPIOInput(4);\" class=\"inbutton\"></td> \
-		<td align=center>5<input type=button id=ButtonGPIO5 value=0 onclick=\"TwiddleGPIO(5);\"><input type=button id=BGPIOIn5 value=In onclick=\"GPIOInput(5);\" class=\"inbutton\"></td> \
-		<td>...</td> \
-		<td align=center>12<input type=button id=ButtonGPIO12 value=0 onclick=\"TwiddleGPIO(12);\"><input type=button id=BGPIOIn12 value=In onclick=\"GPIOInput(12);\" class=\"inbutton\"></td> \
-		<td align=center>13<input type=button id=ButtonGPIO13 value=0 onclick=\"TwiddleGPIO(13);\"><input type=button id=BGPIOIn13 value=In onclick=\"GPIOInput(13);\" class=\"inbutton\"></td> \
-		<td align=center>14<input type=button id=ButtonGPIO14 value=0 onclick=\"TwiddleGPIO(14);\"><input type=button id=BGPIOIn14 value=In onclick=\"GPIOInput(14);\" class=\"inbutton\"></td> \
-		<td align=center>15<input type=button id=ButtonGPIO15 value=0 onclick=\"TwiddleGPIO(15);\"><input type=button id=BGPIOIn15 value=In onclick=\"GPIOInput(15);\" class=\"inbutton\"></td> \
-		</tr></table></div></td></tr>\
+		<table width=100% border=1><tr>" +
+ 		GPIOlines
+		+ "</tr></table></div></td></tr>\
 \
 		<tr><td width=1>\
 		<input type=submit onclick=\"ShowHideEvent( 'SystemReflash' );\" value=\"System Reflash\"></td><td>\
 		<div id=SystemReflash class=\"collapsible\">\
 		<div id=InnerSystemReflash class=\"dragandrophandler\">\
 		<input id=\"dragndropersystem\" type=\"file\" multiple> <div id=innersystemflashtext>Drop or browse for system (0x000.. 0x400...) or web (.mpfs) reflash files.</div>\
-		</div></div></td></tr>\
-");
-		
+		</div></div></td></tr>"
+	);
 
 	MakeDragDrop( "InnerSystemReflash", DragDropSystemFiles );
 	$("#dragndropersystem").change(function() { DragDropSystemFiles(this.files ); });
