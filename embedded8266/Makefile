@@ -13,7 +13,13 @@ LDFLAGS_CORE += -Wl,-Map,output.map
 
 
 #Useful git commands
-
-init_submodule :
-	git submodule update --init --recursive
-
+ifndef TARGET
+# Fetch submodule if the user forgot to clone with `--recursive`
+GETSUBMODS = all burn burnweb netweb netburn clean cleanall purge
+.PHONY : $(GETSUBMODS)
+$(GETSUBMODS) :
+    $(warning Submodule esp82xx was not fetched. Trying it now.)
+    git submodule update --init --recursive
+    $(info Re-unning make...)
+    make $@ $(MFLAGS) $(MAKEOVERRIDES)
+endif
