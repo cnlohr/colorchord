@@ -1,6 +1,10 @@
 include user.cfg
-include esp82xx/common.mf
-include esp82xx/main.mf
+-include esp82xx/common.mf
+-include esp82xx/main.mf
+
+% :
+	$(warning This is the empty rule. Something went wrong.)
+	@true
 
 SRCS += user/ws2812_i2s.c \
 	user/hpatimer.c \
@@ -12,14 +16,8 @@ SRCS += user/ws2812_i2s.c \
 LDFLAGS_CORE += -Wl,-Map,output.map
 
 
-#Useful git commands
 ifndef TARGET
-# Fetch submodule if the user forgot to clone with `--recursive`
-GETSUBMODS = all burn burnweb netweb netburn clean cleanall purge
-.PHONY : $(GETSUBMODS)
-$(GETSUBMODS) :
-    $(warning Submodule esp82xx was not fetched. Trying it now.)
-    git submodule update --init --recursive
-    $(info Re-unning make...)
-    make $@ $(MFLAGS) $(MAKEOVERRIDES)
+$(info Modules were not checked out... use git clone --recursive in the future. Pulling now.)
+$(shell git submodule update --init --recursive)
 endif
+
