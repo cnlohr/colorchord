@@ -8,7 +8,7 @@
 #include "uart.h"
 #include "osapi.h"
 #include "espconn.h"
-#include "mystuff.h"
+#include "esp82xxutil.h"
 #include "ws2812_i2s.h"
 #include "hpatimer.h"
 #include "DFT32.h"

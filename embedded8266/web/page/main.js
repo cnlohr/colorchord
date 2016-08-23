@@ -31,13 +31,13 @@ function ChangeParam( p )
 {
 	var num = Number( p.value );
 	var elem = p.id.substr( 5 );
-	QueueOperation( "CVW:" + elem + ":" + num );
+	QueueOperation( "CVW\t" + elem + "\t" + num );
 }
 
 
 var hasCreateParams = false;
 function ReceiveParameters(req,data) {
-	var elems = data.split( ":" );
+	var elems = data.split( "\t" );
 
 	for( var v = 0; v < elems.length; v++ )
 	{
@@ -113,7 +113,7 @@ function GotOScope(req,data)
 
 	$( "#OScopePauseButton" ).css( "background-color", "green" );
 
-	var secs = data.split( ":" );
+	var secs = data.split( "\t" );
 
 	var samps = Number( secs[1] );
 	var data = secs[2];
@@ -195,7 +195,7 @@ function GotDFT(req,data)
 	if( ctx.canvas.width != canvas.clientWidth )   ctx.canvas.width = canvas.clientWidth;
 	if( ctx.canvas.height != canvas.clientHeight ) ctx.canvas.height = canvas.clientHeight;
 
-	var secs = data.split( ":" );
+	var secs = data.split( "\t" );
 
 	$( "#DFTPauseButton" ).css( "background-color", "green" );
 
@@ -272,7 +272,7 @@ function GotLED(req,data)
 	if( canvas.width != ls.clientWidth-10 )   canvas.width = ls.clientWidth-10;
 	if( ctx.canvas.width != canvas.clientWidth )   ctx.canvas.width = canvas.clientWidth;
 
-	var secs = data.split( ":" );
+	var secs = data.split( "\t" );
 
 	$( "#LEDPauseButton" ).css( "background-color", "green" );
 
@@ -345,7 +345,7 @@ function GotNotes(req,data)
 	var canvas = document.getElementById('NotesCanvas');
 	var ctx = canvas.getContext('2d');
 
-	var secs = data.split( ":" );
+	var secs = data.split( "\t" );
 
 	var elems = Number(secs[1] );
 

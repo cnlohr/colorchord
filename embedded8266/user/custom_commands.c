@@ -2,7 +2,7 @@
 #include <gpio.h>
 #include <ccconfig.h>
 #include <eagle_soc.h>
-#include "mystuff.h"
+#include "esp82xxutil.h"
 #include <DFT32.h>
 #include <embeddednf.h>
 #include <embeddedout.h>
@@ -71,7 +71,7 @@ int ICACHE_FLASH_ATTR CustomCommand(char * buffer, int retsize, char *pusrdata, 
 	case 'b': case 'B': //bins
 	{
 		int i;
-		int whichSel = my_atoi( &pusrdata[2] );
+		int whichSel = ParamCaptureAndAdvanceInt( );
 
 		uint16_t * which = 0;
 		uint16_t qty = FIXBINS;
@@ -89,7 +89,7 @@ int ICACHE_FLASH_ATTR CustomCommand(char * buffer, int retsize, char *pusrdata, 
 			return buffend-buffer;
 		}
 
-		buffend += ets_sprintf( buffend, "CB%d:%d:", whichSel, qty );
+		buffend += ets_sprintf( buffend, "CB%d\t%d\t", whichSel, qty );
 		for( i = 0; i < FIXBINS; i++ )
 		{
 			uint16_t samp = which[i];
@@ -105,7 +105,7 @@ int ICACHE_FLASH_ATTR CustomCommand(char * buffer, int retsize, char *pusrdata, 
 	case 'l': case 'L': //LEDs
 	{
 		int i, it = 0;
-		buffend += ets_sprintf( buffend, "CL:%d:", gUSE_NUM_LIN_LEDS );
+		buffend += ets_sprintf( buffend, "CL\t%d\t", gUSE_NUM_LIN_LEDS );
 		uint16_t toledsvals = gUSE_NUM_LIN_LEDS*3;
 		if( toledsvals > 600 ) toledsvals = 600;
 		for( i = 0; i < toledsvals; i++ )
@@ -121,7 +121,7 @@ int ICACHE_FLASH_ATTR CustomCommand(char * buffer, int retsize, char *pusrdata, 
 	case 'm': case 'M': //Oscilloscope
 	{
 		int i, it = soundhead;
-		buffend += ets_sprintf( buffend, "CM:512:" );
+		buffend += ets_sprintf( buffend, "CM\t512\t" );
 		for( i = 0; i < 512; i++ )
 		{
 			uint8_t samp = sounddata[it++];
@@ -135,7 +135,7 @@ int ICACHE_FLASH_ATTR CustomCommand(char * buffer, int retsize, char *pusrdata, 
 	case 'n': case 'N': //Notes
 	{
 		int i;
-		buffend += ets_sprintf( buffend, "CN:%d:", MAXNOTES );
+		buffend += ets_sprintf( buffend, "CN\t%d\t", MAXNOTES );
 		for( i = 0; i < MAXNOTES; i++ )
 		{
 			uint16_t dat;
@@ -222,42 +222,36 @@ int ICACHE_FLASH_ATTR CustomCommand(char * buffer, int retsize, char *pusrdata, 
 		{
 			int i;
 
-			buffend += ets_sprintf( buffend, "CVR:" );
+			buffend += ets_sprintf( buffend, "CVR\t" );
 
 			i = 0;
 			while( gConfigurableNames[i] )
 			{
-				buffend += ets_sprintf( buffend, "%s=%d:", gConfigurableNames[i], *gConfigurables[i] );
+				buffend += ets_sprintf( buffend, "%s=%d\t", gConfigurableNames[i], *gConfigurables[i] );
 				i++;
 			}
 
-			buffend += ets_sprintf( buffend, "rBASE_FREQ=%d:rDFREQ=%d:rOCTAVES=%d:rFIXBPERO=%d:rNOTERANGE=%d:rSORT_NOTES=%d:", 
+			buffend += ets_sprintf( buffend, "rBASE_FREQ=%d\trDFREQ=%d\trOCTAVES=%d\trFIXBPERO=%d\trNOTERANGE=%d\trSORT_NOTES=%d\t", 
 				(int)BASE_FREQ, (int)DFREQ, (int)OCTAVES, (int)FIXBPERO, (int)(NOTERANGE),(int)SORT_NOTES );
-			buffend += ets_sprintf( buffend, "rMAXNOTES=%d:rNUM_LIN_LEDS=%d:rLIN_WRAPAROUND=%d:rLIN_WRAPAROUND=%d:", 
+			buffend += ets_sprintf( buffend, "rMAXNOTES=%d\trNUM_LIN_LEDS=%d\trLIN_WRAPAROUND=%d\trLIN_WRAPAROUND=%d\t", 
 				(int)MAXNOTES, (int)NUM_LIN_LEDS, (int)LIN_WRAPAROUND, (int)LIN_WRAPAROUND );
 
 			return buffend-buffer;
 		}
 		else if( pusrdata[2] == 'W' || pusrdata[2] == 'w' )
 		{
-			char * colon = 0, * colon2 = 0;
+			parameters+=2;
+			char * name = ParamCaptureAndAdvance();
+			int val = ParamCaptureAndAdvanceInt();
+			int i = 0;
+			printf( "%s:=%d\n", name, val );
 			do
 			{
-				int i = 0;
-				colon = (char *) ets_strstr( (char*)&pusrdata[2], ":" );
-				if( !colon ) break;
-				*colon = 0;
-				colon++;
-				colon2 = (char *) ets_strstr( (char*)colon, ":" );
-				if( !colon2 ) break;
-				*colon2 = 0;
-				colon2++;
-
 				while( gConfigurableNames[i] )
 				{
-					if( strcmp( colon, gConfigurableNames[i] ) == 0 )
+					if( strcmp( name, gConfigurableNames[i] ) == 0 )
 					{
-						*gConfigurables[i] = my_atoi(colon2);
+						*gConfigurables[i] = val;
 						buffend += ets_sprintf( buffend, "CVW" );
 						return buffend-buffer;
 					}
