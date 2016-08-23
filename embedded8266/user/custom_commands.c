@@ -244,7 +244,7 @@ int ICACHE_FLASH_ATTR CustomCommand(char * buffer, int retsize, char *pusrdata, 
 			char * name = ParamCaptureAndAdvance();
 			int val = ParamCaptureAndAdvanceInt();
 			int i = 0;
-			printf( "%s:=%d\n", name, val );
+
 			do
 			{
 				while( gConfigurableNames[i] )
