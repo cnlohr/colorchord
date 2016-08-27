@@ -1,5 +1,6 @@
 include user.cfg
 -include esp82xx/common.mf
+#SDK:=/home/cnlohr/esp8266/esp_iot_sdk_v1.5.1
 -include esp82xx/main.mf
 
 % :
