@@ -22,10 +22,17 @@ struct SoundDriver * sd;
 
 #ifdef WIN32
 #include <windows.h>
+
+#define ESCAPE_KEY 0x1B
+
 void WindowsTerm()
 {
 	CloseSound( sd );
 }
+
+#else
+
+#define ESCAPE_KEY 65307
 
 #endif
 
@@ -69,7 +76,7 @@ void HandleKey( int keycode, int bDown )
 	if( c == '0' && bDown ) { gKey = 0;		nf->base_hz = 55 * pow( 2, gKey / 12.0 ); ChangeNFParameters( nf ); }
 	if( c == 'E' && bDown ) show_debug_basic = !show_debug_basic;
 	if( c == 'K' && bDown ) DumpParameters();
-	if( keycode == 65307 ) exit( 0 );
+	if( keycode == ESCAPE_KEY ) exit( 0 );
 	printf( "Key: %d -> %d\n", keycode, bDown );
 	KeyHappened( keycode, bDown );
 }
