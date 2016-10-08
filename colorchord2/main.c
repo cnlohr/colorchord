@@ -306,13 +306,13 @@ int main(int argc, char ** argv)
 				//char sttdebug[1024];
 				//char * sttend = sttdebug;
 
-				for( i = 0; i < nf->dists; i++ )
+				for( i = 0; i < nf->dists_count; i++ )
 				{
-					CNFGPenX = (nf->dist_means[i] + 0.5) / freqbins * screenx;  //Move over 0.5 for visual purposes.  The means is correct.
-					CNFGPenY = 400-nf->dist_amps[i] * 150.0 / nf->dist_sigmas[i];
-					//printf( "%f %f\n", dist_means[i], dist_amps[i] );
-					sprintf( stt, "%f\n%f\n", nf->dist_means[i], nf->dist_amps[i] );
-//					sttend += sprintf( sttend, "%f/%f ",nf->dist_means[i], nf->dist_amps[i] );
+					CNFGPenX = (nf->dists[i].mean + 0.5) / freqbins * screenx;  //Move over 0.5 for visual purposes.  The means is correct.
+					CNFGPenY = 400-nf->dists[i].amp * 150.0 / nf->dists[i].sigma;
+					//printf( "%f %f\n", dists[i].mean, dists[i].amp );
+					sprintf( stt, "%f\n%f\n", nf->dists[i].mean, nf->dists[i].amp );
+//					sttend += sprintf( sttend, "%f/%f ",nf->dists[i].mean, nf->dists[i].amp );
 					CNFGDrawText( stt, 2 );
 				}
 				CNFGColor( 0xffffff );
@@ -366,7 +366,7 @@ int main(int argc, char ** argv)
 
 				for( i = -1; i < screenx; i++ )
 				{
-					float thishistval = CalcHistAt( (float)i/(float)screenx*freqbins-0.5, nf->freqbins, nf->dist_means, nf->dist_amps, nf->dist_sigmas, nf->dists );
+					float thishistval = CalcHistAt( (float)i/(float)screenx*freqbins-0.5, nf->freqbins, nf->dists, nf->dists_count );
 					if( i >= 0 )
 						CNFGTackSegment( i, 400-lasthistval * 250.0, i+1, 400-thishistval * 250.0 );
 					lasthistval = thishistval;

@@ -5,6 +5,12 @@
 
 #include "os_generic.h"
 
+struct NoteDists {
+	float amp;   //Amplitude of normal distribution
+	float mean;  //Mean of normal distribution
+	float sigma; //Sigma of normal distribution
+	unsigned char taken; //Is distribution associated with any notes?
+};
 
 struct NoteFinder
 {
@@ -78,11 +84,8 @@ struct NoteFinder
 
 
 	//Dists: These things are the distributions that are found, they are very fickle and change frequently.
-	int dists; //# of distributions (these are the precursors to notes - it is trying to find the normal distributions.)
-	float * dist_amps;   //Amplitude of normal distribution... [nf->dists]
-	float * dist_means;  //Mean of normal distribution... [nf->dists]
-	float * dist_sigmas; //Sigma of normal distribution... [nf->dists]
-	unsigned char * dist_takens; //Which distributions are now associated with notes
+	int dists_count; //# of distributions (these are the precursors to notes - it is trying to find the normal distributions.)
+	struct NoteDists * dists;
 
 
 	//For profiling, all in absolute time in seconds.
