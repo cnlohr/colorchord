@@ -1,6 +1,7 @@
 //Copyright 2015 <>< Charles Lohr under the ColorChord License.
 
 #include "decompose.h"
+#include "notefinder.h"
 #include <stdio.h>
 #include <math.h>
 #include <stdlib.h>
@@ -10,7 +11,7 @@
 
 #ifdef TURBO_DECOMPOSE
 
-int DecomposeHistogram( float * histogram, int bins, float * out_means, float * out_amps, float * out_sigmas, int max_dists, double default_sigma, int iterations )
+int DecomposeHistogram( float * histogram, int bins, struct NoteDists * out_dists, int max_dists, double default_sigma, int iterations )
 {
 	//Step 1: Find the actual peaks.
 
@@ -41,35 +42,35 @@ int DecomposeHistogram( float * histogram, int bins, float * out_means, float * 
 			offset = (0.5 - porpdiffN);
 		}
 
-		out_means[peak] = i + offset;
+		out_dists[peak].mean = i + offset;
 
 		//XXX XXX TODO Examine difference or relationship of "this" and "totaldiff"
-		out_amps[peak] = this * 4;
+		out_dists[peak].amp = this * 4;
 			//powf( totaldiff, .8) * 10;//powf( totaldiff, .5 )*4; //
-		out_sigmas[peak] = default_sigma;
+		out_dists[peak].sigma = default_sigma;
 		peak++;
 	}
 
 	for( i = peak; i < max_dists; i++ )
 	{
-		out_means[i] = -1;
-		out_amps[i] = 0;
-		out_sigmas[i] = default_sigma;
+		out_dists[i].mean = -1;
+		out_dists[i].amp = 0;
+		out_dists[i].sigma = default_sigma;
 	}
 
 	return peak;
 }
 
 //Yick: Doesn't match.. I guess it's only for debugging, right?
-float CalcHistAt( float pt, int bins, float * out_means, float * out_amps, float * out_sigmas, int cur_dists )
+float CalcHistAt( float pt, int bins, struct NoteDists * out_dists, int cur_dists )
 {
 	int i;
 	float mark = 0.0;
 	for( i = 0; i < cur_dists; i++ )
 	{
-		float amp  = out_amps[i];
-		float mean = out_means[i];
-		float var  = out_sigmas[i];
+		float amp  = out_dists[i].amp;
+		float mean = out_dists[i].mean;
+		float var  = out_dists[i].sigma;
 
 		float x = mean - pt;
 		if( x < - bins / 2 ) x += bins;
@@ -83,11 +84,11 @@ float CalcHistAt( float pt, int bins, float * out_means, float * out_amps, float
 
 #else
 
-float AttemptDecomposition( float * histogram, int bins, float * out_means, float * out_amps, float * out_sigmas, int cur_dists );
-float CalcHistAt( float pt, int bins, float * out_means, float * out_amps, float * out_sigmas, int cur_dists );
+float AttemptDecomposition( float * histogram, int bins, struct NoteDists * out_dists, int cur_dists );
+float CalcHistAt( float pt, int bins, struct NoteDists * out_dists, int cur_dists );
 
 
-int DecomposeHistogram( float * histogram, int bins, float * out_means, float * out_amps, float * out_sigmas, int max_dists, double default_sigma, int iterations )
+int DecomposeHistogram( float * histogram, int bins, struct NoteDists * out_dists, int max_dists, double default_sigma, int iterations )
 {
 	//NOTE: The sigma may change depending on all sorts of things, maybe?
 
@@ -108,9 +109,9 @@ int DecomposeHistogram( float * histogram, int bins, float * out_means, float * 
 		else if( went_up)
 		{
 			went_up = 0;
-			out_amps[sigs] = thishist / (default_sigma + 1);
-			out_sigmas[sigs] = default_sigma;
-			out_means[sigs] = i-0.5;
+			out_dists[sigs].amp = thishist / (default_sigma + 1);
+			out_dists[sigs].sigma = default_sigma;
+			out_dists[sigs].mean = i-0.5;
 			sigs++;
 		}
 		vhist = thishist;
@@ -119,7 +120,7 @@ int DecomposeHistogram( float * histogram, int bins, float * out_means, float * 
 		return 0;
 
 	int iteration;
-	float errbest = AttemptDecomposition( histogram, bins, out_means, out_amps, out_sigmas, sigs );
+	float errbest = AttemptDecomposition( histogram, bins, out_dists, sigs );
 	int dropped[bins];
 	for( i = 0; i < bins; i++ )
 	{
@@ -130,33 +131,28 @@ int DecomposeHistogram( float * histogram, int bins, float * out_means, float * 
 	{
 		if( dropped[iteration%sigs] ) continue;
 		//Tweak with the values until they are closer to what we want.
-		float backup_mean = out_means[iteration%sigs];
-		float backup_amps = out_amps[iteration%sigs];
-		float backup_sigmas = out_sigmas[iteration%sigs];
+		struct NoteDists backup = out_dists[iteration%sigs];
 
 		float mute = 20. / (iteration+20.);
 #define RANDFN ((rand()%2)-0.5)*mute
 //#define RANDFN ((rand()%10000)-5000.0) / 5000.0 * mute
-//		out_sigmas[iteration%sigs] += RANDFN;
-		out_means[iteration%sigs] += RANDFN;
-		out_amps[iteration%sigs] += RANDFN;
-		float err = AttemptDecomposition( histogram, bins, out_means, out_amps, out_sigmas, sigs );
+//		out_dists[iteration%sigs].sigma += RANDFN;
+		out_dists[iteration%sigs].mean += RANDFN;
+		out_dists[iteration%sigs].amp += RANDFN;
+		float err = AttemptDecomposition( histogram, bins, out_dists, sigs );
 		if( err > errbest )
 		{
-			out_means[iteration%sigs] = backup_mean;
-			out_amps[iteration%sigs] = backup_amps;
-			out_sigmas[iteration%sigs] = backup_sigmas;
+			out_dists[iteration%sigs] = backup;
 		}
 		else
 		{
-			if( out_amps[iteration%sigs] < 0.01 )
+			if( out_dists[iteration%sigs].amp < 0.01 )
 			{
 				dropped[iteration%sigs] = 1;
-				out_amps[iteration%sigs] = 0.0;
+				out_dists[iteration%sigs].amp = 0.0;
 			}
 			errbest = err;
 		}
-
 	}
 
 //	printf( "%f / %f = %f\n", origerr, errbest, origerr/errbest );
@@ -164,15 +160,15 @@ int DecomposeHistogram( float * histogram, int bins, float * out_means, float * 
 	return sigs;
 }
 
-float CalcHistAt( float pt, int bins, float * out_means, float * out_amps, float * out_sigmas, int cur_dists )
+float CalcHistAt( float pt, int bins, struct NoteDists * out_dists, int cur_dists )
 {
 	int i;
 	float mark = 0.0;
 	for( i = 0; i < cur_dists; i++ )
 	{
-		float amp  = out_amps[i];
-		float mean = out_means[i];
-		float var  = out_sigmas[i];
+		float amp  = out_dists[i].amp;
+		float mean = out_dists[i].mean;
+		float var  = out_dists[i].sigma;
 
 		float x = mean - pt;
 		if( x < - bins / 2 ) x += bins;
@@ -183,16 +179,16 @@ float CalcHistAt( float pt, int bins, float * out_means, float * out_amps, float
 	return mark;
 }
 
-float AttemptDecomposition( float * histogram, int bins, float * out_means, float * out_amps, float * out_sigmas, int cur_dists )
+float AttemptDecomposition( float * histogram, int bins, struct NoteDists * out_dists, int cur_dists )
 {
 	int i, j;
 	float hist[bins];
 	memcpy( hist, histogram, sizeof(hist) );
 	for( i = 0; i < cur_dists; i++ )
 	{
-		float amp  = out_amps[i];
-		float mean = out_means[i];
-		float var  = out_sigmas[i];
+		float amp  = out_dists[i].amp;
+		float mean = out_dists[i].mean;
+		float var  = out_dists[i].sigma;
 
 		for( j = 0; j < bins; j++ )
 		{

@@ -10,7 +10,6 @@
 #include "dft.h"
 #include "filter.h"
 #include "decompose.h"
-#include "sort.h"
 #include "DFT32.h"
 
 struct NoteFinder * CreateNoteFinder( int spsRec )
@@ -151,18 +150,8 @@ printf( "%d %d %f %f %f\n", ret->freqbins, ret->octaves, ret->base_hz, ret->dft_
 		if( ret->folded_bins ) free( ret->folded_bins );
 		ret->folded_bins = calloc( 1, sizeof( float ) * ret->freqbins );
 
-
-		if( ret->dist_amps ) free( ret->dist_amps );
-		ret->dist_amps = calloc( 1, sizeof( float ) * maxdists );
-
-		if( ret->dist_means ) free( ret->dist_means );
-		ret->dist_means = calloc( 1, sizeof( float ) * maxdists );
-
-		if( ret->dist_sigmas ) free( ret->dist_sigmas );
-		ret->dist_sigmas = calloc( 1, sizeof( float ) * maxdists );
-
-		if( ret->dist_takens ) free( ret->dist_takens );
-		ret->dist_takens = calloc( 1, sizeof( unsigned char ) * maxdists );
+		if( ret->dists ) free ( ret->dists );
+		ret->dists = calloc( 1, sizeof( struct NoteDists ) * maxdists );
 
 		ret->ofreqs = freqs;
 	}
@@ -172,6 +161,12 @@ printf( "%d %d %f %f %f\n", ret->freqbins, ret->octaves, ret->base_hz, ret->dft_
 		ret->frequencies[i] = ( ret->sps_rec / ret->base_hz ) / pow( 2, (float)i / ret->freqbins );
 	}
 
+}
+
+int NoteDistsComparer(const void * a, const void * b)
+{
+	float v = ((struct NoteDists *)a)->amp - ((struct NoteDists *)b)->amp;
+	return (0.f < v) - (v < 0.f);
 }
 
 void RunNoteFinder( struct NoteFinder * nf, const float * audio_stream, int head, int buffersize )
@@ -242,37 +237,35 @@ void RunNoteFinder( struct NoteFinder * nf, const float * audio_stream, int head
 
 	nf->FilterTime = OGGetAbsoluteTime();
 
-	memset( nf->dist_takens, 0, sizeof( unsigned char ) * maxdists  );
-	nf->dists = DecomposeHistogram( nf->folded_bins, freqbins, nf->dist_means, nf->dist_amps, nf->dist_sigmas, maxdists, nf->default_sigma, nf->decompose_iterations );
+	for (i = 0; i < maxdists; i++)
+	{
+		nf->dists[i].taken = 0;
+	}
+	nf->dists_count = DecomposeHistogram( nf->folded_bins, freqbins, nf->dists, maxdists, nf->default_sigma, nf->decompose_iterations );
 
 	//Compress/normalize dist_amps
 	float total_dist = 0;
 
-	for( i = 0; i < nf->dists; i++ )
+	for( i = 0; i < nf->dists_count; i++ )
 	{
-		total_dist += nf->dist_amps[i];
+		total_dist += nf->dists[i].amp;
 	}
 	float muxer = nf->compress_coefficient/powf( total_dist * nf->compress_coefficient, nf->compress_exponenet );
 	total_dist = muxer;
-	for( i = 0; i < nf->dists; i++ )
+	for( i = 0; i < nf->dists_count; i++ )
 	{
-		nf->dist_amps[i]*=total_dist;
+		nf->dists[i].amp*=total_dist;
 	}
 
-	{
-		int dist_sorts[nf->dists];
-		SortFloats( dist_sorts, nf->dist_amps, nf->dists );
-		RemapFloats( dist_sorts, nf->dist_amps, nf->dists );
-		RemapFloats( dist_sorts, nf->dist_means, nf->dists );
-		RemapFloats( dist_sorts, nf->dist_sigmas, nf->dists );
-	}
+	qsort(nf->dists, nf->dists_count, sizeof(struct NoteDists), NoteDistsComparer);
+
 	nf->DecomposeTime = OGGetAbsoluteTime();
 
 
 	//We now have the positions and amplitudes of the normal distributions that comprise our spectrum.  IN SORTED ORDER!
-	//dists = # of distributions
-	//dist_amps[] = amplitudes of the normal distributions
-	//dist_means[] = positions of the normal distributions
+	//dists_count = # of distributions
+	//dists[].amp = amplitudes of the normal distributions
+	//dists[].mean = positions of the normal distributions
 
 	//We need to use this in a filtered manner to obtain the "note" peaks
 	//note_peaks = total number of peaks.
@@ -283,26 +276,26 @@ void RunNoteFinder( struct NoteFinder * nf, const float * audio_stream, int head
 	//First try to find any close peaks.
 	for( i = 0; i < note_peaks; i++ )
 	{
-		for( j = 0; j < nf->dists; j++ )
+		for( j = 0; j < nf->dists_count; j++ )
 		{ 
-			if( !nf->dist_takens[j] && !nf->note_founds[i] && fabsloop( nf->note_positions[i], nf->dist_means[j], freqbins ) < nf->note_jumpability && nf->dist_amps[j] > 0.00001 ) //0.00001 for stability.
+			if( !nf->dists[j].taken && !nf->note_founds[i] && fabsloop( nf->note_positions[i], nf->dists[j].mean, freqbins ) < nf->note_jumpability && nf->dists[j].amp > 0.00001 ) //0.00001 for stability.
 			{
 				//Attach ourselves to this bin.
 				nf->note_peaks_to_dists_mapping[i] = j;
-				nf->dist_takens[j] = 1;
+				nf->dists[j].taken = 1;
 				if( nf->enduring_note_id[i] == 0 )
 					nf->enduring_note_id[i] = nf->current_note_id++;	
 				nf->note_founds[i] = 1;
 
-				nf->note_positions[i] = avgloop( nf->note_positions[i], (1.-nf->note_attach_freq_iir), nf->dist_means[j], nf->note_attach_freq_iir, nf->freqbins);
+				nf->note_positions[i] = avgloop( nf->note_positions[i], (1.-nf->note_attach_freq_iir), nf->dists[j].mean, nf->note_attach_freq_iir, nf->freqbins);
 
 				//I guess you can't IIR this like normal.
-				////note_positions[i] * (1.-note_attach_freq_iir) + dist_means[j] * note_attach_freq_iir;
+				////note_positions[i] * (1.-note_attach_freq_iir) + dists[j].mean * note_attach_freq_iir;
 
-				nf->note_amplitudes[i] = nf->note_amplitudes[i] * (1.-nf->note_attach_amp_iir) + nf->dist_amps[j] * nf->note_attach_amp_iir;  
+				nf->note_amplitudes[i] = nf->note_amplitudes[i] * (1.-nf->note_attach_amp_iir) + nf->dists[j].amp * nf->note_attach_amp_iir;  
 				//XXX TODO: Consider: Always boost power, never reduce?
-//					if( dist_amps[i] > note_amplitudes[i] )
-//						note_amplitudes[i] = dist_amps[i];
+//					if( dists[i].amp > note_amplitudes[i] )
+//						note_amplitudes[i] = dists[i].amp;
 			}
 		}
 	}
@@ -350,16 +343,15 @@ void RunNoteFinder( struct NoteFinder * nf, const float * audio_stream, int head
 			nf->enduring_note_id[i] = 0;
 
 			//Find a new peak for this note.
-			for( j = 0; j < nf->dists; j++ )
+			for( j = 0; j < nf->dists_count; j++ )
 			{
-				if( !nf->dist_takens[j] && nf->dist_amps[j] > nf->note_minimum_new_distribution_value ) 
+				if( !nf->dists[j].taken && nf->dists[j].amp > nf->note_minimum_new_distribution_value ) 
 				{
 					nf->enduring_note_id[i] = nf->current_note_id++;
-					nf->dist_takens[j] = 1;
-					nf->note_amplitudes[i] = nf->dist_amps[j];//min_note_amplitude + dist_amps[j] * note_attach_amp_iir; //TODO: Should this jump?
-					nf->note_positions[i] = nf->dist_means[j];
+					nf->dists[j].taken = 1;
+					nf->note_amplitudes[i] = nf->dists[j].amp;//min_note_amplitude + dists[j].amp * note_attach_amp_iir; //TODO: Should this jump?
+					nf->note_positions[i] = nf->dists[j].mean;
 					nf->note_founds[i] = 1;
-					nf->dist_takens[j] = 1;
 				}
 			}
 		}
