@@ -34,7 +34,6 @@ static void * LEDOutThread( void * v )
 	{
 		int total_bytes = (led->total_leds*3)+1;
 		total_bytes = ((total_bytes-1)&0xffc0) + 0x40; //Round up.
-		printf( "TL: %d\n", total_bytes );
 		if( led->readyFlag )
 		{
 			int r = libusb_control_transfer( led->devh,
