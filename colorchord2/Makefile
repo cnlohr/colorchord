@@ -6,7 +6,7 @@ SOUND:=sound.o sound_alsa.o sound_pulse.o sound_null.o
 OUTS := OutputVoronoi.o DisplayArray.o OutputLinear.o DisplayPie.o DisplayNetwork.o DisplayUSB2812.o DisplayDMX.o OutputProminent.o RecorderPlugin.o OutputCells.o
 
 WINGCC:= i686-w64-mingw32-gcc
-WINGCCFLAGS:= -g -DICACHE_FLASH_ATTR= -I../embeddedcommon -I. -O0   #-O2 -Wl,--relax -Wl,--gc-sections -ffunction-sections -fdata-sections
+WINGCCFLAGS:= -g -DICACHE_FLASH_ATTR= -I../embeddedcommon -I. -O1   #-O2 -Wl,--relax -Wl,--gc-sections -ffunction-sections -fdata-sections
 WINLDFLAGS:=-lwinmm -lgdi32 -lws2_32 
 
 RAWDRAWLIBS:=-lX11 -lm -lpthread -lXinerama -lXext
