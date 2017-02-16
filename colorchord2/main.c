@@ -50,6 +50,7 @@ int set_screeny = 480;	REGISTER_PARAM( set_screeny, PAINT );
 char sound_source[16]; 	REGISTER_PARAM( sound_source, PABUFFER );
 int cpu_autolimit = 1; 	REGISTER_PARAM( cpu_autolimit, PAINT );
 int sample_channel = -1;REGISTER_PARAM( sample_channel, PAINT );
+int showfps = 0;        REGISTER_PARAM( showfps, PAINT );
 
 struct NoteFinder * nf;
 
@@ -421,9 +422,9 @@ int main(int argc, char ** argv)
 		frames++;
 
 		ThisTime = OGGetAbsoluteTime();
-		if( ThisTime > LastFPSTime + 1 )
+		if( ThisTime > LastFPSTime + 1 && showfps )
 		{
-//			printf( "FPS: %d\n", frames );
+			printf( "FPS: %d\n", frames );
 			lastfps = frames;
 			frames = 0;
 			LastFPSTime+=1;
