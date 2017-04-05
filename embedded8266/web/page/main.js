@@ -2,7 +2,7 @@
 //
 //This particular file may be licensed under the MIT/x11, New BSD or ColorChord Licenses.
 
-globalParams = {};
+var globalParams = {};
 
 
 function mainticker()
@@ -84,12 +84,12 @@ function ReceiveParameters(req,data) {
 
 
 
-is_oscilloscope_running = false;
-pause_oscilloscope = false;
+var is_oscilloscope_running = false;
+var pause_oscilloscope = false;
 
 function KickOscilloscope()
 {
-	$( "#OScopePauseButton" ).css( "background-color", (is_oscilloscope_running&&pause_oscilloscope)?"green":"red" );
+	$( "#OScopePauseButton" ).css( "background-color", (is_oscilloscope_running&&!pause_oscilloscope)?"green":"red" );
 	if( !pause_oscilloscope)
 		OScopeDataTicker();
 }
@@ -153,7 +153,7 @@ function OScopeDataTicker()
 	}
 	else
 	{
-		is_oscilloscope_running = 0;
+		is_oscilloscope_running = false;
 	}
 	$( "#OScopePauseButton" ).css( "background-color", (is_oscilloscope_running&&!pause_oscilloscope)?"green":"red" );
 }
@@ -166,8 +166,8 @@ function OScopeDataTicker()
 
 
 
-is_dft_running = false;
-pause_dft = false;
+var is_dft_running = false;
+var pause_dft = false;
 
 function KickDFT()
 {
@@ -244,8 +244,8 @@ function DFTDataTicker()
 
 
 
-is_leds_running = false;
-pause_led = false;
+var is_leds_running = false;
+var pause_led = false;
 
 function KickLEDs()
 {
@@ -321,14 +321,14 @@ function LEDDataTicker()
 
 
 
-is_notes_running = false;
-pause_notes = false;
+var is_notes_running = false;
+var pause_notes = false;
 
 function KickNotes()
 {
 	$( "#NotesPauseButton" ).css( "background-color", (is_notes_running&&!pause_notes)?"green":"red" );
 
-	if( !is_notes_running && !pause_notes )
+	if(!pause_notes )
 		NotesTicker();
 }
 
