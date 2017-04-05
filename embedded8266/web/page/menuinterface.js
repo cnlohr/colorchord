@@ -47,7 +47,7 @@ function QueueOperation( command, callback )
 
 function init()
 {
-	GPIOlines = '';
+	var GPIOlines = '';
 	for(var i=0; i<16; ++i)
 		GPIOlines += "<td align=center>"+ i
 			+ "<input type=button id=ButtonGPIO"+ i +" value=0 onclick=\"TwiddleGPIO("+ i +");\">"
@@ -118,7 +118,7 @@ function init()
 	$("#custom_command_response").val( "" );
 
 	//Preclude drag and drop on rest of document in event user misses firmware boxes.
-	donothing = function(e) {e.stopPropagation();e.preventDefault();};
+	var donothing = function(e) {e.stopPropagation();e.preventDefault();};
 	$(document).on('drop', donothing );
 	$(document).on('dragover', donothing );
 	$(document).on('dragenter', donothing );
@@ -318,9 +318,9 @@ function MakeDragDrop( divname, callback )
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 ///Below here are mostly just events...
 
-did_wifi_get_config = false;
-is_data_ticker_running = false;
-is_waiting_on_stations = false;
+var did_wifi_get_config = false;
+var is_data_ticker_running = false;
+var is_waiting_on_stations = false;
 
 function ScanForWifi()
 {
