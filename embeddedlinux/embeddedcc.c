@@ -17,16 +17,23 @@ struct sockaddr_in servaddr;
 int sock;
 
 #define expected_lights NUM_LIN_LEDS
-
 int toskip = 1;
+int framecount = 0;
+//TODO explore relation of NUM_LIN_LEDS and following two params
+uint8_t gCOLORCHORD_ADVANCE_SHIFT = 3;
+int8_t gCOLORCHORD_SUPRESS_FLIP_DIR = -7; // neg clockwise, pos anticlockwise, zero will flip on peak total amp2
+// ratio of gCOLORCHORD_ADVANCE_SHIFT / gCOLORCHORD_SUPRESS_FLIP_DIR when less than 1 has interesting effect
 
 void NewFrame()
 {
 	int i;
 	char buffer[3000];
-
+        framecount++;
+	//printf("NEW FRAME %d ******\n", framecount);
 	HandleFrameInfo();
-	UpdateLinearLEDs();
+	//UpdateLinearLEDs();
+	//UpdateAllSameLEDs();
+	UpdateRotatingLEDs();
 
 	buffer[0] = 0;
 	buffer[1] = 0;
@@ -35,6 +42,8 @@ void NewFrame()
 	for( i = 0; i < expected_lights * 3; i++ )
 	{
 		buffer[i+toskip*3] = ledOut[i];
+// printf("In NF: %d\n", ledOut[i]);
+
 	}
 
 	int r = send(sock,buffer,expected_lights*3+3,0);
@@ -45,6 +54,7 @@ int main( int argc, char ** argv )
 {
 	int wf = 0;
 	int ci;
+	// bb no [tool] argument expected or used?
 
 	if( argc < 2 )
 	{
@@ -53,7 +63,11 @@ int main( int argc, char ** argv )
 	}
 
 	printf( "%d\n", argc );
+        for (int i = 0; i < argc; i++)
+        {     printf( "%s\n", argv[i] );
+        }
 	toskip = (argc > 2)?atoi(argv[2]):0;
+        fprintf( stderr, "   toskip = %d \n", toskip );
 
 	sock = socket(AF_INET,SOCK_DGRAM,IPPROTO_UDP);
 
@@ -61,14 +75,16 @@ int main( int argc, char ** argv )
 	servaddr.sin_family = AF_INET;
 	servaddr.sin_addr.s_addr = inet_addr(argv[1]);
 	servaddr.sin_port=htons(7777);
-
+	fprintf(stderr, "The IP address is %s\n", inet_ntoa(servaddr.sin_addr.s_addr));
 	connect( sock, (struct sockaddr *)&servaddr, sizeof(servaddr) );
 
-	Init();
+	InitColorChord(); // bb changed from Init() which does not seem to exist;
 
 	while( ( ci = getchar() ) != EOF )
 	{
 		int cs = ci - 0x80;
+//printf("byte: %d\n", cs);
+// putchar(ci);
 #ifdef USE_32DFT
 		PushSample32( ((int8_t)cs)*32 );
 #else

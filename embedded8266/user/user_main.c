@@ -28,6 +28,8 @@
 #define procTaskPrio        0
 #define procTaskQueueLen    1
 
+int framecount = 0;
+
 static volatile os_timer_t some_timer;
 static struct espconn *pUdpServer;
 
@@ -52,7 +54,8 @@ extern uint8_t gCOLORCHORD_OUTPUT_DRIVER;
 static void NewFrame()
 {
 	if( !gCOLORCHORD_ACTIVE ) return;
-
+        framecount++;
+	//printf("NEW FRAME %d ******\n", framecount);
 	//uint8_t led_outs[NUM_LIN_LEDS*3];
 	int i;
 	HandleFrameInfo();
@@ -64,6 +67,9 @@ static void NewFrame()
 		break;
 	case 1:
 		UpdateAllSameLEDs();
+		break;
+	case 2:
+		UpdateRotatingLEDs();
 		break;
 	};
 

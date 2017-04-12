@@ -1,5 +1,6 @@
 //Copyright 2015 <>< Charles Lohr under the ColorChord License.
 
+
 #include "embeddedout.h"
 
 //uint8_t ledArray[NUM_LIN_LEDS]; //Points to which notes correspond to these LEDs
@@ -11,6 +12,9 @@ uint8_t ledFreqOut[NUM_LIN_LEDS];
 uint8_t ledFreqOutOld[NUM_LIN_LEDS];
 
 uint8_t RootNoteOffset;
+uint32_t total_note_a_prev = 0;
+int diff_a_prev = 0;
+int rot_dir = 1; // initial rotation direction 1
 
 void UpdateLinearLEDs()
 {
@@ -20,6 +24,8 @@ void UpdateLinearLEDs()
 		extern uint16_t note_peak_amps[];  //[MAXNOTES] 
 		extern uint16_t note_peak_amps2[];  //[MAXNOTES]  (Responds quicker)
 		extern uint8_t  note_jumped_to[]; //[MAXNOTES] When a note combines into another one,
+		extern uint8_t gCOLORCHORD_ADVANCE_SHIFT; // controls speed of shifting if 0 no shift
+		extern int8_t gCOLORCHORD_SUPRESS_FLIP_DIR; //if non-zero will cause flipping shift on peaks, also controls speed
 	*/
 
 	//Goal: Make splotches of light that are porportional to the strength of notes.
@@ -33,16 +39,36 @@ void UpdateLinearLEDs()
 	uint8_t sorted_note_map[MAXNOTES]; //mapping from which note into the array of notes from the rest of the system.
 	uint8_t sorted_map_count = 0;
 	uint32_t note_nerf_a = 0;
+	uint32_t total_note_a = 0;
+	int diff_a = 0;
+	int8_t jshift;
+
+#if DEBUGPRINT
+	printf( "Note Peak Freq: " );
+        for( i = 0; i < MAXNOTES; i++ ) printf( " %5d /", note_peak_freqs[i]  );
+	printf( "\n" );
+        printf( "Note Peak Amps: " );
+        for( i = 0; i < MAXNOTES; i++ ) printf( " %5d /", note_peak_amps[i]  );
+	printf( "\n" );
+        printf( "Note Peak Amp2: " );
+        for( i = 0; i < MAXNOTES; i++ ) printf( " %5d /", note_peak_amps2[i]  );
+	printf( "\n" );
+        printf( "Note jumped to: " );
+        for( i = 0; i < MAXNOTES; i++ ) printf( " %5d /", note_jumped_to[i]  );
+	printf( "\n" );
+#endif
 
 	for( i = 0; i < MAXNOTES; i++ )
 	{
 		if( note_peak_freqs[i] == 255 ) continue;
-		note_nerf_a += note_peak_amps[i];
+		total_note_a += note_peak_amps[i];
 	}
 
-	note_nerf_a = ((note_nerf_a * NERF_NOTE_PORP)>>8);
+	diff_a = total_note_a_prev - total_note_a;
 
+	note_nerf_a = ((total_note_a * NERF_NOTE_PORP)>>8);
 
+	// ignore notes with amp too small or freq 255
 	for( i = 0; i < MAXNOTES; i++ )
 	{
 		uint16_t ist = note_peak_amps[i];
@@ -55,48 +81,73 @@ void UpdateLinearLEDs()
 		{
 			continue;
 		}
-
-#if SORT_NOTES
-		for( j = 0; j < sorted_map_count; j++ )
-		{
-			if( note_peak_freqs[ sorted_note_map[j] ] > nff )
-			{
-				break;
-			}
-		}
-		for( k = sorted_map_count; k > j; k-- )
-		{
-			sorted_note_map[k] = sorted_note_map[k-1];
-		}
-		sorted_note_map[j] = i;
-#else
-#endif
 		sorted_note_map[sorted_map_count] = i;
 		sorted_map_count++;
 	}
 
-#if 0
-	for( i = 0; i < sorted_map_count; i++ )
-	{
-		printf( "%d: %d: %d /", sorted_note_map[i],  note_peak_freqs[sorted_note_map[i]], note_peak_amps[sorted_note_map[i]] );
-	}
-	printf( "\n" );
-#endif
+
 
 	uint16_t local_peak_amps[MAXNOTES];
 	uint16_t local_peak_amps2[MAXNOTES];
+	uint16_t hold16;
+	uint8_t hold8;
 	uint8_t  local_peak_freq[MAXNOTES];
+	uint8_t  local_note_jumped_to[MAXNOTES];
+#if SORT_NOTES
+	// can sort based on freq, amps etc - could mod to switch on a parameter
+	uint16_t  *sort_key; // leaving untyped so can point to 16 or 8 bit, but may not best way
+	switch(1) {
+		case 1  :
+			sort_key = local_peak_amps2;
+		break;
+		case 2  :
+			sort_key = local_peak_amps;
+		break;
+		case 3  :
+			sort_key = local_peak_freq;
+		break;
+	}
+#endif
 
 	//Make a copy of all of the variables into local ones so we don't have to keep double-dereferencing.
+	//set sort key
 	for( i = 0; i < sorted_map_count; i++ )
 	{
-		//printf( "%5d ", local_peak_amps[i] );
 		local_peak_amps[i] = note_peak_amps[sorted_note_map[i]] - note_nerf_a;
 		local_peak_amps2[i] = note_peak_amps2[sorted_note_map[i]];
 		local_peak_freq[i] = note_peak_freqs[sorted_note_map[i]];
-//		printf( "%5d ", local_peak_amps[i] );
+		local_note_jumped_to[i] = note_jumped_to[sorted_note_map[i]];
 	}
-//	printf( "\n" );
+
+#if SORT_NOTES
+	// note local_note_jumped_to still give original indices of notes (which may not even been inclued
+	//    due to being eliminated as too small amplitude
+	for( i = 0; i < sorted_map_count - 1; i++ )
+	{
+		for( j = i + 1; j < sorted_map_count; j++ )
+		{
+			//if (local_peak_freq[i] > local_peak_freq[j]) // inc sort on freq
+			if (*(sort_key+i) < *(sort_key+j)) // dec sort
+			{
+				hold8 = local_peak_freq[j];
+				local_peak_freq[j] = local_peak_freq[i];
+				local_peak_freq[i] = hold8;
+				hold8 = sorted_note_map[j];
+				sorted_note_map[j] = sorted_note_map[i];
+				sorted_note_map[i] = hold8;
+				hold8 = local_note_jumped_to[j];
+				local_note_jumped_to[j] = local_note_jumped_to[i];
+				local_note_jumped_to[i] = hold8;
+				hold16 = local_peak_amps[j];
+				local_peak_amps[j] = local_peak_amps[i];
+				local_peak_amps[i] = hold16;
+				hold16 = local_peak_amps2[j];
+				local_peak_amps2[j] = local_peak_amps2[i];
+				local_peak_amps2[i] = hold16;
+			}
+		}
+	}
+#endif
 
 	for( i = 0; i < sorted_map_count; i++ )
 	{
@@ -126,6 +177,43 @@ void UpdateLinearLEDs()
 
 	int16_t total_unaccounted_leds = USE_NUM_LIN_LEDS - total_accounted_leds;
 
+#if DEBUGPRINT
+	printf( "note_nerf_a = %d,  total_size_all_notes =  %d, porportional = %d, total_accounted_leds = %d \n", note_nerf_a, total_size_all_notes, porportional,  total_accounted_leds );
+	printf("snm: ");
+        for( i = 0; i < sorted_map_count; i++ )  printf( "%d /", sorted_note_map[i]);
+	printf( "\n" );
+
+	printf("npf: ");
+        for( i = 0; i < sorted_map_count; i++ )  printf( "%d /", note_peak_freqs[sorted_note_map[i]]);
+	printf( "\n" );
+
+	printf("lpf: ");
+        for( i = 0; i < sorted_map_count; i++ )  printf( "%d /", local_peak_freq[i]);
+	printf( "\n" );
+
+	printf("npa: ");
+        for( i = 0; i < sorted_map_count; i++ )  printf( "%d /", note_peak_amps[sorted_note_map[i]]);
+	printf( "\n" );
+
+	printf("lpa: ");
+        for( i = 0; i < sorted_map_count; i++ )  printf( "%d /", local_peak_amps[i]);
+	printf( "\n" );
+
+	printf("lpa2: ");
+        for( i = 0; i < sorted_map_count; i++ )  printf( "%d /", local_peak_amps2[i]);
+	printf( "\n" );
+
+	printf("porp: ");
+        for( i = 0; i < sorted_map_count; i++ )  printf( "%d /", porpamps[i]);
+	printf( "\n" );
+
+	printf("lnjt: ");
+        for( i = 0; i < sorted_map_count; i++ )  printf( "%d /", local_note_jumped_to[i]);
+	printf( "\n" );
+
+#endif
+
+
 	int addedlast = 1;
 	do
 	{
@@ -151,6 +239,10 @@ void UpdateLinearLEDs()
 
 	//This part totally can't run on an embedded system.
 #if LIN_WRAPAROUND
+        //printf("NOTERANGE: %d ", NOTERANGE); //192
+	// bb this code finds an index ledSpin so that shifting the led display will have the minimum deviation
+	//    from the previous display.
+	//  this will cancel out shifting effects below
 	uint16_t midx = 0;
 	uint32_t mqty = 100000000;
 	for( j = 0; j < USE_NUM_LIN_LEDS; j++ )
@@ -179,92 +271,144 @@ void UpdateLinearLEDs()
 	}
 
 	ledSpin = midx;
+	printf("spin: %d, min deviation: %d\n", ledSpin, mqty); // bb
 
 #else
 	ledSpin = 0;
 #endif
+//TODO FIX if change gCOLORCHORD_SUPRESS_FLIP_DIR from non-zero to zero rot_dir will not reinitialize to 1
+	// if option change direction on max peaks of total amplitude
+	if (gCOLORCHORD_SUPRESS_FLIP_DIR == 0) {
+		if (diff_a_prev < 0 && diff_a > 0) rot_dir *= -1;
+	} else rot_dir = gCOLORCHORD_SUPRESS_FLIP_DIR;
 
-	j = ledSpin;
-	for( l = 0; l < USE_NUM_LIN_LEDS; l++, j++ )
+        // want possible extra spin to relate to changes peak intensity
+	// now every gCOLORCHORD_ADVANCE_SHIFT th frame
+	if (gCOLORCHORD_ADVANCE_SHIFT != 0) {
+//NOTE need - in front of rot_dir to make rotation direction consistent with UpdateRotationLEDs
+		jshift = (ledSpin - rot_dir * framecount/gCOLORCHORD_ADVANCE_SHIFT ) % USE_NUM_LIN_LEDS; // neg % pos is neg so fix with
+		if ( jshift < 0 ) jshift += USE_NUM_LIN_LEDS;
+	        //printf("tnap tna %d %d dap da %d %d rot_dir %d, j shift %d\n",total_note_a_prev, total_note_a, diff_a_prev,  diff_a, rot_dir, j);
+	} else {
+		jshift = ledSpin;
+	}
+
+#if DEBUGPRINT
+	printf("rot_dir %d, jshift %d\n", rot_dir, jshift);
+	printf("leds: ");
+#endif
+	for( l = 0; l < USE_NUM_LIN_LEDS; l++, jshift++ )
 	{
-		if( j >= USE_NUM_LIN_LEDS ) j = 0;
-		ledFreqOutOld[l] = ledFreqOut[j];
-
-		uint16_t amp = ledAmpOut[j];
+		if( jshift >= USE_NUM_LIN_LEDS ) j = 0;
+// bb note:  lefFreqOutOld used only if wraparound
+#if LIN_WRAPAROUND
+		ledFreqOutOld[l] = ledFreqOut[jshift];
+#endif
+		uint16_t amp = ledAmpOut[jshift];
+#if DEBUGPRINT
+	        printf("%d:%d/", ledFreqOut[jshift], amp);
+#endif
 		if( amp > 255 ) amp = 255;
-		uint32_t color = ECCtoHEX( (ledFreqOut[j]+RootNoteOffset)%NOTERANGE, 255, amp );
+		uint32_t color = ECCtoHEX( (ledFreqOut[jshift]+RootNoteOffset)%NOTERANGE, 255, amp );
 		ledOut[l*3+0] = ( color >> 0 ) & 0xff;
 		ledOut[l*3+1] = ( color >> 8 ) & 0xff;
 		ledOut[l*3+2] = ( color >>16 ) & 0xff;
 	}
-/*	j = ledSpin;
-	for( i = 0; i < sorted_map_count; i++ )
-	{
-		while( porpamps[i] > 0 )
-		{
-			uint16_t amp = ((uint32_t)local_peak_amps2[i] * NOTE_FINAL_AMP) >> 8;
-			if( amp > 255 ) amp = 255;
-			uint32_t color = ECCtoHEX( local_peak_freq[i], 255, amp );
-			ledOut[j*3+0] = ( color >> 0 ) & 0xff;
-			ledOut[j*3+1] = ( color >> 8 ) & 0xff;
-			ledOut[j*3+2] = ( color >>16 ) & 0xff;
-
-			j++;
-			if( j == USE_NUM_LIN_LEDS ) j = 0;
-			porpamps[i]--;
-		}
-	}*/
-
-	//Now, we use porpamps to march through the LEDs, coloring them.
-/*	j = 0;
-	for( i = 0; i < sorted_map_count; i++ )
-	{
-		while( porpamps[i] > 0 )
-		{
-			uint16_t amp = ((uint32_t)local_peak_amps2[i] * NOTE_FINAL_AMP) >> 8;
-			if( amp > 255 ) amp = 255;
-			uint32_t color = ECCtoHEX( local_peak_freq[i], 255, amp );
-			ledOut[j*3+0] = ( color >> 0 ) & 0xff;
-			ledOut[j*3+1] = ( color >> 8 ) & 0xff;
-			ledOut[j*3+2] = ( color >>16 ) & 0xff;
-
-			j++;
-			porpamps[i]--;
-		}
-	}*/
+#if DEBUGPRINT
+        printf( "\n" );
+	printf("bytes: ");
+        for( i = 0; i < USE_NUM_LIN_LEDS; i++ )  printf( "%02x%02x%02x-", ledOut[i*3+0], ledOut[i*3+1],ledOut[i*3+2]);
+	printf( "\n\n" );
+#endif
+	total_note_a_prev = total_note_a;
+	diff_a_prev = diff_a;
 }
-
-
-
 
 void UpdateAllSameLEDs()
 {
 	int i;
+	int8_t j;
 	uint8_t freq = 0;
 	uint16_t amp = 0;
+
 
 	for( i = 0; i < MAXNOTES; i++ )
 	{
 		uint16_t ist = note_peak_amps2[i];
 		uint8_t ifrq = note_peak_freqs[i];
-		if( ist > amp && ifrq != 255 )
+		if( ifrq != 255 && ist > amp  )
 		{
 			freq = ifrq;
 			amp = ist;
 		}
 	}
-
-	amp = (((uint32_t)(amp))*NOTE_FINAL_AMP)>>10;
+	amp = (((uint32_t)(amp))*NOTE_FINAL_AMP)>>8; //bb was 10
 
 	if( amp > 255 ) amp = 255;
 	uint32_t color = ECCtoHEX( (freq+RootNoteOffset)%NOTERANGE, 255, amp );
-
 	for( i = 0; i < USE_NUM_LIN_LEDS; i++ )
 	{
 		ledOut[i*3+0] = ( color >> 0 ) & 0xff;
 		ledOut[i*3+1] = ( color >> 8 ) & 0xff;
 		ledOut[i*3+2] = ( color >>16 ) & 0xff;
 	}
+}
+
+void UpdateRotatingLEDs()
+{
+	int i;
+	int8_t jshift;
+	uint8_t freq = 0;
+	uint16_t amp = 0;
+	uint32_t note_nerf_a = 0;
+	uint32_t total_note_a = 0;
+	int diff_a = 0;
+
+	for( i = 0; i < MAXNOTES; i++ )
+	{
+		uint16_t ist = note_peak_amps2[i];
+		uint8_t ifrq = note_peak_freqs[i];
+		if( ifrq != 255 )
+		{
+			if( ist > amp ) {
+				freq = ifrq;
+				amp = ist;
+			}
+			total_note_a += note_peak_amps[i];
+		}
+	}
+	diff_a = total_note_a_prev - total_note_a;
+	amp = (((uint32_t)(amp))*NOTE_FINAL_AMP)>>8; //bb was 10
+
+	if( amp > 255 ) amp = 255;
+	uint32_t color = ECCtoHEX( (freq+RootNoteOffset)%NOTERANGE, 255, amp );
+	// if option change direction on max peaks of total amplitude
+
+
+	if (gCOLORCHORD_SUPRESS_FLIP_DIR == 0) {
+		if (diff_a_prev < 0 && diff_a > 0) rot_dir *= -1;
+	} else rot_dir = gCOLORCHORD_SUPRESS_FLIP_DIR;
+
+	if (gCOLORCHORD_ADVANCE_SHIFT != 0) {
+		// now every gCOLORCHORD_ADVANCE_SHIFT/rot_dir th frame
+		jshift = ((rot_dir)*framecount/gCOLORCHORD_ADVANCE_SHIFT) % USE_NUM_LIN_LEDS; // neg % pos is neg so fix
+		if( jshift < 0 ) jshift +=  USE_NUM_LIN_LEDS;
+		//printf("tnap tna %d %d dap da %d %d rot_dir %d, jshift %d \n",total_note_a_prev, total_note_a, diff_a_prev,  diff_a, rot_dir, jshift);
+	} else {q
+		jshift = 0;
+	}
+
+	//for( i = 0; i < USE_NUM_LIN_LEDS; i++ )
+	for( i = 0; i < 1; i++, jshift++ )
+	{
+		if( jshift >= USE_NUM_LIN_LEDS ) jshift = 0;
+		ledOut[jshift*3+0] = ( color >> 0 ) & 0xff;
+		ledOut[jshift*3+1] = ( color >> 8 ) & 0xff;
+		ledOut[jshift*3+2] = ( color >>16 ) & 0xff;
+	}
+	total_note_a_prev = total_note_a;
+	diff_a_prev = diff_a;
+
 }
 
 

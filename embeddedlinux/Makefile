@@ -12,13 +12,25 @@ embeddedcc :  ../embeddedcommon/embeddednf.c ../embeddedcommon/DFT32.c embeddedc
 dummy_leds : dummy_leds.c 
 	gcc -o $@ $^ -lX11 -lpthread $(CFLAGS) $(LDFLAGS)
 
-SOUNDDEVICE:= --device=alsa_output.pci-0000_00_1b.0.analog-stereo.monitor 
-#OUTIP:=192.168.4.1
-OUTIP:=127.0.0.1
+
+#If specifiy device not seems to work
+#To find correct devices looked here and used pacmd and list-cards
+#https://ubuntuforums.org/showthread.php?t=1517726
+#SOUNDDEVICE:= --device=alsa_output.pci-0000_00_05.0.analog-stereo.monitor # to use playing of mp3
+SOUNDDEVICE:= --device=alsa_input.pci-0000_00_05.0.analog-stereo # to use mic
+#By leading this blank it takes a default output which works 
+#SOUNDDEVICE:= 
+
+#OUTIP:=192.168.20.9
+#OUTIP:=192.168.1.5 # not work for ubuntu guest in Virtual Machine
+#OUTIP:=10.0.2.15 # works for ubuntu guest in Virtual Machine
+OUTIP:=127.0.0.1 # works for ubuntu guest in Virtual Machine
 
 runembedded : embeddedcc
-	parec --format=u8 --rate=16000 --channels=1 $(SOUNDDEVICE) --latency=128 | ./embeddedcc $(OUTIP) 1
+	parec  --format=u8 --rate=16000 --channels=1 $(SOUNDDEVICE) --latency=128 | ./embeddedcc $(OUTIP) 1 
 
+runembeddeddbg : embeddedcc
+	parec -v  --format=u8 --rate=16000 --channels=1 $(SOUNDDEVICE) --latency=128 | ./embeddedcc $(OUTIP) 1 > dbout.txt
 
 clean :
 	rm -rf embeddedcc *~ dummy_leds
