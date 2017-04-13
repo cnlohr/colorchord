@@ -425,7 +425,7 @@ function WifiDataTicker()
 			innerhtml += "</TABLE>";
 			document.getElementById("WifiStations").innerHTML = innerhtml;
 		} );
-		setTimeout( WifiDataTicker, 500 );
+		setTimeout( WifiDataTicker, 6000 );
 	}
 	else
 	{
