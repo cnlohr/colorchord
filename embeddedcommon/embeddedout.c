@@ -271,7 +271,7 @@ void UpdateLinearLEDs()
 	}
 
 	ledSpin = midx;
-	//printf("spin: %d, min deviation: %d\n", ledSpin, mqty); // bb
+	//printf("spin: %d, min deviation: %d\n", ledSpin, mqty);
 
 #else
 	ledSpin = 0;
@@ -300,7 +300,7 @@ void UpdateLinearLEDs()
 	for( l = 0; l < USE_NUM_LIN_LEDS; l++, jshift++ )
 	{
 		if( jshift >= USE_NUM_LIN_LEDS ) jshift = 0;
-// bb note:  lefFreqOutOld used only if wraparound
+//note:  lefFreqOutOld used only if wraparound
 #if LIN_WRAPAROUND
 		if( ledSpin >= USE_NUM_LIN_LEDS ) ledSpin = 0;
 		ledFreqOutOld[l] = ledFreqOut[ledSpin];
@@ -344,7 +344,7 @@ void UpdateAllSameLEDs()
 			amp = ist;
 		}
 	}
-	amp = (((uint32_t)(amp))*NOTE_FINAL_AMP)>>8; //bb was 10
+	amp = (((uint32_t)(amp))*NOTE_FINAL_AMP)>>10;
 
 	if( amp > 255 ) amp = 255;
 	uint32_t color = ECCtoHEX( (freq+RootNoteOffset)%NOTERANGE, 255, amp );
@@ -387,14 +387,14 @@ void UpdateRotatingLEDs()
 	diff_a = total_note_a_prev - total_note_a;
 
 	// can set color intensity using amp2
-	//amp = (((uint32_t)(amp2))*NOTE_FINAL_AMP)>>8; //bb was 10
-	//if( amp > 255 ) amp = 255;
+	amp = (((uint32_t)(amp2))*NOTE_FINAL_AMP)>>10;
+	if( amp > 255 ) amp = 255;
 	//uint32_t color = ECCtoHEX( (freq+RootNoteOffset)%NOTERANGE, 255, amp );
 	uint32_t color = ECCtoHEX( (freq+RootNoteOffset)%NOTERANGE, 255, 255 );
 
 	// can have led_arc_len a fixed size or proportional to amp2
 	//led_arc_len = 5;
-	led_arc_len = (amp2 * USE_NUM_LIN_LEDS) >> 14; // empirical
+	led_arc_len = (amp * USE_NUM_LIN_LEDS) >> 8;
 	//printf("test %d %d \n", amp2, led_arc_len);
 
 	// if option change direction on max peaks of total amplitude
