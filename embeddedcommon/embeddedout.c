@@ -394,7 +394,7 @@ void UpdateRotatingLEDs()
 		jshift = ((rot_dir)*framecount/gCOLORCHORD_ADVANCE_SHIFT) % USE_NUM_LIN_LEDS; // neg % pos is neg so fix
 		if( jshift < 0 ) jshift +=  USE_NUM_LIN_LEDS;
 		//printf("tnap tna %d %d dap da %d %d rot_dir %d, jshift %d \n",total_note_a_prev, total_note_a, diff_a_prev,  diff_a, rot_dir, jshift);
-	} else {q
+	} else {
 		jshift = 0;
 	}
 
