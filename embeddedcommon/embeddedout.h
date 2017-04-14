@@ -40,8 +40,6 @@ extern int8_t gCOLORCHORD_SUPRESS_FLIP_DIR; //bb if non-zero will cause flipping
 //Whether the output lights wrap around.
 //(Can't easily run on embedded systems)
 //(might be ok on ESP8266)
-//(but will cancel effect of gCOLORCHORD_ADVANCE_SHIFT)
-//TODO prevent above?
 #define LIN_WRAPAROUND 0
 #endif
 
