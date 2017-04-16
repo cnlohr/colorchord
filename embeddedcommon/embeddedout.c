@@ -24,8 +24,9 @@ void UpdateLinearLEDs()
 		extern uint16_t note_peak_amps[];  //[MAXNOTES] 
 		extern uint16_t note_peak_amps2[];  //[MAXNOTES]  (Responds quicker)
 		extern uint8_t  note_jumped_to[]; //[MAXNOTES] When a note combines into another one,
-		extern uint8_t gCOLORCHORD_ADVANCE_SHIFT; // controls speed of shifting if 0 no shift
-		extern int8_t gCOLORCHORD_SUPRESS_FLIP_DIR; //if non-zero will cause flipping shift on peaks, also controls speed
+		extern uint8_t gCOLORCHORD_SHIFT_INTERVAL; // controls speed of shifting if 0 no shift
+		extern uint8_t gCOLORCHORD_FLIP_ON_PEAK; //if non-zero gives flipping at peaks of shift direction, 0 no flip
+		extern int8_t gCOLORCHORD_SHIFT_DISTANCE; //distance of shift
 	*/
 
 	//Goal: Make splotches of light that are porportional to the strength of notes.
@@ -41,6 +42,7 @@ void UpdateLinearLEDs()
 	uint32_t note_nerf_a = 0;
 	uint32_t total_note_a = 0;
 	int diff_a = 0;
+	int8_t shift_dist = 0;
 	int8_t jshift;
 
 #if DEBUGPRINT
@@ -276,17 +278,19 @@ void UpdateLinearLEDs()
 #else
 	ledSpin = 0;
 #endif
-//TODO FIX if change gCOLORCHORD_SUPRESS_FLIP_DIR from non-zero to zero rot_dir will not reinitialize to 1
 	// if option change direction on max peaks of total amplitude
-	if (gCOLORCHORD_SUPRESS_FLIP_DIR == 0) {
-		if (diff_a_prev < 0 && diff_a > 0) rot_dir *= -1;
-	} else rot_dir = gCOLORCHORD_SUPRESS_FLIP_DIR;
+	if (gCOLORCHORD_FLIP_ON_PEAK ) {
+		if (diff_a_prev < 0 && diff_a > 0) {
+			rot_dir *= -1;
+			shift_dist = rot_dir * gCOLORCHORD_SHIFT_DISTANCE;
+		}
+	} else shift_dist = gCOLORCHORD_SHIFT_DISTANCE;
 
         // want possible extra spin to relate to changes peak intensity
-	// now every gCOLORCHORD_ADVANCE_SHIFT th frame
-	if (gCOLORCHORD_ADVANCE_SHIFT != 0) {
-//NOTE need - in front of rot_dir to make rotation direction consistent with UpdateRotationLEDs
-		jshift = (ledSpin - rot_dir * framecount/gCOLORCHORD_ADVANCE_SHIFT ) % USE_NUM_LIN_LEDS; // neg % pos is neg so fix with
+	// now every gCOLORCHORD_SHIFT_INTERVAL th frame
+	if (gCOLORCHORD_SHIFT_INTERVAL != 0) {
+		//NOTE need - in front of rot_dir to make rotation direction consistent with UpdateRotationLEDs
+		jshift = (ledSpin - shift_dist * framecount/gCOLORCHORD_SHIFT_INTERVAL ) % USE_NUM_LIN_LEDS; // neg % pos is neg so fix with
 		if ( jshift < 0 ) jshift += USE_NUM_LIN_LEDS;
 	        //printf("tnap tna %d %d dap da %d %d rot_dir %d, j shift %d\n",total_note_a_prev, total_note_a, diff_a_prev,  diff_a, rot_dir, j);
 	} else {
@@ -294,7 +298,7 @@ void UpdateLinearLEDs()
 	}
 
 #if DEBUGPRINT
-	printf("rot_dir %d, jshift %d\n", rot_dir, jshift);
+	printf("rot_dir %d, shift_dist %d, jshift %d\n", rot_dir, shift_dist, jshift);
 	printf("leds: ");
 #endif
 	for( l = 0; l < USE_NUM_LIN_LEDS; l++, jshift++ )
@@ -360,6 +364,7 @@ void UpdateRotatingLEDs()
 {
 	int i;
 	int8_t jshift;
+	int8_t shift_dist;
 	uint8_t freq = 0;
 	uint16_t amp = 0;
 	uint16_t amp2 = 0;
@@ -397,14 +402,18 @@ void UpdateRotatingLEDs()
 	led_arc_len = (amp * USE_NUM_LIN_LEDS) >> 8;
 	//printf("test %d %d \n", amp2, led_arc_len);
 
-	// if option change direction on max peaks of total amplitude
-	if (gCOLORCHORD_SUPRESS_FLIP_DIR == 0) {
-		if (diff_a_prev < 0 && diff_a > 0) rot_dir *= -1;
-	} else rot_dir = gCOLORCHORD_SUPRESS_FLIP_DIR;
+        // want possible extra spin to relate to changes peak intensity
+	if (gCOLORCHORD_FLIP_ON_PEAK ) {
+		if (diff_a_prev < 0 && diff_a > 0) {
+			rot_dir *= -1;
+			shift_dist = rot_dir * gCOLORCHORD_SHIFT_DISTANCE;
+		}
+	} else shift_dist = gCOLORCHORD_SHIFT_DISTANCE;
 
-	if (gCOLORCHORD_ADVANCE_SHIFT != 0) {
-		// On each gCOLORCHORD_ADVANCE_SHIFT/rot_dir-th frame make rotational shift
-		jshift = ((rot_dir)*framecount/gCOLORCHORD_ADVANCE_SHIFT - led_arc_len/2) % USE_NUM_LIN_LEDS; // neg % pos is neg so fix
+	// now every gCOLORCHORD_SHIFT_INTERVAL th frame
+	if (gCOLORCHORD_SHIFT_INTERVAL != 0) {
+		// On each gCOLORCHORD_SHIFT_INTERVAL/rot_dir-th frame make rotational shift
+		jshift = (shift_dist * framecount/gCOLORCHORD_SHIFT_INTERVAL - led_arc_len/2) % USE_NUM_LIN_LEDS; // neg % pos is neg so fix
 		if( jshift < 0 ) jshift +=  USE_NUM_LIN_LEDS;
 		//printf("tnap tna %d %d dap da %d %d rot_dir %d, jshift %d \n",total_note_a_prev, total_note_a, diff_a_prev,  diff_a, rot_dir, jshift);
 	} else {

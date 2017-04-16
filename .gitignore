@@ -5,6 +5,7 @@ embedded8266/web/page.mpfs
 embedded8266/web/tmp/
 embedded8266/web/mfsmaker
 embeddedlinux/embeddedcc
+embeddedlinux/dummy_leds
 embeddedlinux/dbout.txt
 
 

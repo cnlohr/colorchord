@@ -20,9 +20,11 @@ int sock;
 int toskip = 1;
 int framecount = 0;
 //TODO explore relation of NUM_LIN_LEDS and following two params
-uint8_t gCOLORCHORD_ADVANCE_SHIFT = 3;
-int8_t gCOLORCHORD_SUPRESS_FLIP_DIR = -7; // neg clockwise, pos anticlockwise, zero will flip on peak total amp2
-// ratio of gCOLORCHORD_ADVANCE_SHIFT / gCOLORCHORD_SUPRESS_FLIP_DIR when less than 1 has interesting effect
+// ratio of gCOLORCHORD_SHIFT_INTERVAL / gCOLORCHORD_SHIFT_DISTANCE when less than 1 has interesting effect
+uint8_t gCOLORCHORD_SHIFT_INTERVAL = 5;
+uint8_t gCOLORCHORD_FLIP_ON_PEAK = 0; // non-zero will flip on peak total amp2
+int8_t gCOLORCHORD_SHIFT_DISTANCE = -1; //distance of shift + anticlockwise, - clockwise, 0 no shift
+
 
 void NewFrame()
 {

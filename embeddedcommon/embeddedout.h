@@ -7,9 +7,10 @@
 
 #include "embeddednf.h"
 
-extern int framecount; //bb
-extern uint8_t gCOLORCHORD_ADVANCE_SHIFT; // bb how much rotaion is used
-extern int8_t gCOLORCHORD_SUPRESS_FLIP_DIR; //bb if non-zero will cause flipping shift on peaks
+extern int framecount;
+extern uint8_t gCOLORCHORD_SHIFT_INTERVAL; //how frame interval between shifts. if 0 no shift
+extern uint8_t gCOLORCHORD_FLIP_ON_PEAK; //if non-zero will cause flipping shift on peaks
+extern int8_t gCOLORCHORD_SHIFT_DISTANCE; //distance of shift
 
 //TODO fix
 // print debug info wont work on esp8266 need debug to go to usb there
