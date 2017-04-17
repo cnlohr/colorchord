@@ -15,7 +15,7 @@ extern int8_t gCOLORCHORD_SHIFT_DISTANCE; //distance of shift
 //TODO fix
 // print debug info wont work on esp8266 need debug to go to usb there
 #ifndef DEBUGPRINT
-#define DEBUGPRINT 0
+#define DEBUGPRINT 1
 #endif
 
 //Controls brightness

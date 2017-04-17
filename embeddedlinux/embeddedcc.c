@@ -23,7 +23,7 @@ int framecount = 0;
 // ratio of gCOLORCHORD_SHIFT_INTERVAL / gCOLORCHORD_SHIFT_DISTANCE when less than 1 has interesting effect
 uint8_t gCOLORCHORD_SHIFT_INTERVAL = 5;
 uint8_t gCOLORCHORD_FLIP_ON_PEAK = 0; // non-zero will flip on peak total amp2
-int8_t gCOLORCHORD_SHIFT_DISTANCE = -1; //distance of shift + anticlockwise, - clockwise, 0 no shift
+int8_t gCOLORCHORD_SHIFT_DISTANCE = 0; //distance of shift + anticlockwise, - clockwise, 0 no shift
 
 
 void NewFrame()
@@ -33,9 +33,9 @@ void NewFrame()
         framecount++;
 	//printf("NEW FRAME %d ******\n", framecount);
 	HandleFrameInfo();
-	//UpdateLinearLEDs();
+	UpdateLinearLEDs();
 	//UpdateAllSameLEDs();
-	UpdateRotatingLEDs();
+	//UpdateRotatingLEDs();
 
 	buffer[0] = 0;
 	buffer[1] = 0;

@@ -88,68 +88,75 @@ void UpdateLinearLEDs()
 	}
 
 
-
 	uint16_t local_peak_amps[MAXNOTES];
 	uint16_t local_peak_amps2[MAXNOTES];
 	uint16_t hold16;
 	uint8_t hold8;
-	uint8_t  local_peak_freq[MAXNOTES];
+	uint16_t  local_peak_freq[MAXNOTES]; // using 16 bit so can easily choose amps, amps2 or freq as key
 	uint8_t  local_note_jumped_to[MAXNOTES];
 #if SORT_NOTES
 	// can sort based on freq, amps etc - could mod to switch on a parameter
-	uint16_t  *sort_key; // leaving untyped so can point to 16 or 8 bit, but may not best way
-	switch(1) {
+	uint16_t  *sort_key;
+	uint16_t  *non_key[2];
+	switch(3) {
 		case 1  :
 			sort_key = local_peak_amps2;
+			non_key[0] = local_peak_amps;
+			non_key[1] = local_peak_freq;
 		break;
 		case 2  :
 			sort_key = local_peak_amps;
+			non_key[0] = local_peak_amps2;
+			non_key[1] = local_peak_freq;
 		break;
 		case 3  :
 			sort_key = local_peak_freq;
+			non_key[0] = local_peak_amps;
+			non_key[1] = local_peak_amps2;
 		break;
 	}
 #endif
-
 	//Make a copy of all of the variables into local ones so we don't have to keep double-dereferencing.
-	//set sort key
 	for( i = 0; i < sorted_map_count; i++ )
 	{
 		local_peak_amps[i] = note_peak_amps[sorted_note_map[i]] - note_nerf_a;
 		local_peak_amps2[i] = note_peak_amps2[sorted_note_map[i]];
-		local_peak_freq[i] = note_peak_freqs[sorted_note_map[i]];
+		local_peak_freq[i] = (uint16_t) note_peak_freqs[sorted_note_map[i]];
 		local_note_jumped_to[i] = note_jumped_to[sorted_note_map[i]];
 	}
+
 
 #if SORT_NOTES
 	// note local_note_jumped_to still give original indices of notes (which may not even been inclued
 	//    due to being eliminated as too small amplitude
+	// TODO bubble sort on key and reorder sorted_note_map
 	for( i = 0; i < sorted_map_count - 1; i++ )
 	{
 		for( j = i + 1; j < sorted_map_count; j++ )
 		{
-			//if (local_peak_freq[i] > local_peak_freq[j]) // inc sort on freq
 			if (*(sort_key+i) < *(sort_key+j)) // dec sort
 			{
-				hold8 = local_peak_freq[j];
-				local_peak_freq[j] = local_peak_freq[i];
-				local_peak_freq[i] = hold8;
+				hold16 = *(sort_key+j);
+				*(sort_key+j) = *(sort_key+i);
+				*(sort_key+i) = hold16;
+				hold16 = *(non_key[0]+j);
+				*(non_key[0]+j) = *(non_key[0]+i);
+				*(non_key[0]+i) = hold16;
+				hold16 = *(non_key[1]+j);
+				*(non_key[1]+j) = *(non_key[1]+i);
+				*(non_key[1]+i) = hold16;
 				hold8 = sorted_note_map[j];
 				sorted_note_map[j] = sorted_note_map[i];
 				sorted_note_map[i] = hold8;
 				hold8 = local_note_jumped_to[j];
 				local_note_jumped_to[j] = local_note_jumped_to[i];
 				local_note_jumped_to[i] = hold8;
-				hold16 = local_peak_amps[j];
-				local_peak_amps[j] = local_peak_amps[i];
-				local_peak_amps[i] = hold16;
-				hold16 = local_peak_amps2[j];
-				local_peak_amps2[j] = local_peak_amps2[i];
-				local_peak_amps2[i] = hold16;
 			}
 		}
 	}
+
 #endif
+
 
 	for( i = 0; i < sorted_map_count; i++ )
 	{
