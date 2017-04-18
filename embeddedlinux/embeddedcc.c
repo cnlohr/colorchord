@@ -24,6 +24,8 @@ int framecount = 0;
 uint8_t gCOLORCHORD_SHIFT_INTERVAL = 5;
 uint8_t gCOLORCHORD_FLIP_ON_PEAK = 0; // non-zero will flip on peak total amp2
 int8_t gCOLORCHORD_SHIFT_DISTANCE = 0; //distance of shift + anticlockwise, - clockwise, 0 no shift
+uint8_t gCOLORCHORD_SORT_NOTES = 1; // 0 no sort, 1 inc freq, 2 dec amps, 3 dec amps2
+uint8_t gCOLORCHORD_LIN_WRAPAROUND = 0; // 0 no adjusting, else current led display has minimum deviation to prev
 
 
 void NewFrame()

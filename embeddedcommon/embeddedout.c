@@ -27,6 +27,8 @@ void UpdateLinearLEDs()
 		extern uint8_t gCOLORCHORD_SHIFT_INTERVAL; // controls speed of shifting if 0 no shift
 		extern uint8_t gCOLORCHORD_FLIP_ON_PEAK; //if non-zero gives flipping at peaks of shift direction, 0 no flip
 		extern int8_t gCOLORCHORD_SHIFT_DISTANCE; //distance of shift
+		extern uint8_t gCOLORCHORD_SORT_NOTES; // 0 no sort, 1 inc freq, 2 dec amps, 3 dec amps2
+		extern uint8_t gCOLORCHORD_LIN_WRAPAROUND; // 0 no adjusting, else current led display has minimum deviation to prev
 	*/
 
 	//Goal: Make splotches of light that are porportional to the strength of notes.
@@ -87,75 +89,54 @@ void UpdateLinearLEDs()
 		sorted_map_count++;
 	}
 
-
+//#if SORT_NOTES
+if ( gCOLORCHORD_SORT_NOTES ) {
+	// note local_note_jumped_to still give original indices of notes (which may not even been inclued
+	//    due to being eliminated as too small amplitude
+	//    bubble sort on key to reorder sorted_note_map
+	uint8_t hold8;
+	uint8_t change;
+	int not_correct_order;
+	for( i = 0; i < sorted_map_count; i++ )
+	{
+		change = 0;
+		for( j = 0; j < sorted_map_count -1 - i; j++ )
+		{
+			switch(gCOLORCHORD_SORT_NOTES) {
+				case 2 : // amps decreasing
+					not_correct_order = note_peak_amps[sorted_note_map[j]] < note_peak_amps[sorted_note_map[j+1]];
+				break;
+				case 3 : // amps2 decreasing
+					not_correct_order = note_peak_amps2[sorted_note_map[j]] < note_peak_amps2[sorted_note_map[j+1]];
+				break;
+				default : // freq increasing
+					not_correct_order = note_peak_freqs[sorted_note_map[j]] > note_peak_freqs[sorted_note_map[j+1]];
+			}
+			if ( not_correct_order ) // dec sort
+			{
+				change = 1;
+				hold8 = sorted_note_map[j];
+				sorted_note_map[j] = sorted_note_map[j+1];
+				sorted_note_map[j+1] = hold8;
+			}
+		}
+		if (!change) break;
+	}
+}
+//#endif
+	//Make a copy of all of the variables into local ones so we don't have to keep double-dereferencing.
 	uint16_t local_peak_amps[MAXNOTES];
 	uint16_t local_peak_amps2[MAXNOTES];
-	uint16_t hold16;
-	uint8_t hold8;
-	uint16_t  local_peak_freq[MAXNOTES]; // using 16 bit so can easily choose amps, amps2 or freq as key
+	uint8_t  local_peak_freq[MAXNOTES];
 	uint8_t  local_note_jumped_to[MAXNOTES];
-#if SORT_NOTES
-	// can sort based on freq, amps etc - could mod to switch on a parameter
-	uint16_t  *sort_key;
-	uint16_t  *non_key[2];
-	switch(3) {
-		case 1  :
-			sort_key = local_peak_amps2;
-			non_key[0] = local_peak_amps;
-			non_key[1] = local_peak_freq;
-		break;
-		case 2  :
-			sort_key = local_peak_amps;
-			non_key[0] = local_peak_amps2;
-			non_key[1] = local_peak_freq;
-		break;
-		case 3  :
-			sort_key = local_peak_freq;
-			non_key[0] = local_peak_amps;
-			non_key[1] = local_peak_amps2;
-		break;
-	}
-#endif
-	//Make a copy of all of the variables into local ones so we don't have to keep double-dereferencing.
+
 	for( i = 0; i < sorted_map_count; i++ )
 	{
 		local_peak_amps[i] = note_peak_amps[sorted_note_map[i]] - note_nerf_a;
 		local_peak_amps2[i] = note_peak_amps2[sorted_note_map[i]];
-		local_peak_freq[i] = (uint16_t) note_peak_freqs[sorted_note_map[i]];
+		local_peak_freq[i] = note_peak_freqs[sorted_note_map[i]];
 		local_note_jumped_to[i] = note_jumped_to[sorted_note_map[i]];
 	}
-
-
-#if SORT_NOTES
-	// note local_note_jumped_to still give original indices of notes (which may not even been inclued
-	//    due to being eliminated as too small amplitude
-	// TODO bubble sort on key and reorder sorted_note_map
-	for( i = 0; i < sorted_map_count - 1; i++ )
-	{
-		for( j = i + 1; j < sorted_map_count; j++ )
-		{
-			if (*(sort_key+i) < *(sort_key+j)) // dec sort
-			{
-				hold16 = *(sort_key+j);
-				*(sort_key+j) = *(sort_key+i);
-				*(sort_key+i) = hold16;
-				hold16 = *(non_key[0]+j);
-				*(non_key[0]+j) = *(non_key[0]+i);
-				*(non_key[0]+i) = hold16;
-				hold16 = *(non_key[1]+j);
-				*(non_key[1]+j) = *(non_key[1]+i);
-				*(non_key[1]+i) = hold16;
-				hold8 = sorted_note_map[j];
-				sorted_note_map[j] = sorted_note_map[i];
-				sorted_note_map[i] = hold8;
-				hold8 = local_note_jumped_to[j];
-				local_note_jumped_to[j] = local_note_jumped_to[i];
-				local_note_jumped_to[i] = hold8;
-			}
-		}
-	}
-
-#endif
 
 
 	for( i = 0; i < sorted_map_count; i++ )
@@ -247,7 +228,8 @@ void UpdateLinearLEDs()
 	}
 
 	//This part totally can't run on an embedded system.
-#if LIN_WRAPAROUND
+//#if LIN_WRAPAROUND
+if (gCOLORCHORD_LIN_WRAPAROUND ) {
         //printf("NOTERANGE: %d ", NOTERANGE); //192
 	// bb this code finds an index ledSpin so that shifting the led display will have the minimum deviation
 	//    from the previous display.
@@ -281,10 +263,11 @@ void UpdateLinearLEDs()
 
 	ledSpin = midx;
 	//printf("spin: %d, min deviation: %d\n", ledSpin, mqty);
-
-#else
+} else {
+//#else
 	ledSpin = 0;
-#endif
+//#endif
+}
 	// if option change direction on max peaks of total amplitude
 	if (gCOLORCHORD_FLIP_ON_PEAK ) {
 		if (diff_a_prev < 0 && diff_a > 0) {
@@ -312,11 +295,13 @@ void UpdateLinearLEDs()
 	{
 		if( jshift >= USE_NUM_LIN_LEDS ) jshift = 0;
 //note:  lefFreqOutOld used only if wraparound
-#if LIN_WRAPAROUND
+//#if LIN_WRAPAROUND
+if ( gCOLORCHORD_LIN_WRAPAROUND ) {
 		if( ledSpin >= USE_NUM_LIN_LEDS ) ledSpin = 0;
 		ledFreqOutOld[l] = ledFreqOut[ledSpin];
 		ledSpin++;
-#endif
+}
+//#endif
 		uint16_t amp = ledAmpOut[jshift];
 #if DEBUGPRINT
 	        printf("%d:%d/", ledFreqOut[jshift], amp);
