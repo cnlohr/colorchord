@@ -55,9 +55,9 @@ extern uint8_t gUSE_NUM_LIN_LEDS; // = NUM_LIN_LEDS
 #define USE_NUM_LIN_LEDS gUSE_NUM_LIN_LEDS
 
 //We are not enabling  for the ESP8266 port.
-#define LIN_WRAPAROUND 0 
+//#define LIN_WRAPAROUND 0
 //but trying this now
-#define SORT_NOTES 1
+//#define SORT_NOTES 1
 
 
 

@@ -7,7 +7,8 @@
 
 #include "embeddednf.h"
 
-extern int framecount;
+extern int gFRAMECOUNT_MOD_SHIFT_INTERVAL;
+extern int gROTATIONSHIFT; //Amount of spinning of pattern around a LED ring
 extern uint8_t gCOLORCHORD_SHIFT_INTERVAL; //how frame interval between shifts. if 0 no shift
 extern uint8_t gCOLORCHORD_FLIP_ON_PEAK; //if non-zero will cause flipping shift on peaks
 extern int8_t gCOLORCHORD_SHIFT_DISTANCE; //distance of shift
@@ -23,7 +24,7 @@ extern uint8_t gCOLORCHORD_LIN_WRAPAROUND; // 0 no adjusting, else current led d
 
 //Controls brightness
 #ifndef NOTE_FINAL_AMP
-#define NOTE_FINAL_AMP  12   //Number from 0...255
+#define NOTE_FINAL_AMP  150   //Number from 0...255
 #endif
 
 //Controls, basically, the minimum size of the splotches.

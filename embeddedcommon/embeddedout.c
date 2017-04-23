@@ -31,8 +31,8 @@ void UpdateLinearLEDs()
 		extern uint8_t gCOLORCHORD_LIN_WRAPAROUND; // 0 no adjusting, else current led display has minimum deviation to prev
 	*/
 
-	//Goal: Make splotches of light that are porportional to the strength of notes.
-	//Color them according to value in note_peak_amps2.
+	//Goal: Make splotches of light that are proportional to the amps strength of notes.
+	//Color them according to note_peak_freq with brightness related to amps2
 
 	uint8_t i;
 	int8_t k;
@@ -89,41 +89,39 @@ void UpdateLinearLEDs()
 		sorted_map_count++;
 	}
 
-//#if SORT_NOTES
-if ( gCOLORCHORD_SORT_NOTES ) {
-	// note local_note_jumped_to still give original indices of notes (which may not even been inclued
-	//    due to being eliminated as too small amplitude
-	//    bubble sort on key to reorder sorted_note_map
-	uint8_t hold8;
-	uint8_t change;
-	int not_correct_order;
-	for( i = 0; i < sorted_map_count; i++ )
-	{
-		change = 0;
-		for( j = 0; j < sorted_map_count -1 - i; j++ )
+	if ( gCOLORCHORD_SORT_NOTES ) {
+		// note local_note_jumped_to still give original indices of notes (which may not even been inclued
+		//    due to being eliminated as too small amplitude
+		//    bubble sort on key to reorder sorted_note_map
+		uint8_t hold8;
+		uint8_t change;
+		int not_correct_order;
+		for( i = 0; i < sorted_map_count; i++ )
 		{
-			switch(gCOLORCHORD_SORT_NOTES) {
-				case 2 : // amps decreasing
-					not_correct_order = note_peak_amps[sorted_note_map[j]] < note_peak_amps[sorted_note_map[j+1]];
-				break;
-				case 3 : // amps2 decreasing
-					not_correct_order = note_peak_amps2[sorted_note_map[j]] < note_peak_amps2[sorted_note_map[j+1]];
-				break;
-				default : // freq increasing
-					not_correct_order = note_peak_freqs[sorted_note_map[j]] > note_peak_freqs[sorted_note_map[j+1]];
-			}
-			if ( not_correct_order ) // dec sort
+			change = 0;
+			for( j = 0; j < sorted_map_count -1 - i; j++ )
 			{
-				change = 1;
-				hold8 = sorted_note_map[j];
-				sorted_note_map[j] = sorted_note_map[j+1];
-				sorted_note_map[j+1] = hold8;
+				switch(gCOLORCHORD_SORT_NOTES) {
+					case 2 : // amps decreasing
+						not_correct_order = note_peak_amps[sorted_note_map[j]] < note_peak_amps[sorted_note_map[j+1]];
+					break;
+					case 3 : // amps2 decreasing
+						not_correct_order = note_peak_amps2[sorted_note_map[j]] < note_peak_amps2[sorted_note_map[j+1]];
+					break;
+					default : // freq increasing
+						not_correct_order = note_peak_freqs[sorted_note_map[j]] > note_peak_freqs[sorted_note_map[j+1]];
+				}
+				if ( not_correct_order ) // dec sort
+				{
+					change = 1;
+					hold8 = sorted_note_map[j];
+					sorted_note_map[j] = sorted_note_map[j+1];
+					sorted_note_map[j+1] = hold8;
+				}
 			}
+			if (!change) break;
 		}
-		if (!change) break;
 	}
-}
-//#endif
 	//Make a copy of all of the variables into local ones so we don't have to keep double-dereferencing.
 	uint16_t local_peak_amps[MAXNOTES];
 	uint16_t local_peak_amps2[MAXNOTES];
@@ -214,7 +212,10 @@ if ( gCOLORCHORD_SORT_NOTES ) {
 		}
 	} while( addedlast && total_unaccounted_leds );
 
-	//Put the frequencies on a ring.
+	//Assign the  ring LEDs info.
+	//Each note (above a minimum amplitude) produces an arc of the ring.
+	//The arc color relates to the notes frequency, the intensity to amps2,
+	//  and the arc length proportionally assgined to amps
 	j = 0;
 	for( i = 0; i < sorted_map_count; i++ )
 	{
@@ -227,81 +228,74 @@ if ( gCOLORCHORD_SORT_NOTES ) {
 		}
 	}
 
-	//This part totally can't run on an embedded system.
-//#if LIN_WRAPAROUND
-if (gCOLORCHORD_LIN_WRAPAROUND ) {
-        //printf("NOTERANGE: %d ", NOTERANGE); //192
-	// bb this code finds an index ledSpin so that shifting the led display will have the minimum deviation
-	//    from the previous display.
-	//  this will cancel out shifting effects below
-	uint16_t midx = 0;
-	uint32_t mqty = 100000000;
-	for( j = 0; j < USE_NUM_LIN_LEDS; j++ )
-	{
-		uint32_t dqty;
-		uint16_t localj;
-
-		dqty = 0;
-		localj = j;
-		for( l = 0; l < USE_NUM_LIN_LEDS; l++ )
+	//This part possibly run on an embedded system with small number of LEDs.
+	if (gCOLORCHORD_LIN_WRAPAROUND ) {
+		//printf("NOTERANGE: %d ", NOTERANGE); //192
+		// bb this code finds an index ledSpin so that shifting the led display will have the minimum deviation
+		//    from the previous display.
+		//  this will cancel out shifting effects below
+		uint16_t midx = 0;
+		uint32_t mqty = 100000000;
+		for( j = 0; j < USE_NUM_LIN_LEDS; j++ )
 		{
-			int32_t d = (int32_t)ledFreqOut[localj] - (int32_t)ledFreqOutOld[l];
-			if( d < 0 ) d *= -1;
-			if( d > (NOTERANGE>>1) ) { d = NOTERANGE - d + 1; }
-			dqty += ( d * d );
-
-			localj++;
-			if( localj == USE_NUM_LIN_LEDS ) localj = 0;
+			uint32_t dqty;
+			uint16_t localj;
+			dqty = 0;
+			localj = j;
+			for( l = 0; l < USE_NUM_LIN_LEDS; l++ )
+			{
+				int32_t d = (int32_t)ledFreqOut[localj] - (int32_t)ledFreqOutOld[l];
+				if( d < 0 ) d *= -1;
+				if( d > (NOTERANGE>>1) ) { d = NOTERANGE - d + 1; }
+				dqty += ( d * d );
+				localj++;
+				if( localj == USE_NUM_LIN_LEDS ) localj = 0;
+			}
+			if( dqty < mqty )
+			{
+				mqty = dqty;
+				midx = j;
+			}
 		}
-
-		if( dqty < mqty )
-		{
-			mqty = dqty;
-			midx = j;
-		}
+		ledSpin = midx;
+		//printf("spin: %d, min deviation: %d\n", ledSpin, mqty);
+	} else {
+		ledSpin = 0;
 	}
-
-	ledSpin = midx;
-	//printf("spin: %d, min deviation: %d\n", ledSpin, mqty);
-} else {
-//#else
-	ledSpin = 0;
-//#endif
-}
 	// if option change direction on max peaks of total amplitude
 	if (gCOLORCHORD_FLIP_ON_PEAK ) {
 		if (diff_a_prev < 0 && diff_a > 0) {
 			rot_dir *= -1;
-			shift_dist = rot_dir * gCOLORCHORD_SHIFT_DISTANCE;
 		}
-	} else shift_dist = gCOLORCHORD_SHIFT_DISTANCE;
+	} else rot_dir = 1;
 
         // want possible extra spin to relate to changes peak intensity
 	// now every gCOLORCHORD_SHIFT_INTERVAL th frame
-	if (gCOLORCHORD_SHIFT_INTERVAL != 0) {
-		//NOTE need - in front of rot_dir to make rotation direction consistent with UpdateRotationLEDs
-		jshift = (ledSpin - shift_dist * framecount/gCOLORCHORD_SHIFT_INTERVAL ) % USE_NUM_LIN_LEDS; // neg % pos is neg so fix with
-		if ( jshift < 0 ) jshift += USE_NUM_LIN_LEDS;
-	        //printf("tnap tna %d %d dap da %d %d rot_dir %d, j shift %d\n",total_note_a_prev, total_note_a, diff_a_prev,  diff_a, rot_dir, j);
+	if (gCOLORCHORD_SHIFT_INTERVAL != 0 ) {
+		if ( gFRAMECOUNT_MOD_SHIFT_INTERVAL == 0 ) {
+			gROTATIONSHIFT -= rot_dir * gCOLORCHORD_SHIFT_DISTANCE; // -= to be consistent with UpdateRotationLEDs
+		        //printf("tnap tna %d %d dap da %d %d rot_dir %d, j shift %d\n",total_note_a_prev, total_note_a, diff_a_prev,  diff_a, rot_dir, j);
+		}
 	} else {
-		jshift = ledSpin;
+		gROTATIONSHIFT = 0; // reset
 	}
 
+	jshift = ( ledSpin + gROTATIONSHIFT ) % USE_NUM_LIN_LEDS; // neg % pos is neg so fix
+	if ( jshift < 0 ) jshift += USE_NUM_LIN_LEDS;
+
 #if DEBUGPRINT
-	printf("rot_dir %d, shift_dist %d, jshift %d\n", rot_dir, shift_dist, jshift);
+	printf("rot_dir %d, gROTATIONSHIFT %d, jshift %d, gFRAMECOUNT_MOD_SHIFT_INTERVAL %d\n", rot_dir, gROTATIONSHIFT, jshift, gFRAMECOUNT_MOD_SHIFT_INTERVAL);
 	printf("leds: ");
 #endif
 	for( l = 0; l < USE_NUM_LIN_LEDS; l++, jshift++ )
 	{
 		if( jshift >= USE_NUM_LIN_LEDS ) jshift = 0;
 //note:  lefFreqOutOld used only if wraparound
-//#if LIN_WRAPAROUND
-if ( gCOLORCHORD_LIN_WRAPAROUND ) {
-		if( ledSpin >= USE_NUM_LIN_LEDS ) ledSpin = 0;
-		ledFreqOutOld[l] = ledFreqOut[ledSpin];
-		ledSpin++;
-}
-//#endif
+		if ( gCOLORCHORD_LIN_WRAPAROUND ) {
+			if( ledSpin >= USE_NUM_LIN_LEDS ) ledSpin = 0;
+			ledFreqOutOld[l] = ledFreqOut[ledSpin];
+			ledSpin++;
+		}
 		uint16_t amp = ledAmpOut[jshift];
 #if DEBUGPRINT
 	        printf("%d:%d/", ledFreqOut[jshift], amp);
@@ -365,6 +359,9 @@ void UpdateRotatingLEDs()
 	//uint32_t total_note_a2 = 0;
 	int diff_a = 0;
 	int32_t led_arc_len;
+	char stret[256];
+	char *stt = &stret[0];
+
 
 	for( i = 0; i < MAXNOTES; i++ )
 	{
@@ -384,38 +381,41 @@ void UpdateRotatingLEDs()
 	diff_a = total_note_a_prev - total_note_a;
 
 	// can set color intensity using amp2
-	amp = (((uint32_t)(amp2))*NOTE_FINAL_AMP)>>10;
+	amp = (((uint32_t)(amp2))*NOTE_FINAL_AMP)>>10; // for PC 14;
 	if( amp > 255 ) amp = 255;
 	//uint32_t color = ECCtoHEX( (freq+RootNoteOffset)%NOTERANGE, 255, amp );
 	uint32_t color = ECCtoHEX( (freq+RootNoteOffset)%NOTERANGE, 255, 255 );
 
 	// can have led_arc_len a fixed size or proportional to amp2
 	//led_arc_len = 5;
-	led_arc_len = (amp * USE_NUM_LIN_LEDS) >> 8;
-	//printf("test %d %d \n", amp2, led_arc_len);
+	led_arc_len = (amp * (USE_NUM_LIN_LEDS + 1) ) >> 8;
+	//printf("amp2 = %d, amp = %d, led_arc_len = %d, NOTE_FINAL_AMP = %d\n", amp2,  amp, led_arc_len, NOTE_FINAL_AMP );
+	//stt += ets_sprintf( stt, "amp2 = %d, amp = %d, led_arc_len = %d, NOTE_FINAL_AMP = %d\n", amp2,  amp, led_arc_len, NOTE_FINAL_AMP );
+	//uart0_sendStr(stret);
 
         // want possible extra spin to relate to changes peak intensity
 	if (gCOLORCHORD_FLIP_ON_PEAK ) {
 		if (diff_a_prev < 0 && diff_a > 0) {
 			rot_dir *= -1;
-			shift_dist = rot_dir * gCOLORCHORD_SHIFT_DISTANCE;
 		}
-	} else shift_dist = gCOLORCHORD_SHIFT_DISTANCE;
+	} else rot_dir = 1;
 
 	// now every gCOLORCHORD_SHIFT_INTERVAL th frame
-	if (gCOLORCHORD_SHIFT_INTERVAL != 0) {
-		// On each gCOLORCHORD_SHIFT_INTERVAL/rot_dir-th frame make rotational shift
-		jshift = (shift_dist * framecount/gCOLORCHORD_SHIFT_INTERVAL - led_arc_len/2) % USE_NUM_LIN_LEDS; // neg % pos is neg so fix
-		if( jshift < 0 ) jshift +=  USE_NUM_LIN_LEDS;
-		//printf("tnap tna %d %d dap da %d %d rot_dir %d, jshift %d \n",total_note_a_prev, total_note_a, diff_a_prev,  diff_a, rot_dir, jshift);
+	if (gCOLORCHORD_SHIFT_INTERVAL != 0 ) {
+		if ( gFRAMECOUNT_MOD_SHIFT_INTERVAL == 0 ) {
+			gROTATIONSHIFT += rot_dir * gCOLORCHORD_SHIFT_DISTANCE;
+		        //printf("tnap tna %d %d dap da %d %d rot_dir %d, j shift %d\n",total_note_a_prev, total_note_a, diff_a_prev,  diff_a, rot_dir, j);
+		}
 	} else {
-		jshift = (0 - led_arc_len/2) % USE_NUM_LIN_LEDS; // neg % pos is neg so fix
-		if( jshift < 0 ) jshift +=  USE_NUM_LIN_LEDS;
+		gROTATIONSHIFT = 0; // reset
 	}
+
+	jshift = ( gROTATIONSHIFT - led_arc_len/2 ) % USE_NUM_LIN_LEDS; // neg % pos is neg so fix
+	if ( jshift < 0 ) jshift += USE_NUM_LIN_LEDS;
 
 	for( i = 0; i < led_arc_len; i++, jshift++ )
 	{
-		// even if led_arc_len exceeds USE+NUM_LIN_LEDS using jshift will prevent over running ledOut
+		// even if led_arc_len exceeds USE_NUM_LIN_LEDS using jshift will prevent over running ledOut
 		if( jshift >= USE_NUM_LIN_LEDS ) jshift = 0;
 		ledOut[jshift*3+0] = ( color >> 0 ) & 0xff;
 		ledOut[jshift*3+1] = ( color >> 8 ) & 0xff;

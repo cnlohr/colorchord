@@ -18,26 +18,28 @@ int sock;
 
 #define expected_lights NUM_LIN_LEDS
 int toskip = 1;
-int framecount = 0;
+int gFRAMECOUNT_MOD_SHIFT_INTERVAL = 0;
+int gROTATIONSHIFT = 0; //Amount of spinning of pattern around a LED ring
+
 //TODO explore relation of NUM_LIN_LEDS and following two params
 // ratio of gCOLORCHORD_SHIFT_INTERVAL / gCOLORCHORD_SHIFT_DISTANCE when less than 1 has interesting effect
-uint8_t gCOLORCHORD_SHIFT_INTERVAL = 5;
-uint8_t gCOLORCHORD_FLIP_ON_PEAK = 0; // non-zero will flip on peak total amp2
-int8_t gCOLORCHORD_SHIFT_DISTANCE = 0; //distance of shift + anticlockwise, - clockwise, 0 no shift
+uint8_t gCOLORCHORD_SHIFT_INTERVAL = 5; // shift after this many frames, 0 no shifts
+uint8_t gCOLORCHORD_FLIP_ON_PEAK = 1; // non-zero will flip on peak total amp2
+int8_t gCOLORCHORD_SHIFT_DISTANCE = 1; //distance of shift + anticlockwise, - clockwise, 0 no shift
 uint8_t gCOLORCHORD_SORT_NOTES = 1; // 0 no sort, 1 inc freq, 2 dec amps, 3 dec amps2
 uint8_t gCOLORCHORD_LIN_WRAPAROUND = 0; // 0 no adjusting, else current led display has minimum deviation to prev
-
 
 void NewFrame()
 {
 	int i;
 	char buffer[3000];
-        framecount++;
-	//printf("NEW FRAME %d ******\n", framecount);
+        gFRAMECOUNT_MOD_SHIFT_INTERVAL++;
+	if ( gFRAMECOUNT_MOD_SHIFT_INTERVAL >= gCOLORCHORD_SHIFT_INTERVAL ) gFRAMECOUNT_MOD_SHIFT_INTERVAL = 0;
+	//printf("MOD FRAME %d ******\n", gFRAMECOUNT_MOD_SHIFT_INTERVAL);
 	HandleFrameInfo();
-	UpdateLinearLEDs();
+	//UpdateLinearLEDs();
 	//UpdateAllSameLEDs();
-	//UpdateRotatingLEDs();
+	UpdateRotatingLEDs();
 
 	buffer[0] = 0;
 	buffer[1] = 0;
