@@ -6,7 +6,7 @@
 //uint8_t ledArray[NUM_LIN_LEDS]; //Points to which notes correspond to these LEDs
 uint8_t ledOut[NUM_LIN_LEDS*3];
 
-uint16_t ledSpin;
+uint16_t minimizingShift;
 uint16_t ledAmpOut[NUM_LIN_LEDS];
 uint8_t ledFreqOut[NUM_LIN_LEDS];
 uint8_t ledFreqOutOld[NUM_LIN_LEDS];
@@ -31,14 +31,16 @@ void UpdateLinearLEDs()
 		extern uint8_t gCOLORCHORD_LIN_WRAPAROUND; // 0 no adjusting, else current led display has minimum deviation to prev
 	*/
 
-	//Goal: Make splotches of light that are proportional to the amps strength of notes.
+	//Notes are found above a minimum amplitude
+	//Goal: On a linear array of size USE_NUM_LIN_LEDS Make splotches of light that are proportional to the amps strength of theses notes.
 	//Color them according to note_peak_freq with brightness related to amps2
+	//Put this linear array on a ring with NUM_LIN_LEDS and optionally rotate it with optionally direction changes on peak amps2
 
 	uint8_t i;
 	int8_t k;
 	uint16_t j, l;
 	uint32_t total_size_all_notes = 0;
-	int32_t porpamps[MAXNOTES]; //LEDs for each corresponding note.
+	int32_t porpamps[MAXNOTES]; //number of LEDs for each corresponding note.
 	uint8_t sorted_note_map[MAXNOTES]; //mapping from which note into the array of notes from the rest of the system.
 	uint8_t sorted_map_count = 0;
 	uint32_t note_nerf_a = 0;
@@ -92,7 +94,7 @@ void UpdateLinearLEDs()
 	if ( gCOLORCHORD_SORT_NOTES ) {
 		// note local_note_jumped_to still give original indices of notes (which may not even been inclued
 		//    due to being eliminated as too small amplitude
-		//    bubble sort on key to reorder sorted_note_map
+		//    bubble sort on a specified key to reorder sorted_note_map
 		uint8_t hold8;
 		uint8_t change;
 		int not_correct_order;
@@ -111,7 +113,7 @@ void UpdateLinearLEDs()
 					default : // freq increasing
 						not_correct_order = note_peak_freqs[sorted_note_map[j]] > note_peak_freqs[sorted_note_map[j+1]];
 				}
-				if ( not_correct_order ) // dec sort
+				if ( not_correct_order )
 				{
 					change = 1;
 					hold8 = sorted_note_map[j];
@@ -136,7 +138,6 @@ void UpdateLinearLEDs()
 		local_note_jumped_to[i] = note_jumped_to[sorted_note_map[i]];
 	}
 
-
 	for( i = 0; i < sorted_map_count; i++ )
 	{
 		uint16_t ist = local_peak_amps[i];
@@ -146,7 +147,7 @@ void UpdateLinearLEDs()
 
 	if( total_size_all_notes == 0 )
 	{
-		for( j = 0; j < USE_NUM_LIN_LEDS * 3; j++ )
+		for( j = 0; j < NUM_LIN_LEDS * 3; j++ )
 		{
 			ledOut[j] = 0;
 		}
@@ -212,10 +213,10 @@ void UpdateLinearLEDs()
 		}
 	} while( addedlast && total_unaccounted_leds );
 
-	//Assign the  ring LEDs info.
-	//Each note (above a minimum amplitude) produces an arc of the ring.
-	//The arc color relates to the notes frequency, the intensity to amps2,
-	//  and the arc length proportionally assgined to amps
+	//Assign the linear LEDs info for 0, 1, ..., USE_NUM_LIN_LEDS
+	//Each note (above a minimum amplitude) produces an interval
+	//Its color relates to the notes frequency, the intensity to amps2,
+	//  and the length proportional to amps
 	j = 0;
 	for( i = 0; i < sorted_map_count; i++ )
 	{
@@ -231,9 +232,8 @@ void UpdateLinearLEDs()
 	//This part possibly run on an embedded system with small number of LEDs.
 	if (gCOLORCHORD_LIN_WRAPAROUND ) {
 		//printf("NOTERANGE: %d ", NOTERANGE); //192
-		// bb this code finds an index ledSpin so that shifting the led display will have the minimum deviation
-		//    from the previous display.
-		//  this will cancel out shifting effects below
+		// finds an index minimizingShift so that shifting the used leds will have the minimum deviation
+		//    from the previous linear pattern
 		uint16_t midx = 0;
 		uint32_t mqty = 100000000;
 		for( j = 0; j < USE_NUM_LIN_LEDS; j++ )
@@ -257,10 +257,10 @@ void UpdateLinearLEDs()
 				midx = j;
 			}
 		}
-		ledSpin = midx;
-		//printf("spin: %d, min deviation: %d\n", ledSpin, mqty);
+		minimizingShift = midx;
+		//printf("spin: %d, min deviation: %d\n", minimizingShift, mqty);
 	} else {
-		ledSpin = 0;
+		minimizingShift = 0;
 	}
 	// if option change direction on max peaks of total amplitude
 	if (gCOLORCHORD_FLIP_ON_PEAK ) {
@@ -273,39 +273,54 @@ void UpdateLinearLEDs()
 	// now every gCOLORCHORD_SHIFT_INTERVAL th frame
 	if (gCOLORCHORD_SHIFT_INTERVAL != 0 ) {
 		if ( gFRAMECOUNT_MOD_SHIFT_INTERVAL == 0 ) {
-			gROTATIONSHIFT -= rot_dir * gCOLORCHORD_SHIFT_DISTANCE; // -= to be consistent with UpdateRotationLEDs
+			gROTATIONSHIFT += rot_dir * gCOLORCHORD_SHIFT_DISTANCE;
 		        //printf("tnap tna %d %d dap da %d %d rot_dir %d, j shift %d\n",total_note_a_prev, total_note_a, diff_a_prev,  diff_a, rot_dir, j);
 		}
 	} else {
 		gROTATIONSHIFT = 0; // reset
 	}
 
-	jshift = ( ledSpin + gROTATIONSHIFT ) % USE_NUM_LIN_LEDS; // neg % pos is neg so fix
-	if ( jshift < 0 ) jshift += USE_NUM_LIN_LEDS;
+	// compute shift to start rotating pattern around all the LEDs
+	jshift = ( gROTATIONSHIFT ) % NUM_LIN_LEDS; // neg % pos is neg so fix
+	if ( jshift < 0 ) jshift += NUM_LIN_LEDS;
 
 #if DEBUGPRINT
 	printf("rot_dir %d, gROTATIONSHIFT %d, jshift %d, gFRAMECOUNT_MOD_SHIFT_INTERVAL %d\n", rot_dir, gROTATIONSHIFT, jshift, gFRAMECOUNT_MOD_SHIFT_INTERVAL);
 	printf("leds: ");
 #endif
-	for( l = 0; l < USE_NUM_LIN_LEDS; l++, jshift++ )
+	// put linear pattern of USE_NUM_LIN_LEDS on ring NUM_LIN_LEDs
+	for( l = 0; l < USE_NUM_LIN_LEDS; l++, jshift++, minimizingShift++ )
 	{
-		if( jshift >= USE_NUM_LIN_LEDS ) jshift = 0;
-//note:  lefFreqOutOld used only if wraparound
+		if( jshift >= NUM_LIN_LEDS ) jshift = 0;
+		//lefFreqOutOld and adjusting minimizingShift needed only if wraparound
 		if ( gCOLORCHORD_LIN_WRAPAROUND ) {
-			if( ledSpin >= USE_NUM_LIN_LEDS ) ledSpin = 0;
-			ledFreqOutOld[l] = ledFreqOut[ledSpin];
-			ledSpin++;
+			if( minimizingShift >= USE_NUM_LIN_LEDS ) minimizingShift = 0;
+			ledFreqOutOld[l] = ledFreqOut[minimizingShift];
 		}
-		uint16_t amp = ledAmpOut[jshift];
+		uint16_t amp = ledAmpOut[minimizingShift];
 #if DEBUGPRINT
-	        printf("%d:%d/", ledFreqOut[jshift], amp);
+	        printf("%d:%d/", ledFreqOut[minimizingShift], amp);
 #endif
 		if( amp > 255 ) amp = 255;
-		uint32_t color = ECCtoHEX( (ledFreqOut[jshift]+RootNoteOffset)%NOTERANGE, 255, amp );
-		ledOut[l*3+0] = ( color >> 0 ) & 0xff;
-		ledOut[l*3+1] = ( color >> 8 ) & 0xff;
-		ledOut[l*3+2] = ( color >>16 ) & 0xff;
+		uint32_t color = ECCtoHEX( (ledFreqOut[minimizingShift]+RootNoteOffset)%NOTERANGE, 255, amp );
+		ledOut[jshift*3+0] = ( color >> 0 ) & 0xff;
+		ledOut[jshift*3+1] = ( color >> 8 ) & 0xff;
+		ledOut[jshift*3+2] = ( color >>16 ) & 0xff;
 	}
+	// blackout remaining LEDs on ring
+//TODO this could be sped up in case NUM_LIN_LEDS is much greater than USE_NUM_LIN_LEDS
+//      by blacking out only previous gCOLORCHORD_SHIFT_DISTANCE LEDs that were not overwritten 
+//      but if direction changing might be tricky
+	for( l = USE_NUM_LIN_LEDS; l < NUM_LIN_LEDS; l++, jshift++ )
+	{
+		if( jshift >= NUM_LIN_LEDS ) jshift = 0;
+		ledOut[jshift*3+0] = 0x0;
+		ledOut[jshift*3+1] = 0x0;
+		ledOut[jshift*3+2] = 0x0;
+	}
+
+
+
 #if DEBUGPRINT
         printf( "\n" );
 	printf("bytes: ");

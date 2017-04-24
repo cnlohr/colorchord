@@ -7,7 +7,7 @@
 #define RING
 #define LEDS_PER_ROW 16
 #define NUM_LIN_LEDS 16
-#define USE_NUM_LIN_LEDS NUM_LIN_LEDS
+#define USE_NUM_LIN_LEDS 8
 #define DFREQ 16000
 #define NOTE_FINAL_AMP  15 
 

@@ -76,7 +76,7 @@ static void NewFrame()
 	};
 
 	//SendSPI2812( ledOut, NUM_LIN_LEDS );
-	ws2812_push( ledOut, USE_NUM_LIN_LEDS * 3 );
+	ws2812_push( ledOut, NUM_LIN_LEDS * 3 );
 }
 
 os_event_t    procTaskQueue[procTaskQueueLen];
