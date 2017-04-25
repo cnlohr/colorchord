@@ -399,7 +399,7 @@ void UpdateRotatingLEDs()
 	amp = (((uint32_t)(amp2))*NOTE_FINAL_AMP)>>10; // for PC 14;
 	if( amp > 255 ) amp = 255;
 	//uint32_t color = ECCtoHEX( (freq+RootNoteOffset)%NOTERANGE, 255, amp );
-	uint32_t color = ECCtoHEX( (freq+RootNoteOffset)%NOTERANGE, 255, NOTE_FINAL_AMP );
+	uint32_t color = ECCtoHEX( (freq+RootNoteOffset)%NOTERANGE, 255, 255 );
 
 	// can have led_arc_len a fixed size or proportional to amp2
 	//led_arc_len = 5;
