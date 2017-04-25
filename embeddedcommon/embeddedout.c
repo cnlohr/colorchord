@@ -353,7 +353,7 @@ void UpdateAllSameLEDs()
 
 	if( amp > 255 ) amp = 255;
 	uint32_t color = ECCtoHEX( (freq+RootNoteOffset)%NOTERANGE, 255, amp );
-	for( i = 0; i < USE_NUM_LIN_LEDS; i++ )
+	for( i = 0; i < NUM_LIN_LEDS; i++ )
 	{
 		ledOut[i*3+0] = ( color >> 0 ) & 0xff;
 		ledOut[i*3+1] = ( color >> 8 ) & 0xff;
@@ -403,7 +403,7 @@ void UpdateRotatingLEDs()
 
 	// can have led_arc_len a fixed size or proportional to amp2
 	//led_arc_len = 5;
-	led_arc_len = (amp * (USE_NUM_LIN_LEDS + 1) ) >> 8;
+	led_arc_len = (amp * (NUM_LIN_LEDS + 1) ) >> 8;
 	//printf("amp2 = %d, amp = %d, led_arc_len = %d, NOTE_FINAL_AMP = %d\n", amp2,  amp, led_arc_len, NOTE_FINAL_AMP );
 	//stt += ets_sprintf( stt, "amp2 = %d, amp = %d, led_arc_len = %d, NOTE_FINAL_AMP = %d\n", amp2,  amp, led_arc_len, NOTE_FINAL_AMP );
 	//uart0_sendStr(stret);
@@ -425,21 +425,21 @@ void UpdateRotatingLEDs()
 		gROTATIONSHIFT = 0; // reset
 	}
 
-	jshift = ( gROTATIONSHIFT - led_arc_len/2 ) % USE_NUM_LIN_LEDS; // neg % pos is neg so fix
-	if ( jshift < 0 ) jshift += USE_NUM_LIN_LEDS;
+	jshift = ( gROTATIONSHIFT - led_arc_len/2 ) % NUM_LIN_LEDS; // neg % pos is neg so fix
+	if ( jshift < 0 ) jshift += NUM_LIN_LEDS;
 
 	for( i = 0; i < led_arc_len; i++, jshift++ )
 	{
-		// even if led_arc_len exceeds USE_NUM_LIN_LEDS using jshift will prevent over running ledOut
-		if( jshift >= USE_NUM_LIN_LEDS ) jshift = 0;
+		// even if led_arc_len exceeds NUM_LIN_LEDS using jshift will prevent over running ledOut
+		if( jshift >= NUM_LIN_LEDS ) jshift = 0;
 		ledOut[jshift*3+0] = ( color >> 0 ) & 0xff;
 		ledOut[jshift*3+1] = ( color >> 8 ) & 0xff;
 		ledOut[jshift*3+2] = ( color >>16 ) & 0xff;
 	}
 
-	for( i = led_arc_len; i < USE_NUM_LIN_LEDS; i++, jshift++ )
+	for( i = led_arc_len; i < NUM_LIN_LEDS; i++, jshift++ )
 	{
-		if( jshift >= USE_NUM_LIN_LEDS ) jshift = 0;
+		if( jshift >= NUM_LIN_LEDS ) jshift = 0;
 		ledOut[jshift*3+0] = 0x0;
 		ledOut[jshift*3+1] = 0x0;
 		ledOut[jshift*3+2] = 0x0;
