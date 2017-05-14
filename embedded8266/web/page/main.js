@@ -124,12 +124,12 @@ function GotOScope(req,data)
 	{
 		var x2 = (i+1) * canvas.clientWidth / samps;
 		var samp = parseInt( data.substr(i*2+2,2),16 );
-		var y2 = ( 1.-mult*samp / 255 ) * canvas.clientHeight;
+		var y2 = ( 0.5 - mult* (samp / 255 - 0.33) ) * canvas.clientHeight;
 		
 		if( i == 0 )
 		{
 			var x1 = i * canvas.clientWidth / samps;
-			var y1 = ( 1.-mult*lastsamp / 255 ) * canvas.clientHeight;
+			var y1 =  ( 0.5 - mult* (lastsamp / 255 - 0.33) ) * canvas.clientHeight;
 			ctx.moveTo( x1, y1 );
 		}
 
@@ -349,7 +349,7 @@ function GotNotes(req,data)
 
 	var elems = Number(secs[1] );
 
-	ctx.canvas.width =  400;
+	ctx.canvas.width =  600;
 	ctx.canvas.height = elems*25;
 
 
@@ -367,24 +367,26 @@ function GotNotes(req,data)
 		var amped2 = parseInt( data.substr(i*12+6,4),16 );
 		var jump   = parseInt( data.substr(i*12+10,2),16 );
 
+		ctx.fillStyle = "#ffffff";
+		ctx.fillText( i+1, 0, i*25 + 20 );
+
 		if( peak == 255 )
 		{
 			ctx.fillStyle = "#ffffff";
-			ctx.fillText( jump, 10, i*25 + 20 );
+			ctx.fillText( jump, 60, i*25 + 20 );
 			continue;
 		}
 
 		ctx.fillStyle = CCColorDetail( peak );
 		ctx.lineWidth = 0;
-		ctx.fillRect( 0, i*25, 100,25);
-		ctx.fillRect( 101, i*25, amped/200,25);
-		ctx.fillRect( 229, i*25, amped2/200,25);
+		ctx.fillRect( 100, i*25, 50,25);
+		ctx.fillRect( 201, i*25, amped/20,25);
+		ctx.fillRect( 329, i*25, amped2/20,25);
 
-		ctx.fillStyle = "#000000";
-		ctx.fillText( peak, 10, i*25 + 20 );
 		ctx.fillStyle = "#ffffff";
-		ctx.fillText( amped, 121, i*25 + 20 );
-		ctx.fillText( amped2, 240, i*25 + 20 );
+		ctx.fillText( peak, 110, i*25 + 20 );
+		ctx.fillText( amped, 221, i*25 + 20 );
+		ctx.fillText( amped2, 340, i*25 + 20 );
 	}
 
 	var samp = parseInt( data.substr(i*2,2),16 );
