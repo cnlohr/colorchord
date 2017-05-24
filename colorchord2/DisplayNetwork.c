@@ -120,7 +120,6 @@ static void DPOUpdate(void * id, struct NoteFinder*nf)
 				buffer[i++] = b; //Blue
 				buffer[i++] = y; //Amber
 			}
-			printf( "I: %d [%d %d %d %d]\n",i, buffer[i-4], buffer[i-3], buffer[i-2], buffer[i-1] );
 		}
 		else
 		{
