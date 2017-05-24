@@ -30,6 +30,7 @@ struct DPODriver
 	int fliprg;
 	int firstval;
 	int port;
+	int is_rgby;
 	int oldport;
 	int skittlequantity; //When LEDs are in a ring, backwards and forwards  This is the number of LEDs in the ring.
 	char address[PARAM_BUFF];
@@ -88,56 +89,90 @@ static void DPOUpdate(void * id, struct NoteFinder*nf)
 			buffer[i++] = d->firstval;
 		}
 
-		if( d->leds * 3 + i >= MAX_BUFFER )
-			d->leds = (MAX_BUFFER-1)/3;
-
-		if( d->fliprg )
-		{
-			for( j = 0; j < d->leds; j++ )
-			{
-				lbuff[i++] = OutLEDs[j*3+1]; //GREEN??
-				lbuff[i++] = OutLEDs[j*3+0]; //RED??
-				lbuff[i++] = OutLEDs[j*3+2]; //BLUE
-			}
-		}
-		else
-		{
-			for( j = 0; j < d->leds; j++ )
-			{
-				lbuff[i++] = OutLEDs[j*3+0];  //RED
-				lbuff[i++] = OutLEDs[j*3+2];  //BLUE
-				lbuff[i++] = OutLEDs[j*3+1];  //GREEN
-			}
-		}
-
-		if( d->skittlequantity )
+		if( d->is_rgby )
 		{
 			i = d->skipfirst;
+			int k = 0;
+			if( d->leds * 4 + i >= MAX_BUFFER )
+				d->leds = (MAX_BUFFER-1)/4;
+
+			//Copy from OutLEDs[] into buffer, with size i.
 			for( j = 0; j < d->leds; j++ )
 			{
-				int ledw = j;
-				int ledpor = ledw % d->skittlequantity;
-				int ol;
+				int r = OutLEDs[k++];
+				int g = OutLEDs[k++];
+				int b = OutLEDs[k++];
+				int y = 0;
+				int rg_common;
+				if( r/2 > g ) rg_common = g;
+				else        rg_common = r/2;
 
-				if( ledw >= d->skittlequantity )
-				{
-					ol = ledpor*2-1;
-					ol = d->skittlequantity*2 - ol -2;
-				}
-				else
-				{
-					ol = ledpor*2;
-				}
+				if( rg_common > 255 ) rg_common = 255;
+				y = rg_common;
+				r -= rg_common;
+				g -= rg_common;
+				if( r < 0 ) r = 0;
+				if( g < 0 ) g = 0;
 
-				buffer[i++] = lbuff[ol*3+0+d->skipfirst];
-				buffer[i++] = lbuff[ol*3+1+d->skipfirst];
-				buffer[i++] = lbuff[ol*3+2+d->skipfirst];
+				//Conversion from RGB to RAGB.  Consider: A is shifted toward RED.
+				buffer[i++] = g; //Green
+				buffer[i++] = r; //Red
+				buffer[i++] = b; //Blue
+				buffer[i++] = y; //Amber
 			}
+			printf( "I: %d [%d %d %d %d]\n",i, buffer[i-4], buffer[i-3], buffer[i-2], buffer[i-1] );
 		}
 		else
 		{
-			memcpy( buffer, lbuff, i );
+			if( d->fliprg )
+			{
+				for( j = 0; j < d->leds; j++ )
+				{
+					lbuff[i++] = OutLEDs[j*3+1]; //GREEN??
+					lbuff[i++] = OutLEDs[j*3+0]; //RED??
+					lbuff[i++] = OutLEDs[j*3+2]; //BLUE
+				}
+			}
+			else
+			{
+				for( j = 0; j < d->leds; j++ )
+				{
+					lbuff[i++] = OutLEDs[j*3+0];  //RED
+					lbuff[i++] = OutLEDs[j*3+2];  //BLUE
+					lbuff[i++] = OutLEDs[j*3+1];  //GREEN
+				}
+			}
+
+			if( d->skittlequantity )
+			{
+				i = d->skipfirst;
+				for( j = 0; j < d->leds; j++ )
+				{
+					int ledw = j;
+					int ledpor = ledw % d->skittlequantity;
+					int ol;
+
+					if( ledw >= d->skittlequantity )
+					{
+						ol = ledpor*2-1;
+						ol = d->skittlequantity*2 - ol -2;
+					}
+					else
+					{
+						ol = ledpor*2;
+					}
+
+					buffer[i++] = lbuff[ol*3+0+d->skipfirst];
+					buffer[i++] = lbuff[ol*3+1+d->skipfirst];
+					buffer[i++] = lbuff[ol*3+2+d->skipfirst];
+				}
+			}
+			else
+			{
+				memcpy( buffer, lbuff, i );
+			}
 		}
+
 		int r = sendto( d->socket, buffer, i, MSG_NOSIGNAL,(const struct sockaddr *) &d->servaddr, sizeof( d->servaddr ) );
 		if( r < 0 )
 		{
@@ -160,6 +195,7 @@ static void DPOParams(void * id )
 	d->firstval = 0;	RegisterValue(  "firstval", PAINT, &d->firstval, sizeof( d->firstval ) );
 						RegisterValue(  "address", PABUFFER, d->address, sizeof( d->address ) );
 	d->fliprg = 0;		RegisterValue(  "fliprg", PAINT, &d->fliprg, sizeof( d->fliprg ) );
+	d->is_rgby = 0;		RegisterValue(  "rgby", PAINT, &d->is_rgby, sizeof( d->is_rgby ) );
 	d->skittlequantity=0;RegisterValue(  "skittlequantity", PAINT, &d->skittlequantity, sizeof( d->skittlequantity ) );
 	d->socket = -1;
 	d->oldaddress[0] = 0;
