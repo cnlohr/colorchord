@@ -13,7 +13,7 @@ RAWDRAWLIBS:=-lX11 -lm -lpthread -lXinerama -lXext
 LDLIBS:=-lpthread -lasound -lm -lpulse-simple -lpulse
 
 
-CFLAGS:=-g -O0 -flto -Wall -ffast-math -I../embeddedcommon -I. -DICACHE_FLASH_ATTR=
+CFLAGS:=-g -Os -flto -Wall -ffast-math -I../embeddedcommon -I. -DICACHE_FLASH_ATTR=
 EXTRALIBS:=-lusb-1.0
 
 colorchord : os_generic.o main.o  dft.o decompose.o filter.o color.o notefinder.o util.o outdrivers.o $(RAWDRAW) $(SOUND) $(OUTS) parameters.o chash.o hook.o ../embeddedcommon/DFT32.o configs.o
