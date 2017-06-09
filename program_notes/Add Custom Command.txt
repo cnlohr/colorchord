@@ -1,0 +1,13 @@
+To add custom command that specifies a parameter that can be used in embeddedout.c
+
+1. In embedded8266/user/custom_commands.c and embeddedlinux/embeddedcc.c
+Add declaration of variables with initial value 
+
+2.  In embedded8266/user/custom_commands.c
+Increase value of #define CONFIGURABLES to be one more than the number of variables below if (plus1)
+update values of gConfigDefaults, *gConfigurables and *gConfigurableNames 
+      (note all end in extra 0)
+
+3 In embeddedcommon/embeddedout.h 
+Add declaration as extern
+and the variables then can be used by all routines in embeddedout.c 

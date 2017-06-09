@@ -11,7 +11,7 @@ extern volatile uint8_t sounddata[];
 extern volatile uint16_t soundhead;
 
 
-#define CONFIGURABLES 17 //(plus1)
+#define CONFIGURABLES 22 //(plus1)
 
 extern uint8_t RootNoteOffset; //Set to define what the root note is.  0 = A.
 uint8_t gDFTIIR = 6;
@@ -29,23 +29,30 @@ uint8_t gNERF_NOTE_PORP = 15;
 uint8_t gUSE_NUM_LIN_LEDS = NUM_LIN_LEDS;
 uint8_t gCOLORCHORD_ACTIVE = 1;
 uint8_t gCOLORCHORD_OUTPUT_DRIVER = 0;
+uint8_t gCOLORCHORD_SHIFT_INTERVAL = 0;
+uint8_t gCOLORCHORD_FLIP_ON_PEAK = 0;
+int8_t gCOLORCHORD_SHIFT_DISTANCE = 0; //distance of shift
+uint8_t gCOLORCHORD_SORT_NOTES = 0; // 0 no sort, 1 inc freq, 2 dec amps, 3 dec amps2
+uint8_t gCOLORCHORD_LIN_WRAPAROUND = 0; // 0 no adjusting, else current led display has minimum deviation to prev
+
+
 
 struct SaveLoad
 {
 	uint8_t configs[CONFIGURABLES];
 } settings;
 
-uint8_t gConfigDefaults[CONFIGURABLES] =  { 0, 6, 1, 2, 3, 4, 7, 4, 2, 80, 64, 12, 15, NUM_LIN_LEDS, 1, 0, 0 };
+uint8_t gConfigDefaults[CONFIGURABLES] =  { 0, 6, 1, 2, 3, 4, 7, 4, 2, 80, 64, 12, 15, NUM_LIN_LEDS, 1, 0, 0, 0, 0, 0, 0, 0 };
 
 uint8_t * gConfigurables[CONFIGURABLES] = { &RootNoteOffset, &gDFTIIR, &gFUZZ_IIR_BITS, &gFILTER_BLUR_PASSES,
 	&gSEMIBITSPERBIN, &gMAX_JUMP_DISTANCE, &gMAX_COMBINE_DISTANCE, &gAMP_1_IIR_BITS,
 	&gAMP_2_IIR_BITS, &gMIN_AMP_FOR_NOTE, &gMINIMUM_AMP_FOR_NOTE_TO_DISAPPEAR, &gNOTE_FINAL_AMP,
-	&gNERF_NOTE_PORP, &gUSE_NUM_LIN_LEDS, &gCOLORCHORD_ACTIVE, &gCOLORCHORD_OUTPUT_DRIVER, 0 };
+	&gNERF_NOTE_PORP, &gUSE_NUM_LIN_LEDS, &gCOLORCHORD_ACTIVE, &gCOLORCHORD_OUTPUT_DRIVER, &gCOLORCHORD_SHIFT_INTERVAL, &gCOLORCHORD_FLIP_ON_PEAK, &gCOLORCHORD_SHIFT_DISTANCE, &gCOLORCHORD_SORT_NOTES, &gCOLORCHORD_LIN_WRAPAROUND, 0 };
 
 char * gConfigurableNames[CONFIGURABLES] = { "gROOT_NOTE_OFFSET", "gDFTIIR", "gFUZZ_IIR_BITS", "gFILTER_BLUR_PASSES",
 	"gSEMIBITSPERBIN", "gMAX_JUMP_DISTANCE", "gMAX_COMBINE_DISTANCE", "gAMP_1_IIR_BITS",
 	"gAMP_2_IIR_BITS", "gMIN_AMP_FOR_NOTE", "gMINIMUM_AMP_FOR_NOTE_TO_DISAPPEAR", "gNOTE_FINAL_AMP",
-	"gNERF_NOTE_PORP", "gUSE_NUM_LIN_LEDS", "gCOLORCHORD_ACTIVE", "gCOLORCHORD_OUTPUT_DRIVER", 0 };
+	"gNERF_NOTE_PORP", "gUSE_NUM_LIN_LEDS", "gCOLORCHORD_ACTIVE", "gCOLORCHORD_OUTPUT_DRIVER","gCOLORCHORD_SHIFT_INTERVAL", "gCOLORCHORD_FLIP_ON_PEAK", "gCOLORCHORD_SHIFT_DISTANCE", "gCOLORCHORD_SORT_NOTES", "gCOLORCHORD_LIN_WRAPAROUND", 0 };
 
 void ICACHE_FLASH_ATTR CustomStart( )
 {
@@ -231,10 +238,10 @@ int ICACHE_FLASH_ATTR CustomCommand(char * buffer, int retsize, char *pusrdata, 
 				i++;
 			}
 
-			buffend += ets_sprintf( buffend, "rBASE_FREQ=%d\trDFREQ=%d\trOCTAVES=%d\trFIXBPERO=%d\trNOTERANGE=%d\trSORT_NOTES=%d\t", 
-				(int)BASE_FREQ, (int)DFREQ, (int)OCTAVES, (int)FIXBPERO, (int)(NOTERANGE),(int)SORT_NOTES );
-			buffend += ets_sprintf( buffend, "rMAXNOTES=%d\trNUM_LIN_LEDS=%d\trLIN_WRAPAROUND=%d\trLIN_WRAPAROUND=%d\t", 
-				(int)MAXNOTES, (int)NUM_LIN_LEDS, (int)LIN_WRAPAROUND, (int)LIN_WRAPAROUND );
+			buffend += ets_sprintf( buffend, "rBASE_FREQ=%d\trDFREQ=%d\trOCTAVES=%d\trFIXBPERO=%d\trNOTERANGE=%d\t", 
+				(int)BASE_FREQ, (int)DFREQ, (int)OCTAVES, (int)FIXBPERO, (int)(NOTERANGE) );
+			buffend += ets_sprintf( buffend, "rMAXNOTES=%d\trNUM_LIN_LEDS=%d\t", 
+				(int)MAXNOTES, (int)NUM_LIN_LEDS );
 
 			return buffend-buffer;
 		}

@@ -28,6 +28,9 @@
 #define procTaskPrio        0
 #define procTaskQueueLen    1
 
+int gFRAMECOUNT_MOD_SHIFT_INTERVAL = 0;
+int gROTATIONSHIFT = 0; //Amount of spinning of pattern around a LED ring
+
 static volatile os_timer_t some_timer;
 static struct espconn *pUdpServer;
 
@@ -52,7 +55,9 @@ extern uint8_t gCOLORCHORD_OUTPUT_DRIVER;
 static void NewFrame()
 {
 	if( !gCOLORCHORD_ACTIVE ) return;
-
+        gFRAMECOUNT_MOD_SHIFT_INTERVAL++;
+	if ( gFRAMECOUNT_MOD_SHIFT_INTERVAL >= gCOLORCHORD_SHIFT_INTERVAL ) gFRAMECOUNT_MOD_SHIFT_INTERVAL = 0;
+	//printf("MOD FRAME %d ******\n", gFRAMECOUNT_MOD_SHIFT_INTERVAL);
 	//uint8_t led_outs[NUM_LIN_LEDS*3];
 	int i;
 	HandleFrameInfo();
@@ -65,10 +70,13 @@ static void NewFrame()
 	case 1:
 		UpdateAllSameLEDs();
 		break;
+	case 2:
+		UpdateRotatingLEDs();
+		break;
 	};
 
 	//SendSPI2812( ledOut, NUM_LIN_LEDS );
-	ws2812_push( ledOut, USE_NUM_LIN_LEDS * 3 );
+	ws2812_push( ledOut, NUM_LIN_LEDS * 3 );
 }
 
 os_event_t    procTaskQueue[procTaskQueueLen];

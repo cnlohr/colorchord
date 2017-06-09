@@ -6,8 +6,9 @@
 #define HPABUFFSIZE 512
 
 #define CCEMBEDDED
-#define NUM_LIN_LEDS 255
+#define NUM_LIN_LEDS 16
 #define DFREQ 16000
+
 
 #define memcpy ets_memcpy
 #define memset ets_memset
@@ -53,9 +54,10 @@ extern uint8_t gNERF_NOTE_PORP; //=15
 extern uint8_t gUSE_NUM_LIN_LEDS; // = NUM_LIN_LEDS
 #define USE_NUM_LIN_LEDS gUSE_NUM_LIN_LEDS
 
-//We are not enabling these for the ESP8266 port.
-#define LIN_WRAPAROUND 0 
-#define SORT_NOTES 0
+//We are not enabling  for the ESP8266 port.
+//#define LIN_WRAPAROUND 0
+//but trying this now
+//#define SORT_NOTES 1
 
 
 
