@@ -199,6 +199,7 @@ int ICACHE_FLASH_ATTR CustomCommand(char * buffer, int retsize, char *pusrdata, 
 				if( gConfigurables[i] )
 					settings.configs[i] = *gConfigurables[i];
 			}
+			settings.SaveLoadKey = 0xAA;
 
 			EnterCritical();
 			ets_intr_lock();
