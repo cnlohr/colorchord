@@ -4,7 +4,6 @@
 #include <eagle_soc.h>
 #include "esp82xxutil.h"
 #include <DFT32.h>
-#include <settings.h>
 #include <embeddednf.h>
 #include <embeddedout.h>
 

@@ -18,7 +18,6 @@
 #include <commonservices.h>
 #include "ets_sys.h"
 #include "gpio.h"
-#include "settings.h"
 //#define PROFILE
 
 #define PORT 7777
