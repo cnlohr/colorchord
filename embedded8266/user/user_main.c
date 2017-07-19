@@ -131,6 +131,7 @@ static void ICACHE_FLASH_ATTR myTimer(void *arg)
 	{
 		StartHPATimer(); //Init the high speed  ADC timer.
 		hpa_running = 1;
+		hpa_is_paused_for_wifi = 0; // only need to do once prevents unstable ADC
 	}
 //	uart0_sendStr(".");
 //	printf( "%d/%d\n",soundtail,soundhead );
@@ -221,6 +222,12 @@ void ICACHE_FLASH_ATTR user_init(void)
 	}
 
 	ws2812_init();
+
+	// Attempt to make ADC more stable
+	// https://github.com/esp8266/Arduino/issues/2070
+	// see peripherals https://espressif.com/en/support/explore/faq
+	//wifi_set_sleep_type(NONE_SLEEP_T); // on its own stopped wifi working
+	//wifi_fpm_set_sleep_type(NONE_SLEEP_T); // with this seemed no difference
 
 	system_os_post(procTaskPrio, 0, 0 );
 }
