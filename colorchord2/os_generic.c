@@ -2,7 +2,6 @@
 
 #include "os_generic.h"
 
-
 #ifdef USE_WINDOWS
 
 #include <windows.h>
@@ -49,15 +48,16 @@ double OGGetFileTime( const char * file )
 }
 
 
-og_thread_t OGCreateThread( void * (function)( void * ), void * parameter )
+og_thread_t OGCreateThread( void * (routine)( void * ), void * parameter )
 {
-	return (og_thread_t)CreateThread( 0, 0, (LPTHREAD_START_ROUTINE)function, parameter, 0, 0 );
+	return (og_thread_t)CreateThread( 0, 0, (LPTHREAD_START_ROUTINE)routine, parameter, 0, 0 );
 }
 
 void * OGJoinThread( og_thread_t ot )
 {
 	WaitForSingleObject( ot, INFINITE );
 	CloseHandle( ot );
+	return 0;
 }
 
 void OGCancelThread( og_thread_t ot )
@@ -93,28 +93,23 @@ og_sema_t OGCreateSema()
 	return (og_sema_t)sem;
 }
 
-
-
-typedef LONG NTSTATUS;
-
-typedef NTSTATUS (NTAPI *_NtQuerySemaphore)(
-	HANDLE SemaphoreHandle, 
-	DWORD SemaphoreInformationClass, /* Would be SEMAPHORE_INFORMATION_CLASS */
-	PVOID SemaphoreInformation,      /* but this is to much to dump here     */
-	ULONG SemaphoreInformationLength, 
-	PULONG ReturnLength OPTIONAL
-);
-
-
-typedef struct _SEMAPHORE_BASIC_INFORMATION {   
-	ULONG CurrentCount; 
-	ULONG MaximumCount;
-} SEMAPHORE_BASIC_INFORMATION;
-
-
 int OGGetSema( og_sema_t os )
 {
+	typedef LONG NTSTATUS;
 	HANDLE sem = (HANDLE)os;
+	typedef NTSTATUS (NTAPI *_NtQuerySemaphore)(
+		HANDLE SemaphoreHandle, 
+		DWORD SemaphoreInformationClass, /* Would be SEMAPHORE_INFORMATION_CLASS */
+		PVOID SemaphoreInformation,      /* but this is to much to dump here     */
+		ULONG SemaphoreInformationLength, 
+		PULONG ReturnLength OPTIONAL
+	);
+
+	typedef struct _SEMAPHORE_BASIC_INFORMATION {   
+		ULONG CurrentCount; 
+		ULONG MaximumCount;
+	} SEMAPHORE_BASIC_INFORMATION;
+
 
 	static _NtQuerySemaphore NtQuerySemaphore;
 	SEMAPHORE_BASIC_INFORMATION BasicInfo;
@@ -158,9 +153,8 @@ void OGDeleteSema( og_sema_t os )
 
 #else
 
-#ifndef _GNU_SOURCE
 #define _GNU_SOURCE
-#endif
+
 
 #include <sys/stat.h>
 #include <stdlib.h>

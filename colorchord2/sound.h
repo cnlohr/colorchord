@@ -34,5 +34,8 @@ void CloseSound( struct SoundDriver * soundobject );
 //Called by various sound drivers.  Notice priority must be greater than 0.  Priority of 0 or less will not register.
 void RegSound( int priority, const char * name, SoundInitFn * fn );
 
+#define REGISTER_SOUND( sounddriver, priority, name, function ) \
+	void REGISTER##sounddriver() __attribute__((constructor)) { RegSound( priority, name, function ); }
+
 #endif
 
