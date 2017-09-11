@@ -29,6 +29,7 @@
 #define USE_NUM_LIN_LEDS	CCS.gUSE_NUM_LIN_LEDS
 #define COLORCHORD_OUTPUT_DRIVER	CCS.gCOLORCHORD_OUTPUT_DRIVER
 #define COLORCHORD_ACTIVE	CCS.gCOLORCHORD_ACTIVE
+#define INITIAL_AMP	CCS.gINITIAL_AMP
 
 //We are not enabling these for the ESP8266 port.
 #define LIN_WRAPAROUND 0 
@@ -54,6 +55,7 @@ struct CCSettings
 	uint8_t gUSE_NUM_LIN_LEDS;                  // = NUM_LIN_LEDS
 	uint8_t gCOLORCHORD_ACTIVE;
 	uint8_t gCOLORCHORD_OUTPUT_DRIVER;
+	uint8_t gINITIAL_AMP;
 };
 
 extern struct CCSettings CCS;

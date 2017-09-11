@@ -99,9 +99,11 @@ static void procTask(os_event_t *events)
 #endif
 	while( soundtail != soundhead )
 	{
-		int16_t samp = sounddata[soundtail];
+		int32_t samp = sounddata[soundtail];
 		samp_iir = samp_iir - (samp_iir>>10) + samp;
-		PushSample32( (samp - (samp_iir>>10))*16 );
+		samp = (samp - (samp_iir>>10))*16;
+		samp = (samp * CCS.gINITIAL_AMP) >> 4;
+		PushSample32( samp );
 		soundtail = (soundtail+1)&(HPABUFFSIZE-1);
 
 		wf++;
