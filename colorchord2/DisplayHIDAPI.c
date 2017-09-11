@@ -9,7 +9,6 @@
 #include "hidapi.h"
 #include "color.h"
 #include <math.h>
-#include <unistd.h>
 
 struct HIDAPIOutDriver
 {
@@ -58,7 +57,7 @@ static void * LEDOutThread( void * v )
 			}
 			led->readyFlag = 0;
 		}
-		usleep(100);
+		OGUSleep(100);
 	}
 	return 0;
 }
@@ -86,7 +85,7 @@ static void LEDUpdate(void * id, struct NoteFinder*nf)
 	int leds_this_round = 0;
 	int ledbid = 0;
 
-	while( led->readyFlag ) usleep(100);
+	while( led->readyFlag ) OGUSleep(100);
 
 	int lastledplace = 1;
 	led->last_leds[0] = 0;

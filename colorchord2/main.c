@@ -17,10 +17,11 @@
 #include "parameters.h"
 #include "hook.h"
 #include "configs.h"
+#include <winsock2.h>
 
 struct SoundDriver * sd;
 
-#ifdef WIN32
+#if defined(WIN32) || defined(USE_WINDOWS)
 #include <windows.h>
 
 #define ESCAPE_KEY 0x1B
@@ -41,8 +42,8 @@ double Now = 0;
 
 int lastfps;
 short screenx, screeny;
-struct DriverInstances * outdriver[MAX_OUT_DRIVERS];
 
+struct DriverInstances * outdriver[MAX_OUT_DRIVERS];
 
 int headless = 0;		REGISTER_PARAM( headless, PAINT );
 int set_screenx = 640;	REGISTER_PARAM( set_screenx, PAINT );
@@ -159,18 +160,19 @@ void SoundCB( float * out, float * in, int samplesr, int * samplesp, struct Soun
 	*samplesp = samplesr;
 }
 
-
 int main(int argc, char ** argv)
 {
 	int i;
-
+#ifdef TCC
+	ManuallyRegisterDevices();
+#endif
+	
 	printf( "Output Drivers:\n" );
 	for( i = 0; i < MAX_OUT_DRIVERS; i++ )
 	{
 		if( ODList[i].Name ) printf( "\t%s\n", ODList[i].Name );
 	}
-
-#ifdef WIN32
+#if defined(WIN32) || defined(USE_WINDOWS)
     WSADATA wsaData;
 
     WSAStartup(0x202, &wsaData);

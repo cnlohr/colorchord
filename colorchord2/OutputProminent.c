@@ -11,7 +11,6 @@
 #include "color.h"
 #include <stdlib.h>
 #include <math.h>
-#include <unistd.h>
 
 struct ProminentDriver
 {

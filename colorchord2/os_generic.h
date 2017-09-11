@@ -1,9 +1,8 @@
 //Copyright 2015 <>< Charles Lohr under the NewBSD or MIT/x11 License.
-
 #ifndef _OS_GENERIC_H
 #define _OS_GENERIC_H
 
-#ifdef WIN32
+#if defined( WIN32 ) || defined (WINDOWS) || defined( _WIN32)
 #define USE_WINDOWS
 #endif
 
@@ -12,12 +11,7 @@
 extern "C" {
 #endif
 
-#define EXECUTE_AT_BOOT( x, y ) \
-	\
-	void fn##x() __attribute__((constructor));  \
-	void fn##x() \
-	{ y; } \
-
+	
 //Things that shouldn't be macro'd
 double OGGetAbsoluteTime();
 void OGSleep( int is );
@@ -55,7 +49,7 @@ void OGDeleteSema( og_sema_t os );
 #endif
 
 
-//Date Stamp: 2014-06-12
+//Date Stamp: 2012-02-15
 
 /*
    NOTE: Portions (namely the top section) are part of headers from other

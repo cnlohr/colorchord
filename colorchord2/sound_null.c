@@ -41,6 +41,5 @@ void * InitSoundNull( SoundCBType cb )
 }
 
 
-
-EXECUTE_AT_BOOT( NullSoundReg, RegSound( 1, "NULL", InitSoundNull ) );
+REGISTER_SOUND( NullSound, 1, "NULL", InitSoundNull );
 

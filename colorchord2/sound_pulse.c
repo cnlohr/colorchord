@@ -374,6 +374,6 @@ fail:
 
 
 
-EXECUTE_AT_BOOT( PulseSoundReg, RegSound( 11, "PULSE", InitSoundPulse ) );
+REGISTER_SOUND( PulseSound, 11, "PULSE", InitSoundPulse );
 
 
