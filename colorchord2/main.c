@@ -17,11 +17,11 @@
 #include "parameters.h"
 #include "hook.h"
 #include "configs.h"
-#include <winsock2.h>
 
 struct SoundDriver * sd;
 
 #if defined(WIN32) || defined(USE_WINDOWS)
+#include <winsock2.h>
 #include <windows.h>
 
 #define ESCAPE_KEY 0x1B

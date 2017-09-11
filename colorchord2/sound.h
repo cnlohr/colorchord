@@ -35,7 +35,7 @@ void CloseSound( struct SoundDriver * soundobject );
 void RegSound( int priority, const char * name, SoundInitFn * fn );
 
 #define REGISTER_SOUND( sounddriver, priority, name, function ) \
-	void REGISTER##sounddriver() __attribute__((constructor)) { RegSound( priority, name, function ); }
+	void __attribute__((constructor)) REGISTER##sounddriver() { RegSound( priority, name, function ); }
 
 #endif
 
