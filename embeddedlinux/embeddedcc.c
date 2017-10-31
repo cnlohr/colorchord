@@ -11,6 +11,7 @@
 #include <string.h>
 #include <netinet/in.h>
 #include <stdio.h>
+#include <stdlib.h>   // Added by [olel] for atoi
 #include "embeddedout.h"
 
 struct sockaddr_in servaddr;
@@ -64,7 +65,7 @@ int main( int argc, char ** argv )
 
 	connect( sock, (struct sockaddr *)&servaddr, sizeof(servaddr) );
 
-	Init();
+	InitColorChord();  // Changed by [olel] cause this was changed in embeddednf
 
 	while( ( ci = getchar() ) != EOF )
 	{

@@ -7,7 +7,7 @@ LDFLAGS:= -s -Wl,--relax -Wl,-Map=test.map  -Wl,--gc-sections -ffunction-section
 
 
 embeddedcc :  ../embeddedcommon/embeddednf.c ../embeddedcommon/DFT32.c embeddedcc.c  ../embeddedcommon/embeddedout.c
-	gcc -o $@ $^ $(CFLAGS) $(LDFLAGS) -m32
+	gcc -o $@ $^ $(CFLAGS) $(LDFLAGS)
 
 dummy_leds : dummy_leds.c 
 	gcc -o $@ $^ -lX11 -lpthread $(CFLAGS) $(LDFLAGS)
