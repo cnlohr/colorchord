@@ -3,14 +3,14 @@ all : colorchord
 RAWDRAW:=DrawFunctions.o XDriver.o
 SOUND:=sound.o sound_alsa.o sound_pulse.o sound_null.o
 
-OUTS := OutputVoronoi.o DisplayArray.o OutputLinear.o DisplayPie.o DisplayNetwork.o DisplayUSB2812.o DisplayDMX.o OutputProminent.o RecorderPlugin.o DisplayHIDAPI.o hidapi.o OutputCells.o
+OUTS := OutputVoronoi.o DisplayArray.o OutputLinear.o DisplayPie.o DisplayNetwork.o DisplayUSB2812.o DisplayDMX.o OutputProminent.o RecorderPlugin.o DisplayHIDAPI.o hidapi.o OutputCells.o DisplaySHM.o
 
 WINGCC:= i686-w64-mingw32-gcc
 WINGCCFLAGS:= -g -DICACHE_FLASH_ATTR= -I../embeddedcommon -I. -O1   #-O2 -Wl,--relax -Wl,--gc-sections -ffunction-sections -fdata-sections
 WINLDFLAGS:=-lwinmm -lgdi32 -lws2_32  -lsetupapi
 
 RAWDRAWLIBS:=-lX11 -lm -lpthread -lXinerama -lXext
-LDLIBS:=-lpthread -lasound -lm -lpulse-simple -lpulse -ludev
+LDLIBS:=-lpthread -lasound -lm -lpulse-simple -lpulse -ludev -lrt
 
 
 CFLAGS:=-g -Os -flto -Wall -ffast-math -I../embeddedcommon -I. -DICACHE_FLASH_ATTR=
