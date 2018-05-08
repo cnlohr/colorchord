@@ -14,13 +14,16 @@
 #include <fcntl.h>           /* For O_* constants */
 #include <unistd.h>
 
+extern struct NoteFinder * nf;
+
+
 struct SHMDriver
 {
 	int lights_file;
-	//int dft_file; //Not available.
-	//uint8_t * dft_ptr;
+	int dft_file; //Not available.
+	uint8_t * dft_ptr;
 	uint8_t * lights_ptr;
-	//int total_dft;
+	int total_dft;
 	int total_leds;
 };
 
@@ -28,7 +31,6 @@ struct SHMDriver
 static void SHMUpdate(void * id, struct NoteFinder*nf)
 {
 	struct SHMDriver * d = (struct SHMDriver*)id;
-
 
 	if( !d->lights_file )
 	{
@@ -45,6 +47,33 @@ static void SHMUpdate(void * id, struct NoteFinder*nf)
 		printf( "Got SHM: %s->%d [%p]\n", shm_lights, d->lights_file, d->lights_ptr );
 	}
 
+
+	if( !d->dft_file )
+	{
+		const char * shmname = GetParameterS( "shm_dft", 0 );
+		//const char * shm_dft    = GetParameterS( "shm_dft", 0 ); // Not available.
+
+		if( shmname )
+		{
+			d->dft_file = shm_open(shmname, O_CREAT | O_RDWR, 0644);
+			ftruncate( d->dft_file, 16384 );
+			d->dft_ptr = mmap(0,16384, PROT_READ | PROT_WRITE, MAP_SHARED, d->dft_file, 0);
+		}
+
+		printf( "Got SHM: %s->%d [%p]\n", shmname, d->dft_file, d->dft_ptr );
+	}
+
+
+	if( d->dft_ptr )
+	{
+
+		d->total_dft = nf->octaves * nf->freqbins;
+		memcpy( d->dft_ptr+0, &nf->octaves, 4 );
+		memcpy( d->dft_ptr+4, &nf->freqbins, 4 );
+		memcpy( d->dft_ptr+8, nf->folded_bins, nf->freqbins * sizeof(float) );
+		memcpy( d->dft_ptr+8+nf->freqbins * sizeof(float),
+			 nf->outbins, d->total_dft * sizeof(float) );
+	}
 
 	if( d->lights_ptr )
 	{
