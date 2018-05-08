@@ -20,9 +20,13 @@ extern struct NoteFinder * nf;
 struct SHMDriver
 {
 	int lights_file;
-	int dft_file; //Not available.
+	int dft_file;
+	int notes_file;
+
 	uint8_t * dft_ptr;
 	uint8_t * lights_ptr;
+	uint8_t * notes_ptr;
+
 	int total_dft;
 	int total_leds;
 };
@@ -34,33 +38,37 @@ static void SHMUpdate(void * id, struct NoteFinder*nf)
 
 	if( !d->lights_file )
 	{
-		const char * shm_lights = GetParameterS( "shm_lights", 0 );
-		//const char * shm_dft    = GetParameterS( "shm_dft", 0 ); // Not available.
-
-		if( shm_lights )
+		const char * shmname = GetParameterS( "shm_lights", 0 );
+		if( shmname )
 		{
-			d->lights_file = shm_open(shm_lights, O_CREAT | O_RDWR, 0644);
+			d->lights_file = shm_open(shmname, O_CREAT | O_RDWR, 0644);
 			ftruncate( d->lights_file, 16384 );
 			d->lights_ptr = mmap(0,16384, PROT_READ | PROT_WRITE, MAP_SHARED, d->lights_file, 0);
 		}
-
-		printf( "Got SHM: %s->%d [%p]\n", shm_lights, d->lights_file, d->lights_ptr );
 	}
 
 
 	if( !d->dft_file )
 	{
 		const char * shmname = GetParameterS( "shm_dft", 0 );
-		//const char * shm_dft    = GetParameterS( "shm_dft", 0 ); // Not available.
-
 		if( shmname )
 		{
 			d->dft_file = shm_open(shmname, O_CREAT | O_RDWR, 0644);
 			ftruncate( d->dft_file, 16384 );
 			d->dft_ptr = mmap(0,16384, PROT_READ | PROT_WRITE, MAP_SHARED, d->dft_file, 0);
 		}
+	}
 
-		printf( "Got SHM: %s->%d [%p]\n", shmname, d->dft_file, d->dft_ptr );
+
+	if( !d->notes_file )
+	{
+		const char * shmname = GetParameterS( "shm_notes", 0 );
+		if( shmname )
+		{
+			d->notes_file = shm_open(shmname, O_CREAT | O_RDWR, 0644);
+			ftruncate( d->notes_file, 16384 );
+			d->notes_ptr = mmap(0,16384, PROT_READ | PROT_WRITE, MAP_SHARED, d->notes_file, 0);
+		}
 	}
 
 
@@ -79,6 +87,13 @@ static void SHMUpdate(void * id, struct NoteFinder*nf)
 	{
 		memcpy( d->lights_ptr, &d->total_leds, 4 );
 		memcpy( d->lights_ptr + 4, OutLEDs, d->total_leds*3 ); 
+	}
+
+
+	if( d->notes_ptr )
+	{
+		memcpy( d->notes_ptr, &nf->dists_count, 4 );
+		memcpy( d->notes_ptr+4, nf->dists, sizeof( nf->dists[0] ) * nf->dists_count );
 	}
 
 }
