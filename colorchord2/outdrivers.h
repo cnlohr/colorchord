@@ -41,6 +41,6 @@ struct DriverInstances * SetupOutDriver( );
 void RegOutDriver( const char * ron, struct DriverInstances * (*Init)( ) );
 
 #define REGISTER_OUT_DRIVER( name ) \
-	EXECUTE_AT_BOOT( r##name, RegOutDriver( #name, name ) );
+	void __attribute__((constructor)) REGISTER##name() { RegOutDriver( #name, name ); }
 
 #endif

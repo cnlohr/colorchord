@@ -9,10 +9,12 @@
 #include <string.h>
 #include "color.h"
 #include "DrawFunctions.h"
-#include <unistd.h>
 
-#ifdef WIN32
+#if defined(WIN32) || defined(WINDOWS)
 #include <windows.h>
+#ifdef TCC
+#include <winsock2.h>
+#endif
 #define MSG_NOSIGNAL 0
 #else
 #include <sys/socket.h>

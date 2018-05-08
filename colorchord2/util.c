@@ -2,8 +2,8 @@
 //This file may be used in whole or part in any way for any purpose by anyone
 //without restriction.
 
-#include "util.h"
 #include <math.h>
+#include "util.h"
 #include <stdlib.h>
 
 //Take the absolute distance between two points on a torus.

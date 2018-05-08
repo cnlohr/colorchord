@@ -11,51 +11,51 @@ extern volatile uint8_t sounddata[];
 extern volatile uint16_t soundhead;
 
 
-#define CONFIGURABLES 17 //(plus1)
+#define CONFIGURABLES 18 //(plus1)
 
-extern uint8_t RootNoteOffset; //Set to define what the root note is.  0 = A.
-uint8_t gDFTIIR = 6;
-uint8_t gFUZZ_IIR_BITS = 1;
-uint8_t gFILTER_BLUR_PASSES = 2;
-uint8_t gSEMIBITSPERBIN = 3;
-uint8_t gMAX_JUMP_DISTANCE = 4;
-uint8_t gMAX_COMBINE_DISTANCE = 7;
-uint8_t gAMP_1_IIR_BITS = 4;
-uint8_t gAMP_2_IIR_BITS = 2;
-uint8_t gMIN_AMP_FOR_NOTE = 80;
-uint8_t gMINIMUM_AMP_FOR_NOTE_TO_DISAPPEAR = 64;
-uint8_t gNOTE_FINAL_AMP = 12;
-uint8_t gNERF_NOTE_PORP = 15;
-uint8_t gUSE_NUM_LIN_LEDS = NUM_LIN_LEDS;
-uint8_t gCOLORCHORD_ACTIVE = 1;
-uint8_t gCOLORCHORD_OUTPUT_DRIVER = 0;
 
 struct SaveLoad
 {
 	uint8_t configs[CONFIGURABLES];
+	uint8_t SaveLoadKey; //Must be 0xaa to be valid.
 } settings;
 
-uint8_t gConfigDefaults[CONFIGURABLES] =  { 0, 6, 1, 2, 3, 4, 7, 4, 2, 80, 64, 12, 15, NUM_LIN_LEDS, 1, 0, 0 };
+struct CCSettings CCS;
 
-uint8_t * gConfigurables[CONFIGURABLES] = { &RootNoteOffset, &gDFTIIR, &gFUZZ_IIR_BITS, &gFILTER_BLUR_PASSES,
-	&gSEMIBITSPERBIN, &gMAX_JUMP_DISTANCE, &gMAX_COMBINE_DISTANCE, &gAMP_1_IIR_BITS,
-	&gAMP_2_IIR_BITS, &gMIN_AMP_FOR_NOTE, &gMINIMUM_AMP_FOR_NOTE_TO_DISAPPEAR, &gNOTE_FINAL_AMP,
-	&gNERF_NOTE_PORP, &gUSE_NUM_LIN_LEDS, &gCOLORCHORD_ACTIVE, &gCOLORCHORD_OUTPUT_DRIVER, 0 };
+uint8_t gConfigDefaults[CONFIGURABLES] =  { 0, 6, 1, 2, 3, 4, 7, 4, 2, 80, 64, 12, 15, NUM_LIN_LEDS, 1, 0, 16, 0 };
+
+uint8_t * gConfigurables[CONFIGURABLES] = { &CCS.gROOT_NOTE_OFFSET, &CCS.gDFTIIR, &CCS.gFUZZ_IIR_BITS, &CCS.gFILTER_BLUR_PASSES,
+	&CCS.gSEMIBITSPERBIN, &CCS.gMAX_JUMP_DISTANCE, &CCS.gMAX_COMBINE_DISTANCE, &CCS.gAMP_1_IIR_BITS,
+	&CCS.gAMP_2_IIR_BITS, &CCS.gMIN_AMP_FOR_NOTE, &CCS.gMINIMUM_AMP_FOR_NOTE_TO_DISAPPEAR, &CCS.gNOTE_FINAL_AMP,
+	&CCS.gNERF_NOTE_PORP, &CCS.gUSE_NUM_LIN_LEDS, &CCS.gCOLORCHORD_ACTIVE, &CCS.gCOLORCHORD_OUTPUT_DRIVER, &CCS.gINITIAL_AMP, 0 };
 
 char * gConfigurableNames[CONFIGURABLES] = { "gROOT_NOTE_OFFSET", "gDFTIIR", "gFUZZ_IIR_BITS", "gFILTER_BLUR_PASSES",
 	"gSEMIBITSPERBIN", "gMAX_JUMP_DISTANCE", "gMAX_COMBINE_DISTANCE", "gAMP_1_IIR_BITS",
 	"gAMP_2_IIR_BITS", "gMIN_AMP_FOR_NOTE", "gMINIMUM_AMP_FOR_NOTE_TO_DISAPPEAR", "gNOTE_FINAL_AMP",
-	"gNERF_NOTE_PORP", "gUSE_NUM_LIN_LEDS", "gCOLORCHORD_ACTIVE", "gCOLORCHORD_OUTPUT_DRIVER", 0 };
+	"gNERF_NOTE_PORP", "gUSE_NUM_LIN_LEDS", "gCOLORCHORD_ACTIVE", "gCOLORCHORD_OUTPUT_DRIVER", "gINITIAL_AMP", 0 };
 
 void ICACHE_FLASH_ATTR CustomStart( )
 {
 	int i;
 	spi_flash_read( 0x3D000, (uint32*)&settings, sizeof( settings ) );
-	for( i = 0; i < CONFIGURABLES; i++ )
+	if( settings.SaveLoadKey == 0xaa )
 	{
-		if( gConfigurables[i] )
+		for( i = 0; i < CONFIGURABLES; i++ )
 		{
-			*gConfigurables[i] = settings.configs[i];
+			if( gConfigurables[i] )
+			{
+				*gConfigurables[i] = settings.configs[i];
+			}
+		}
+	}
+	else
+	{
+		for( i = 0; i < CONFIGURABLES; i++ )
+		{
+			if( gConfigurables[i] )
+			{
+				*gConfigurables[i] = gConfigDefaults[i];
+			}
 		}
 	}
 }
@@ -105,8 +105,8 @@ int ICACHE_FLASH_ATTR CustomCommand(char * buffer, int retsize, char *pusrdata, 
 	case 'l': case 'L': //LEDs
 	{
 		int i, it = 0;
-		buffend += ets_sprintf( buffend, "CL\t%d\t", gUSE_NUM_LIN_LEDS );
-		uint16_t toledsvals = gUSE_NUM_LIN_LEDS*3;
+		buffend += ets_sprintf( buffend, "CL\t%d\t", USE_NUM_LIN_LEDS );
+		uint16_t toledsvals = USE_NUM_LIN_LEDS*3;
 		if( toledsvals > 600 ) toledsvals = 600;
 		for( i = 0; i < toledsvals; i++ )
 		{
@@ -198,6 +198,7 @@ int ICACHE_FLASH_ATTR CustomCommand(char * buffer, int retsize, char *pusrdata, 
 				if( gConfigurables[i] )
 					settings.configs[i] = *gConfigurables[i];
 			}
+			settings.SaveLoadKey = 0xAA;
 
 			EnterCritical();
 			ets_intr_lock();

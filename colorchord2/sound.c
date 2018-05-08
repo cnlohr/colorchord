@@ -55,7 +55,6 @@ struct SoundDriver * InitSound( const char * driver_name, SoundCBType cb )
 {
 	int i;
 	struct SoundDriver * ret = 0;
-
 	if( driver_name == 0 || strlen( driver_name ) == 0 )
 	{
 		//Search for a driver.
@@ -74,6 +73,7 @@ struct SoundDriver * InitSound( const char * driver_name, SoundCBType cb )
 	}
 	else
 	{
+		printf( "Initializing sound.  Recommended driver: %s\n", driver_name );
 		for( i = 0; i < MAX_SOUND_DRIVERS; i++ )
 		{
 			if( SoundDrivers[i] == 0 )

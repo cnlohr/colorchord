@@ -15,9 +15,9 @@
 #include "ccconfig.h"
 #include <embeddednf.h>
 #include <embeddedout.h>
+#include <commonservices.h>
 #include "ets_sys.h"
 #include "gpio.h"
-
 //#define PROFILE
 
 #define PORT 7777
@@ -28,6 +28,7 @@
 #define procTaskPrio        0
 #define procTaskQueueLen    1
 
+struct CCSettings CCS;
 static volatile os_timer_t some_timer;
 static struct espconn *pUdpServer;
 
@@ -37,27 +38,26 @@ void ExitCritical();
 extern volatile uint8_t sounddata[HPABUFFSIZE];
 extern volatile uint16_t soundhead;
 uint16_t soundtail;
-extern uint8_t gCOLORCHORD_ACTIVE;
-static uint8_t hpa_running = 0;
 
+static uint8_t hpa_running = 0;
+static uint8_t hpa_is_paused_for_wifi;
 void ICACHE_FLASH_ATTR CustomStart( );
 
 void ICACHE_FLASH_ATTR user_rf_pre_init()
 {
 }
 
-extern uint8_t gCOLORCHORD_OUTPUT_DRIVER;
 
 //Call this once we've stacked together one full colorchord frame.
 static void NewFrame()
 {
-	if( !gCOLORCHORD_ACTIVE ) return;
+	if( !COLORCHORD_ACTIVE ) return;
 
 	//uint8_t led_outs[NUM_LIN_LEDS*3];
 	int i;
 	HandleFrameInfo();
 
-	switch( gCOLORCHORD_OUTPUT_DRIVER )
+	switch( COLORCHORD_OUTPUT_DRIVER )
 	{
 	case 0:
 		UpdateLinearLEDs();
@@ -72,56 +72,22 @@ static void NewFrame()
 }
 
 os_event_t    procTaskQueue[procTaskQueueLen];
-static uint8_t printed_ip = 0;
 uint32_t samp_iir = 0;
 int wf = 0;
 
 //Tasks that happen all the time.
 
-static void ICACHE_FLASH_ATTR HandleIPStuff()
-{
-		//Idle Event.
-		struct station_config wcfg;
-		char stret[256];
-		char *stt = &stret[0];
-		struct ip_info ipi;
-
-		int stat = wifi_station_get_connect_status();
-
-		//printf( "STAT: %d %d\n", stat, wifi_get_opmode() );
-
-		if( stat == STATION_WRONG_PASSWORD || stat == STATION_NO_AP_FOUND || stat == STATION_CONNECT_FAIL )
-		{
-			wifi_set_opmode_current( 2 );
-			stt += ets_sprintf( stt, "Connection failed: %d\n", stat );
-			uart0_sendStr(stret);
-		}
-
-		if( stat == STATION_GOT_IP && !printed_ip )
-		{
-			wifi_station_get_config( &wcfg );
-			wifi_get_ip_info(0, &ipi);
-			stt += ets_sprintf( stt, "STAT: %d\n", stat );
-			stt += ets_sprintf( stt, "IP: %d.%d.%d.%d\n", (ipi.ip.addr>>0)&0xff,(ipi.ip.addr>>8)&0xff,(ipi.ip.addr>>16)&0xff,(ipi.ip.addr>>24)&0xff );
-			stt += ets_sprintf( stt, "NM: %d.%d.%d.%d\n", (ipi.netmask.addr>>0)&0xff,(ipi.netmask.addr>>8)&0xff,(ipi.netmask.addr>>16)&0xff,(ipi.netmask.addr>>24)&0xff );
-			stt += ets_sprintf( stt, "GW: %d.%d.%d.%d\n", (ipi.gw.addr>>0)&0xff,(ipi.gw.addr>>8)&0xff,(ipi.gw.addr>>16)&0xff,(ipi.gw.addr>>24)&0xff );
-			stt += ets_sprintf( stt, "WCFG: /%s/%s/\n", wcfg.ssid, wcfg.password );
-			uart0_sendStr(stret);
-			printed_ip = 1;
-		}
-}
-
 static void procTask(os_event_t *events)
 {
 	system_os_post(procTaskPrio, 0, 0 );
 
-	if( gCOLORCHORD_ACTIVE && !hpa_running )
+	if( COLORCHORD_ACTIVE && !hpa_running )
 	{
 		ExitCritical();
 		hpa_running = 1;
 	}
 
-	if( !gCOLORCHORD_ACTIVE && hpa_running )
+	if( !COLORCHORD_ACTIVE && hpa_running )
 	{
 		EnterCritical();
 		hpa_running = 0;
@@ -133,9 +99,11 @@ static void procTask(os_event_t *events)
 #endif
 	while( soundtail != soundhead )
 	{
-		int16_t samp = sounddata[soundtail];
+		int32_t samp = sounddata[soundtail];
 		samp_iir = samp_iir - (samp_iir>>10) + samp;
-		PushSample32( (samp - (samp_iir>>10))*16 );
+		samp = (samp - (samp_iir>>10))*16;
+		samp = (samp * CCS.gINITIAL_AMP) >> 4;
+		PushSample32( samp );
 		soundtail = (soundtail+1)&(HPABUFFSIZE-1);
 
 		wf++;
@@ -152,7 +120,6 @@ static void procTask(os_event_t *events)
 	if( events->sig == 0 && events->par == 0 )
 	{
 		CSTick( 0 );
-		HandleIPStuff();
 	}
 
 }
@@ -161,6 +128,13 @@ static void procTask(os_event_t *events)
 static void ICACHE_FLASH_ATTR myTimer(void *arg)
 {
 	CSTick( 1 );
+
+	if( hpa_is_paused_for_wifi && printed_ip )
+	{
+		StartHPATimer(); //Init the high speed  ADC timer.
+		hpa_running = 1;
+		hpa_is_paused_for_wifi = 0; // only need to do once prevents unstable ADC
+	}
 //	uart0_sendStr(".");
 //	printf( "%d/%d\n",soundtail,soundhead );
 //	printf( "%d/%d\n",soundtail,soundhead );
@@ -238,10 +212,24 @@ void ICACHE_FLASH_ATTR user_init(void)
 
 	InitColorChord(); //Init colorchord
 
-	StartHPATimer(); //Init the high speed  ADC timer.
-	hpa_running = 1;
+	//Tricky: If we are in station mode, wait for that to get resolved before enabling the high speed timer.
+	if( wifi_get_opmode() == 1 )
+	{
+		hpa_is_paused_for_wifi = 1;
+	}
+	else
+	{
+		StartHPATimer(); //Init the high speed  ADC timer.
+		hpa_running = 1;
+	}
 
 	ws2812_init();
+
+	// Attempt to make ADC more stable
+	// https://github.com/esp8266/Arduino/issues/2070
+	// see peripherals https://espressif.com/en/support/explore/faq
+	//wifi_set_sleep_type(NONE_SLEEP_T); // on its own stopped wifi working
+	//wifi_fpm_set_sleep_type(NONE_SLEEP_T); // with this seemed no difference
 
 	system_os_post(procTaskPrio, 0, 0 );
 }

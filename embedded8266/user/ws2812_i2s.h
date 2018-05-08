@@ -23,7 +23,8 @@
 //4 takes up more RAM per LED than 3.
 //3 has slightly more restrictve timing requirements.
 //4 has more DMA load when running.
-#define WS2812_THREE_SAMPLE
+
+//#define WS2812_THREE_SAMPLE
 //#define WS2812_FOUR_SAMPLE
 
 void ICACHE_FLASH_ATTR ws2812_init();

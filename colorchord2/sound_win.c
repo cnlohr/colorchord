@@ -4,9 +4,9 @@
 #include "parameters.h"
 #include "sound.h"
 #include "os_generic.h"
-#include <mmsystem.h>
 #include <stdio.h>
 #include <stdint.h>
+#include <mmsystem.h>
 
 #if defined(WIN32)
 #pragma comment(lib,"winmm.lib")
@@ -106,7 +106,8 @@ static struct SoundDriverWin * InitWinSound( struct SoundDriverWin * r )
 {
 	int i;
 	WAVEFORMATEX wfmt;
-
+	memset( &wfmt, 0, sizeof(wfmt) );
+	printf ("WFMT Size (debugging temp for TCC): %d\n", sizeof(wfmt) );
 	if( GetParameterI( "play", 0 )  )
 	{
 		fprintf( stderr, "Error: This Windows Sound Driver does not support playback.\n" );
@@ -136,7 +137,7 @@ static struct SoundDriverWin * InitWinSound( struct SoundDriverWin * r )
 
 	int p = waveInOpen(&r->hMyWave, dwdevice, &wfmt,(DWORD)(void*)(&HANDLEMIC) , 0, CALLBACK_FUNCTION);
 
-	printf( "WIO: %d\n", p );  //On real windows, returns 11
+	printf( "WIO: %d\n", p );
 
 	for ( i=0;i<BUFFS;i++)
 	{
@@ -150,7 +151,7 @@ static struct SoundDriverWin * InitWinSound( struct SoundDriverWin * r )
 
 	p = waveInStart(r->hMyWave);
 
-	printf( "WIS: %d\n", p ); //On real windows returns 5.
+	printf( "WIS: %d\n", p );
 
 	return r;
 }
@@ -159,7 +160,7 @@ static struct SoundDriverWin * InitWinSound( struct SoundDriverWin * r )
 
 void * InitSoundWin( SoundCBType cb )
 {
-	struct SoundDriverWin * r = malloc( sizeof( struct SoundDriverWin ) );
+	struct SoundDriverWin * r = (struct SoundDriverWin *)malloc( sizeof( struct SoundDriverWin ) );
 
 	r->CloseFn = CloseSoundWin;
 	r->SoundStateFn = SoundStateWin;
@@ -177,5 +178,5 @@ void * InitSoundWin( SoundCBType cb )
 	return InitWinSound(r);
 }
 
-EXECUTE_AT_BOOT( WinSoundReg, RegSound( 10, "WIN", InitSoundWin ) );
+REGISTER_SOUND( SoundWin, 10, "WIN", InitSoundWin );
 

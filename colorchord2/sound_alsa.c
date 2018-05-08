@@ -337,5 +337,5 @@ void * InitSoundAlsa( SoundCBType cb )
 	return InitASound(r);
 }
 
-EXECUTE_AT_BOOT( AlsaSoundReg, RegSound( 10, "ALSA", InitSoundAlsa ) );
+REGISTER_SOUND( AlsaSound, 10, "ALSA", InitSoundAlsa );
 

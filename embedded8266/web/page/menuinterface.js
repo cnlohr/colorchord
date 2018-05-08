@@ -6,7 +6,7 @@ var output;
 var websocket;
 var commsup = 0;
 
-var mpfs_start_at = 1048576;
+var mpfs_start_at = 65536; //1048576; NOTE: If you select 1048576, it will override the 65536 sector, but has much more room.
 var flash_scratchpad_at = 524288;
 var flash_blocksize = 65536;
 var flash_sendsize = 256;
@@ -44,10 +44,12 @@ function QueueOperation( command, callback )
 	workqueue.push( vp );
 }
 
-
+did_init = false;
 function init()
 {
-	var GPIOlines = '';
+	if( did_init ) return;
+	did_init = true;
+	GPIOlines = '';
 	for(var i=0; i<16; ++i)
 		GPIOlines += "<td align=center>"+ i
 			+ "<input type=button id=ButtonGPIO"+ i +" value=0 onclick=\"TwiddleGPIO("+ i +");\">"
@@ -56,10 +58,11 @@ function init()
 
 	$('#MainMenu > tbody:first-child').before( "\
 		<tr><td width=1> \
-		<input type=submit onclick=\"ShowHideEvent( 'SystemStatus' );\" value='System Status' id=SystemStatusClicker></td><td> \
+		<input type=submit onclick=\"ShowHideEvent( 'SystemStatus' ); SystemInfoTick();\" value='System Status' id=SystemStatusClicker></td><td> \
 		<div id=SystemStatus class='collapsible'> \
 		<table width=100% border=1><tr><td> \
-<div id=output> \n		</td></tr></table></div></td></tr>" );
+<div id=output></div><div id=systemsettings></div> \n		</td></tr></table></div></td></tr>"
+	);
 
 	$('#MainMenu > tbody:last-child').after( "\
 		<tr><td width=1> \
@@ -118,16 +121,19 @@ function init()
 	$("#custom_command_response").val( "" );
 
 	//Preclude drag and drop on rest of document in event user misses firmware boxes.
-	var donothing = function(e) {e.stopPropagation();e.preventDefault();};
+	donothing = function(e) {e.stopPropagation();e.preventDefault();};
 	$(document).on('drop', donothing );
 	$(document).on('dragover', donothing );
 	$(document).on('dragenter', donothing );
 
 	output = document.getElementById("output");
-	Ticker();
 
 	KickWifiTicker();
 	GPIODataTickerStart();
+	InitSystemTicker();
+
+	console.log( "Load complete.\n" );
+	Ticker();
 }
 
 window.addEventListener("load", init, false);
@@ -141,6 +147,7 @@ function StartWebSocket()
 	workqueue = [];
 	lastitem = null;
 	websocket = new WebSocket(wsUri);
+	websocket.binaryType = 'arraybuffer';
 	websocket.onopen = function(evt) { onOpen(evt) };
 	websocket.onclose = function(evt) { onClose(evt) };
 	websocket.onmessage = function(evt) { onMessage(evt) };
@@ -161,7 +168,8 @@ function onClose(evt)
 var msg = 0;
 var tickmessage = 0;
 var lasthz = 0;
-var time_since_hz = 0;
+var time_since_hz = 10; //Make it realize it was disconnected to begin with.
+
 function Ticker()
 {
 	setTimeout( Ticker, 1000 );
@@ -203,17 +211,24 @@ function onMessage(evt)
 	}
 
 
+	var rawdat = new Uint8Array(evt.data)
+	var stringdata = String.fromCharCode.apply(null, rawdat);
+
 	if( lastitem )
 	{
 		if( lastitem.callback )
 		{
-			lastitem.callback( lastitem, evt.data );
+			lastitem.callback( lastitem, stringdata, rawdat );
 			lastitem = null;
 		}
 	}
 	else
 	{
-		output.innerHTML = "<p>Messages: " + msg + "</p><p>RSSI: " + evt.data.substr(2) + "</p>";	
+		if( stringdata.length > 2 )
+		{
+			var wxresp = stringdata.substr(2).split("\t");
+			output.innerHTML = "<p>Messages: " + msg + "</p><p>RSSI: " + wxresp[0] + " / IP: " + ((wxresp.length>1)?HexToIP( wxresp[1] ):"") + "</p>";
+		}
 	}
 
 
@@ -278,27 +293,27 @@ function IssueCustomCommand()
 function MakeDragDrop( divname, callback )
 {
 	var obj = $("#" + divname);
-	obj.on('dragenter', function (e) 
+	obj.on('dragenter', function (e)
 	{
 		e.stopPropagation();
 		e.preventDefault();
 		$(this).css('border', '2px solid #0B85A1');
 	});
 
-	obj.on('dragover', function (e) 
+	obj.on('dragover', function (e)
 	{
 		e.stopPropagation();
 		e.preventDefault();
 	});
 
-	obj.on('dragend', function (e) 
+	obj.on('dragend', function (e)
 	{
 		e.stopPropagation();
 		e.preventDefault();
 		$(this).css('border', '2px dotted #0B85A1');
 	});
 
-	obj.on('drop', function (e) 
+	obj.on('drop', function (e)
 	{
 		$(this).css('border', '2px dotted #0B85A1');
 		e.preventDefault();
@@ -318,9 +333,108 @@ function MakeDragDrop( divname, callback )
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 ///Below here are mostly just events...
 
-var did_wifi_get_config = false;
-var is_data_ticker_running = false;
-var is_waiting_on_stations = false;
+var sysset = null;
+var snchanged = false;
+var sdchanged = false;
+
+var lastpeerdata = "";
+
+function CallbackForPeers(req,data)
+{
+	if( data == lastpeerdata ) return;
+	lastpeerdata = data;
+	var lines = data.split( "\n" );
+	var searchcount = 0;
+	if( lines.length > 0 )
+	{
+		var line1 = lines[0].split( "\t" );
+		if( line1.length > 1 ) searchcount = Number( line1[1] );
+	}
+
+	var htm = "<TABLE BORDER=1 STYLE='width:150'><TR><TH>Address</TH><TH>Service</TH><TH>Name</TH><TH>Description</TH></TR>";
+	for( var i = 1; i < lines.length; i++ )
+	{
+		var elems = lines[i].split( "\t" );
+		if( elems.length < 4 ) continue;
+		IP = HexToIP( elems[0] );
+
+		htm += "<TR><TD><A HREF=http://" + IP + ">" + IP + "</A></TD><TD>" + elems[1] + "</TD><TD>" + elems[2] + "</TD><TD>" + elems[3] + "</TD></TR>";
+	}
+	htm += "</TABLE>";
+	if( searchcount == 0 )
+	{
+		htm += "<INPUT TYPE=SUBMIT VALUE=\"Initiate Search\" ONCLICK='QueueOperation(\"BS\");'>";
+	}
+
+	$("#peers").html( htm );
+}
+
+function SysTickBack(req,data)
+{
+	var params = data.split( "\t" );
+	if( !snchanged )
+	{
+		$("#SystemName").prop( "value", params[3] );
+		$("#SystemName").removeClass( "unsaved-input");
+	}
+	if( !sdchanged )
+	{
+		$("#SystemDescription").prop( "value", params[4] );
+		$("#SystemDescription").removeClass( "unsaved-input");
+	}
+	$("#ServiceName").html( params[5] );
+	$("#FreeHeap").html( params[6] );
+
+	QueueOperation( "BL", CallbackForPeers );
+}
+
+function SystemInfoTick()
+{
+	if( IsTabOpen('SystemStatus') )
+	{
+		QueueOperation( "I", SysTickBack );
+		setTimeout( SystemInfoTick, 500 );
+	}
+	else
+	{
+		//Stop.
+	}
+}
+
+function SystemChangesReset()
+{
+	snchanged = false;
+	sdchanged = false;
+}
+
+function SystemUncommittedChanges()
+{
+	if( sdchanged || snchanged ) return true;
+	else return false;
+}
+
+function InitSystemTicker()
+{
+	sysset = document.getElementById( "systemsettings" );
+	SystemInfoTick();
+	sysset.innerHTML = "<TABLE style='width:150'><TR><TD>System Name:</TD><TD><INPUT TYPE=TEXT ID='SystemName' maxlength=10></TD><TD><INPUT TYPE=SUBMIT VALUE=Change ONCLICK='QueueOperation(\"IN\" + document.getElementById(\"SystemName\").value ); snchanged = false;'></TD></TR>\
+		<TR><TD NOWRAP>System Description:</TD><TD><INPUT TYPE=TEXT ID='SystemDescription' maxlength=16></TD><TD><INPUT TYPE=SUBMIT VALUE=Change ONCLICK='QueueOperation(\"ID\" + document.getElementById(\"SystemDescription\").value ); sdchanged = false;'></TD></TR><TR><TD>Service Name:</TD><TD><DIV ID=\"ServiceName\"></DIV></TD></TR><TR><TD>Free Heap:</TD><TD><DIV ID=\"FreeHeap\"></DIV></TD></TR></TABLE>\
+		<INPUT TYPE=SUBMIT VALUE=\"Reset To Current\" ONCLICK='SystemChangesReset();'>\
+		<INPUT TYPE=SUBMIT VALUE=Save ONCLICK='if( SystemUncommittedChanges() ) { IssueSystemMessage( \"Cannot save.  Uncommitted changes.\"); return; } QueueOperation(\"IS\", function() { IssueSystemMessage( \"Saving\" ); } ); SystemChangesReset(); '>\
+		<INPUT TYPE=SUBMIT VALUE=\"Revert From Saved\" ONCLICK='QueueOperation(\"IL\", function() { IssueSystemMessage( \"Reverting.\" ); } ); SystemChangesReset();'>\
+		<INPUT TYPE=SUBMIT VALUE=\"Revert To Factory\" ONCLICK='if( confirm( \"Are you sure you want to revert to factory settings?\" ) ) QueueOperation(\"IR\"); SystemChangesReset();'>\
+		<INPUT TYPE=SUBMIT VALUE=Reboot ONCLICK='QueueOperation(\"IB\");'>\
+		<P>Search for others:</P>\
+		<DIV id=peers></DIV>";
+	$("#SystemName").on("input propertychange paste",function(){snchanged = true; $("#SystemName").addClass( "unsaved-input"); });
+	$("#SystemDescription").on("input propertychange paste",function(){sdchanged = true;$("#SystemDescription").addClass( "unsaved-input"); });
+}
+
+
+
+did_wifi_get_config = false;
+is_data_ticker_running = false;
+is_waiting_on_stations = false;
 
 function ScanForWifi()
 {
@@ -378,7 +492,7 @@ function WifiDataTicker()
 			QueueOperation( "WI", function(req,data)
 			{
 				var params = data.split( "\t" );
-			
+
 				var opmode = Number( params[0].substr(2) );
 				document.wifisection.wifitype.value = opmode;
 				document.wifisection.wificurname.value = params[1];
@@ -394,6 +508,7 @@ function WifiDataTicker()
 		QueueOperation( "WR", function(req,data) {
 			var lines = data.split( "\n" );
 			var innerhtml;
+			if( data[0] == '!' ) return;  //If no APs, don't deal with list.
 
 			if( lines.length < 3 )
 			{
@@ -425,7 +540,7 @@ function WifiDataTicker()
 			innerhtml += "</TABLE>";
 			document.getElementById("WifiStations").innerHTML = innerhtml;
 		} );
-		setTimeout( WifiDataTicker, 12000 );
+		setTimeout( WifiDataTicker, 500 );
 	}
 	else
 	{
@@ -435,7 +550,7 @@ function WifiDataTicker()
 
 function ChangeWifiConfig()
 {
-	
+
 	var st = "W";
 	st += document.wifisection.wifitype.value;
 	st += "\t" + document.wifisection.wificurname.value;
@@ -549,7 +664,7 @@ function SystemPushImageProgress( is_ok, comment, pushop )
 			pushop.ctx.file1md5 = faultylabs.MD5( pushop.paddata ).toLowerCase();
 			var reader = new FileReader();
 
-			reader.onload = function(e) { 
+			reader.onload = function(e) {
 				$("#innersystemflashtext").html( "Pusing second half..." );
 				PushImageTo( e.target.result, flash_scratchpad_at + 0x40000, SystemPushImageProgress, pushop.ctx );
 			}
@@ -567,7 +682,7 @@ function SystemPushImageProgress( is_ok, comment, pushop )
 
 			var stf = "FM" + flash_scratchpad_at + "\t0\t" + f1s + "\t" + f1m + "\t" + (flash_scratchpad_at+0x40000) + "\t" + 0x40000 + "\t" + f2s + "\t" + f2m + "\n";
 			var fun = function( fsrd, flashresponse ) { $("#innerflashtext").html( (flashresponse[0] == '!')?"Flashing failed.":"Flash success." ) };
-			QueueOperation( stf, fun); 
+			QueueOperation( stf, fun);
 		}
 
 		return false;
@@ -578,7 +693,7 @@ function SystemPushImageProgress( is_ok, comment, pushop )
 
 
 function WebPagePushImageFunction( ok, comment, pushop )
-{ 
+{
 	if( pushop.place == pushop.padlen )
 	{
 		$("#innersystemflashtext").html("Push complete. Reload page.");
@@ -589,7 +704,7 @@ function WebPagePushImageFunction( ok, comment, pushop )
 	}
 
 	return true;
-} 
+}
 
 function DragDropSystemFiles( file )
 {
@@ -607,7 +722,7 @@ function DragDropSystemFiles( file )
 
 		var reader = new FileReader();
 
-		reader.onload = function(e) { 
+		reader.onload = function(e) {
 			PushImageTo( e.target.result, mpfs_start_at, WebPagePushImageFunction );
 		}
 
@@ -620,18 +735,19 @@ function DragDropSystemFiles( file )
 
 		for( var i = 0; i < file.length; i++ )
 		{
-			if( file[i].name.substr( 0, 7 ) == "0x00000" ) file1 = file[i];
-			if( file[i].name.substr( 0, 7 ) == "0x40000" ) file2 = file[i];
+			console.log( "Found: " + file[i].name );
+			if( file[i].name.substr( 0, 17 ) == "image.elf-0x00000" ) file1 = file[i];
+			if( file[i].name.substr( 0, 17 ) == "image.elf-0x40000" ) file2 = file[i];
 		}
 
 		if( !file1 )
 		{
-			$("#innersystemflashtext").html( "Could not find a 0x00000... file." ); return;
+			$("#innersystemflashtext").html( "Could not find a image.elf-0x00000... file." ); return;
 		}
 
 		if( !file2 )
 		{
-			$("#innersystemflashtext").html( "Could not find a 0x40000... file." ); return;
+			$("#innersystemflashtext").html( "Could not find a image.elf-0x40000... file." ); return;
 		}
 
 		if(  file1.size > 65536 )
@@ -650,7 +766,7 @@ function DragDropSystemFiles( file )
 
 		var reader = new FileReader();
 
-		reader.onload = function(e) { 
+		reader.onload = function(e) {
 			var ctx = new Object();
 			ctx.file1 = file1;
 			ctx.file2 = file2;
@@ -681,6 +797,15 @@ function tohex8( c )
 	return hex.length == 1 ? "0" + hex : hex;
 }
 
+
+function HexToIP( hexstr )
+{
+	if( !hexstr ) return "";
+	return parseInt( hexstr.substr( 6, 2 ), 16 ) + "." +
+		parseInt( hexstr.substr( 4, 2 ), 16 ) + "." +
+		parseInt( hexstr.substr( 2, 2 ), 16 ) + "." +
+		parseInt( hexstr.substr( 0, 2 ), 16 );
+}
 
 function ContinueSystemFlash( fsrd, flashresponse, pushop )
 {
