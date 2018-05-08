@@ -49,6 +49,7 @@ int set_screenx = 640;	REGISTER_PARAM( set_screenx, PAINT );
 int set_screeny = 480;	REGISTER_PARAM( set_screeny, PAINT );
 char sound_source[16]; 	REGISTER_PARAM( sound_source, PABUFFER );
 int cpu_autolimit = 1; 	REGISTER_PARAM( cpu_autolimit, PAINT );
+float cpu_autolimit_interval = 0.016; 	REGISTER_PARAM( cpu_autolimit_interval, PAFLOAT );
 int sample_channel = -1;REGISTER_PARAM( sample_channel, PAINT );
 int showfps = 0;        REGISTER_PARAM( showfps, PAINT );
 
@@ -432,8 +433,8 @@ int main(int argc, char ** argv)
 
 		if( cpu_autolimit )
 		{
-			SecToWait = .016 - ( ThisTime - LastFrameTime );
-			LastFrameTime += .016;
+			SecToWait = cpu_autolimit_interval - ( ThisTime - LastFrameTime );
+			LastFrameTime += cpu_autolimit_interval;
 			if( SecToWait < -.1 ) LastFrameTime = ThisTime - .1;
 			if( SecToWait > 0 )
 				OGUSleep( (int)( SecToWait * 1000000 ) );
