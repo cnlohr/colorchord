@@ -29,7 +29,7 @@ struct FileWriteDriver
 	int asynchronous;
 	uint32_t pass_buffer[MAX_LEDS];
 	og_thread_t  rt_thread;
-    og_sema_t rt_sema;
+	og_sema_t rt_sema;
 };
 
 static void * LightsWrite( void * v )
@@ -37,7 +37,7 @@ static void * LightsWrite( void * v )
 	struct FileWriteDriver * d = (struct FileWriteDriver *)v;
 	while(1)
 	{
-        OGLockSema( d->rt_sema );
+		OGLockSema( d->rt_sema );
 		if( d->lights_file > 0 )
 		{
 			int btos = ((d->inflate_to_u32)?4:3)*d->total_leds;
