@@ -25,8 +25,10 @@ struct FileWriteDriver
 	int lights_file;
 	int total_leds;
 	int inflate_to_u32;
+	int file_thread_usleep;
 	int asynchronous;
 	uint32_t pass_buffer[MAX_LEDS];
+	volatile int flagchanges;
 	og_thread_t  rt_thread;
 };
 
@@ -35,8 +37,9 @@ static void * LightsWrite( void * v )
 	struct FileWriteDriver * d = (struct FileWriteDriver *)v;
 	while(1)
 	{
-
-	
+		usleep( d->file_thread_usleep );
+		if( !d->flagchanges ) continue; 
+		d->flagchanges = 0;
 		if( d->lights_file > 0 )
 		{
 			int btos = ((d->inflate_to_u32)?4:3)*d->total_leds;
@@ -65,6 +68,7 @@ static void * LightsWrite( void * v )
 		close( d->lights_file );
 		d->lights_file = 0;
 	}
+	return 0;
 }
 
 static void FileWriteUpdate(void * id, struct NoteFinder*nf)
@@ -85,6 +89,7 @@ static void FileWriteUpdate(void * id, struct NoteFinder*nf)
 			d->pass_buffer[i] = ol[0] | (ol[1]<<8) | (ol[2]<<16) |  0xff000000;
 		}
 	}
+	d->flagchanges = 1;
 
 }
 
@@ -95,6 +100,7 @@ static void FileWriteParams(void * id )
 	d->total_leds = 300;	RegisterValue( "leds", PAINT, &d->total_leds, sizeof( d->total_leds ));
 	d->inflate_to_u32 = 1;  RegisterValue( "inflate_to_u32", PAINT, &d->inflate_to_u32, sizeof( d->inflate_to_u32 ));
 	d->asynchronous = 1;	RegisterValue( "file_async", PAINT, &d->asynchronous, sizeof( d->asynchronous ));
+	d->file_thread_usleep = 10000;	RegisterValue( "file_thread_usleep", PAINT, &d->file_thread_usleep, sizeof( d->file_thread_usleep ));
 }
 
 static struct DriverInstances * DisplayFileWrite(const char * parameters)
