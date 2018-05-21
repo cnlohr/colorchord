@@ -3,7 +3,7 @@ all : colorchord
 RAWDRAW:=DrawFunctions.o XDriver.o
 SOUND:=sound.o sound_alsa.o sound_pulse.o sound_null.o
 
-OUTS := OutputVoronoi.o DisplayArray.o OutputLinear.o DisplayPie.o DisplayNetwork.o DisplayUSB2812.o DisplayDMX.o OutputProminent.o RecorderPlugin.o DisplayHIDAPI.o hidapi.o OutputCells.o DisplaySHM.o
+OUTS := OutputVoronoi.o DisplayArray.o OutputLinear.o DisplayPie.o DisplayNetwork.o DisplayUSB2812.o DisplayDMX.o OutputProminent.o RecorderPlugin.o DisplayHIDAPI.o hidapi.o OutputCells.o DisplaySHM.o DisplayFileWrite.o
 
 WINGCC:= i686-w64-mingw32-gcc
 
