@@ -28,8 +28,8 @@ struct FileWriteDriver
 	int file_thread_usleep;
 	int asynchronous;
 	uint32_t pass_buffer[MAX_LEDS];
-	volatile int flagchanges;
 	og_thread_t  rt_thread;
+    og_sema_t rt_sema;
 };
 
 static void * LightsWrite( void * v )
@@ -37,9 +37,7 @@ static void * LightsWrite( void * v )
 	struct FileWriteDriver * d = (struct FileWriteDriver *)v;
 	while(1)
 	{
-		usleep( d->file_thread_usleep );
-		if( !d->flagchanges ) continue; 
-		d->flagchanges = 0;
+        OGLockSema( d->rt_sema );
 		if( d->lights_file > 0 )
 		{
 			int btos = ((d->inflate_to_u32)?4:3)*d->total_leds;
@@ -75,7 +73,7 @@ static void FileWriteUpdate(void * id, struct NoteFinder*nf)
 {
 	struct FileWriteDriver * d = (struct FileWriteDriver*)id;
 
-
+	if( OGGetSema( d->rt_sema ) > 0 ) return;
 	if( !d->inflate_to_u32 )
 	{
 		memcpy( d->pass_buffer, OutLEDs, d->total_leds*3 );
@@ -89,7 +87,7 @@ static void FileWriteUpdate(void * id, struct NoteFinder*nf)
 			d->pass_buffer[i] = ol[0] | (ol[1]<<8) | (ol[2]<<16) |  0xff000000;
 		}
 	}
-	d->flagchanges = 1;
+    OGUnlockSema( d->rt_sema );
 
 }
 
@@ -112,6 +110,7 @@ static struct DriverInstances * DisplayFileWrite(const char * parameters)
 	ret->Params = FileWriteParams;
 	FileWriteParams( d );
 	printf( "Loaded DisplayFileWrite\n" );
+    d->rt_sema = OGCreateSema();
 	d->rt_thread = OGCreateThread( LightsWrite, d );
 	return ret;
 }
