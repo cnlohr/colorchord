@@ -8,7 +8,6 @@
 #include <string.h>
 #include "color.h"
 #include <math.h>
-#include "DrawFunctions.h"
 
 //Uses: note_amplitudes2[note] for how many lights to use.
 //Uses: note_amplitudes_out[note] for how bright it should be.
@@ -135,7 +134,6 @@ static void DPOUpdate(void * id, struct NoteFinder*nf)
 		OutLEDs[led*3+2] = ( color >> 16 ) & 0xff;
 		led++;
 	}
-	CNFGColor ( 0xffffff );
 }
 
 static void DPOParams(void * id )
