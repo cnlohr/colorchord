@@ -249,7 +249,7 @@ static unsigned int i2sBlock[WS_BLOCKSIZE/4];
 //DMA underrun counter
 
 
-#ifdef USE_2812_INTERRUPTS
+#if USE_2812_INTERRUPTS
 
 volatile uint8_t ws2812_dma_complete;
 
@@ -496,7 +496,7 @@ void ws2812_push( uint8_t * buffer, uint16_t buffersize )
 	}
 #endif
 
-#ifdef USE_2812_INTERRUPTS
+#if USE_2812_INTERRUPTS
 
 	uint16_t leftover = buffersize & 0x1f;
 	if( leftover ) leftover = 32 - leftover;
