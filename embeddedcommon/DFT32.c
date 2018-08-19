@@ -199,11 +199,17 @@ static void HandleInt( int16_t sample )
 	Swhichoctaveplace ++;
 	Swhichoctaveplace &= BINCYCLE-1;
 
+	for( i = 0; i < OCTAVES;i++ )
+	{
+		Saccum_octavebins[i] += sample;
+	}
+
 	if( oct > 128 )
 	{
 		//Special: This is when we can update everything.
-		//This gets run one out of every 1/(1<<OCTAVES) times.
+		//This gets run once out of every (1<<OCTAVES) times.
 		//It handles updating part of the DFT.
+		//It should happen at the very first call to HandleInit
 		int32_t * bins = &Sdatspace32B[0];
 		int32_t * binsOut = &Sdatspace32BOut[0];
 
@@ -219,12 +225,6 @@ static void HandleInt( int16_t sample )
 			*(bins++) -= val>>DFTIIR;
 		}
 		return;
-	}
-
-
-	for( i = 0; i < OCTAVES;i++ )
-	{
-		Saccum_octavebins[i] += sample;
 	}
 
 	uint16_t * dsA = &Sdatspace32A[oct*FIXBPERO*2];
@@ -252,11 +252,12 @@ int SetupDFTProgressive32()
 	int j;
 
 	Sdonefirstrun = 1;
-
-	for( i = 0; i < BINCYCLE; i++ )
+	Sdo_this_octave[0] = 0xff;
+	for( i = 0; i < BINCYCLE-1; i++ )
 	{
 		// Sdo_this_octave = 
-		// 4 3 4 2 4 3 4 ...
+		// 255 4 3 4 2 4 3 4 1 4 3 4 2 4 3 4 0 4 3 4 2 4 3 4 1 4 3 4 2 4 3 4 is case for 5 octaves.
+		// Initial state is special one, then at step i do octave = Sdo_this_octave with averaged samples from last update of that octave
 		//search for "first" zero
 
 		for( j = 0; j <= OCTAVES; j++ )
@@ -271,7 +272,7 @@ int SetupDFTProgressive32()
 #endif
 			return -1;
 		}
-		Sdo_this_octave[i] = OCTAVES-j-1;
+		Sdo_this_octave[i+1] = OCTAVES-j-1;
 	}
 	return 0;
 }
