@@ -31,3 +31,17 @@ If you have problems with burning the firmware or transfering page data over net
 in `makeconf.inc`. This way the esp checks if the flash is written correctly.
 Especially with some ESP-01 modules there has been a problem with the flash
 not being written correctly.
+
+## UDP Commands
+
+| Custom Command | Name | Description |
+| -------------- | ---- | ----------- |
+| CB | Bins | Given an integer, return the bins vals in a string over UDP. 0 == embeddedBins32, 1 == fizzed_bins, 3 == folded_bins |
+| CL | LEDs | Return the LED values in a string over UDP |
+| CM | Oscilloscope | Return the sounddata values in a string over UDP |
+| CN | Notes | Return the note peak frequency, peak amplitudes, and jumps in a string over UDP |
+| CSD | Config Default | Set all configurables to default values | 
+| CSR | Config Read | Read all configurables from struct SaveLoad |
+| CSS | Config Save | Write all configurables to SPI flash |
+| CVR | Colorchord Values Read | Return all configurables in string form over UDP |
+| CVW | Colorchord Values Write | Given a name and value pair, set a configurable |

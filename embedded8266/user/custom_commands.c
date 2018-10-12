@@ -11,40 +11,133 @@ extern volatile uint8_t sounddata[];
 extern volatile uint16_t soundhead;
 
 
-#define CONFIGURABLES 18 //(plus1)
+#define CONFIGURABLES sizeof(struct CCSettings) //(plus1)
 
+#define SAVE_LOAD_KEY 0xAA
 
 struct SaveLoad
 {
 	uint8_t configs[CONFIGURABLES];
-	uint8_t SaveLoadKey; //Must be 0xaa to be valid.
+	uint8_t SaveLoadKey; //Must be SAVE_LOAD_KEY to be valid.
 } settings;
 
 struct CCSettings CCS;
 
-uint8_t gConfigDefaults[CONFIGURABLES] =  { 0, 6, 1, 2, 3, 4, 7, 4, 2, 80, 64, 12, 15, NUM_LIN_LEDS, 1, 0, 16, 0 };
+typedef struct {
+	uint8_t defaultVal;
+	char * name;
+	uint8_t * val;
+} configurable_t;
 
-uint8_t * gConfigurables[CONFIGURABLES] = { &CCS.gROOT_NOTE_OFFSET, &CCS.gDFTIIR, &CCS.gFUZZ_IIR_BITS, &CCS.gFILTER_BLUR_PASSES,
-	&CCS.gSEMIBITSPERBIN, &CCS.gMAX_JUMP_DISTANCE, &CCS.gMAX_COMBINE_DISTANCE, &CCS.gAMP_1_IIR_BITS,
-	&CCS.gAMP_2_IIR_BITS, &CCS.gMIN_AMP_FOR_NOTE, &CCS.gMINIMUM_AMP_FOR_NOTE_TO_DISAPPEAR, &CCS.gNOTE_FINAL_AMP,
-	&CCS.gNERF_NOTE_PORP, &CCS.gUSE_NUM_LIN_LEDS, &CCS.gCOLORCHORD_ACTIVE, &CCS.gCOLORCHORD_OUTPUT_DRIVER, &CCS.gINITIAL_AMP, 0 };
+configurable_t gConfigs[CONFIGURABLES] =
+{
+	{
+		.defaultVal = 0,
+		.name = "gROOT_NOTE_OFFSET",
+		.val = &CCS.gROOT_NOTE_OFFSET
+	},
+	{
+		.defaultVal = 6,
+		.name = "gDFTIIR",
+		.val = &CCS.gDFTIIR
+	},
+	{
+		.defaultVal = 1,
+		.name = "gFUZZ_IIR_BITS",
+		.val = &CCS.gFUZZ_IIR_BITS
+	},
+	{
+		.defaultVal = 2,
+		.name = "gFILTER_BLUR_PASSES",
+		.val = &CCS.gFILTER_BLUR_PASSES
+	},
+	{
+		.defaultVal = 3,
+		.name = "gSEMIBITSPERBIN",
+		.val = &CCS.gSEMIBITSPERBIN
+	},
+	{
+		.defaultVal = 4,
+		.name = "gMAX_JUMP_DISTANCE",
+		.val = &CCS.gMAX_JUMP_DISTANCE
+	},
+	{
+		.defaultVal = 7,
+		.name = "gMAX_COMBINE_DISTANCE",
+		.val = &CCS.gMAX_COMBINE_DISTANCE
+	},
+	{
+		.defaultVal = 4,
+		.name = "gAMP_1_IIR_BITS",
+		.val = &CCS.gAMP_1_IIR_BITS
+	},
+	{
+		.defaultVal = 2,
+		.name = "gAMP_2_IIR_BITS",
+		.val = &CCS.gAMP_2_IIR_BITS
+	},
+	{
+		.defaultVal = 80,
+		.name = "gMIN_AMP_FOR_NOTE",
+		.val = &CCS.gMIN_AMP_FOR_NOTE
+	},
+	{
+		.defaultVal = 64,
+		.name = "gMINIMUM_AMP_FOR_NOTE_TO_DISAPPEAR",
+		.val = &CCS.gMINIMUM_AMP_FOR_NOTE_TO_DISAPPEAR
+	},
+	{
+		.defaultVal = 12,
+		.name = "gNOTE_FINAL_AMP",
+		.val = &CCS.gNOTE_FINAL_AMP
+	},
+	{
+		.defaultVal = 15,
+		.name = "gNERF_NOTE_PORP",
+		.val = &CCS.gNERF_NOTE_PORP
+	},
+	{
+		.defaultVal = NUM_LIN_LEDS,
+		.name = "gUSE_NUM_LIN_LEDS",
+		.val = &CCS.gUSE_NUM_LIN_LEDS
+	},
+	{
+		.defaultVal = 1,
+		.name = "gCOLORCHORD_ACTIVE",
+		.val = &CCS.gCOLORCHORD_ACTIVE
+	},
+	{
+		.defaultVal = 0,
+		.name = "gCOLORCHORD_OUTPUT_DRIVER",
+		.val = &CCS.gCOLORCHORD_OUTPUT_DRIVER
+	},
+	{
+		.defaultVal = 16,
+		.name = "gINITIAL_AMP",
+		.val = &CCS.gINITIAL_AMP
+	},
+	{
+		.defaultVal = 0,
+		.name = 0,
+		.val = 0
+	}
+};
 
-char * gConfigurableNames[CONFIGURABLES] = { "gROOT_NOTE_OFFSET", "gDFTIIR", "gFUZZ_IIR_BITS", "gFILTER_BLUR_PASSES",
-	"gSEMIBITSPERBIN", "gMAX_JUMP_DISTANCE", "gMAX_COMBINE_DISTANCE", "gAMP_1_IIR_BITS",
-	"gAMP_2_IIR_BITS", "gMIN_AMP_FOR_NOTE", "gMINIMUM_AMP_FOR_NOTE_TO_DISAPPEAR", "gNOTE_FINAL_AMP",
-	"gNERF_NOTE_PORP", "gUSE_NUM_LIN_LEDS", "gCOLORCHORD_ACTIVE", "gCOLORCHORD_OUTPUT_DRIVER", "gINITIAL_AMP", 0 };
-
+/**
+ * Initialization for settings, called by user_init().
+ * Reads settings from SPI flash, uses defaults if a key value isn't present
+ */
 void ICACHE_FLASH_ATTR CustomStart( )
 {
 	int i;
 	spi_flash_read( 0x3D000, (uint32*)&settings, sizeof( settings ) );
-	if( settings.SaveLoadKey == 0xaa )
+	if( settings.SaveLoadKey == SAVE_LOAD_KEY )
 	{
 		for( i = 0; i < CONFIGURABLES; i++ )
 		{
-			if( gConfigurables[i] )
+			if( gConfigs[i].val )
 			{
-				*gConfigurables[i] = settings.configs[i];
+				*gConfigs[i].val = settings.configs[i];
 			}
 		}
 	}
@@ -52,18 +145,30 @@ void ICACHE_FLASH_ATTR CustomStart( )
 	{
 		for( i = 0; i < CONFIGURABLES; i++ )
 		{
-			if( gConfigurables[i] )
+			if( gConfigs[i].val )
 			{
-				*gConfigurables[i] = gConfigDefaults[i];
+				*gConfigs[i].val = gConfigs[i].defaultVal;
 			}
 		}
 	}
 }
 
+/**
+ * Receives custom UDP commands on BACKEND_PORT. The UDP server is set up by CSInit() via user_init()
+ * Custom UDP commands start with the letter 'C' or 'c'
+ * Individual commands are documented in README.md
+ *
+ * @param buffer   The buffer to fill with data to return
+ * @param retsize  The length of the buffer to fill with data to return
+ * @param pusrdata The received data, starting with 'C' or 'c'
+ * @param len      The length of the received data
+ * @return The length of the return buffer filled with data
+ */
 int ICACHE_FLASH_ATTR CustomCommand(char * buffer, int retsize, char *pusrdata, unsigned short len)
 {
 	char * buffend = buffer;
 
+	// Start with pusrdata[1] because pusrdata[0] is 'C' or 'c'
 	switch( pusrdata[1] )
 	{
 
@@ -170,8 +275,8 @@ int ICACHE_FLASH_ATTR CustomCommand(char * buffer, int retsize, char *pusrdata, 
 			int i;
 			for( i = 0; i < CONFIGURABLES-1; i++ )
 			{
-				if( gConfigurables[i] )
-					*gConfigurables[i] = gConfigDefaults[i];
+				if( gConfigs[i].val )
+					*gConfigs[i].val = gConfigs[i].defaultVal;
 			}
 			buffend += ets_sprintf( buffend, "CD" );
 			return buffend-buffer;
@@ -182,8 +287,8 @@ int ICACHE_FLASH_ATTR CustomCommand(char * buffer, int retsize, char *pusrdata, 
 			int i;
 			for( i = 0; i < CONFIGURABLES-1; i++ )
 			{
-				if( gConfigurables[i] )
-					*gConfigurables[i] = settings.configs[i];
+				if( gConfigs[i].val )
+					*gConfigs[i].val = settings.configs[i];
 			}
 			buffend += ets_sprintf( buffend, "CSR" );
 			return buffend-buffer;
@@ -195,10 +300,10 @@ int ICACHE_FLASH_ATTR CustomCommand(char * buffer, int retsize, char *pusrdata, 
 
 			for( i = 0; i < CONFIGURABLES-1; i++ )
 			{
-				if( gConfigurables[i] )
-					settings.configs[i] = *gConfigurables[i];
+				if( gConfigs[i].val )
+					settings.configs[i] = *gConfigs[i].val;
 			}
-			settings.SaveLoadKey = 0xAA;
+			settings.SaveLoadKey = SAVE_LOAD_KEY;
 
 			EnterCritical();
 			ets_intr_lock();
@@ -226,9 +331,9 @@ int ICACHE_FLASH_ATTR CustomCommand(char * buffer, int retsize, char *pusrdata, 
 			buffend += ets_sprintf( buffend, "CVR\t" );
 
 			i = 0;
-			while( gConfigurableNames[i] )
+			while( gConfigs[i].name )
 			{
-				buffend += ets_sprintf( buffend, "%s=%d\t", gConfigurableNames[i], *gConfigurables[i] );
+				buffend += ets_sprintf( buffend, "%s=%d\t", gConfigs[i].name, *gConfigs[i].val );
 				i++;
 			}
 
@@ -248,11 +353,11 @@ int ICACHE_FLASH_ATTR CustomCommand(char * buffer, int retsize, char *pusrdata, 
 
 			do
 			{
-				while( gConfigurableNames[i] )
+				while( gConfigs[i].name )
 				{
-					if( strcmp( name, gConfigurableNames[i] ) == 0 )
+					if( strcmp( name, gConfigs[i].name ) == 0 )
 					{
-						*gConfigurables[i] = val;
+						*gConfigs[i].val = val;
 						buffend += ets_sprintf( buffend, "CVW" );
 						return buffend-buffer;
 					}
