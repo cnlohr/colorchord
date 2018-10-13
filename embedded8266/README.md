@@ -33,7 +33,7 @@ Especially with some ESP-01 modules there has been a problem with the flash
 not being written correctly.
 
 ## UDP Commands
-
+These commands can be sent to port 7878, defined in user.cfg
 | Custom Command | Name | Description |
 | -------------- | ---- | ----------- |
 | CB | Bins | Given an integer, return the bins vals in a string over UDP. 0 == embeddedBins32, 1 == fizzed_bins, 3 == folded_bins |
