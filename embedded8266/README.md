@@ -48,4 +48,4 @@ These commands can be sent to port 7878, defined in user.cfg. Custom commands fr
 | CVR | Colorchord Values Read | Return all configurables in string form over UDP |
 | CVW | Colorchord Values Write | Given a name and value pair, set a configurable |
 
-Also there's a UDP server on port 7777 which can set the LEDs. Just send it an array of raw bytes for the LEDs in RGB order. So index 0 is LED1_R, index 1 is LED1_G, index 2 is LED1_B, index 3 is LED2_R, etc.
+Also there's a UDP server on port 7777 which can set the LEDs. Just send it an array of raw bytes for the LEDs in RGB order. So index 0 is LED1_R, index 1 is LED1_G, index 2 is LED1_B, index 3 is LED2_R, etc. It seems to ignore the first three bytes sent (first LED), but reads three bytes past where the data ends, so that may be a bug.
