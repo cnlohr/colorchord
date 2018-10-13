@@ -193,9 +193,9 @@ void UpdateLinearLEDs()
 		uint16_t amp = ledAmpOut[j];
 		if( amp > 255 ) amp = 255;
 		uint32_t color = ECCtoHEX( (ledFreqOut[j]+RootNoteOffset)%NOTERANGE, 255, amp );
-		ledOut[l*3+0] = ( color >> 0 ) & 0xff;
-		ledOut[l*3+1] = ( color >> 8 ) & 0xff;
-		ledOut[l*3+2] = ( color >>16 ) & 0xff;
+		ledOut[l*3+0] = ( color >> 0 ) & 0xff; // R
+		ledOut[l*3+1] = ( color >> 8 ) & 0xff; // G
+		ledOut[l*3+2] = ( color >>16 ) & 0xff; // B
 	}
 /*	j = ledSpin;
 	for( i = 0; i < sorted_map_count; i++ )
@@ -261,9 +261,9 @@ void UpdateAllSameLEDs()
 
 	for( i = 0; i < USE_NUM_LIN_LEDS; i++ )
 	{
-		ledOut[i*3+0] = ( color >> 0 ) & 0xff;
-		ledOut[i*3+1] = ( color >> 8 ) & 0xff;
-		ledOut[i*3+2] = ( color >>16 ) & 0xff;
+		ledOut[i*3+0] = ( color >> 0 ) & 0xff; // R
+		ledOut[i*3+1] = ( color >> 8 ) & 0xff; // G
+		ledOut[i*3+2] = ( color >>16 ) & 0xff; // B
 	}
 }
 
@@ -271,7 +271,13 @@ void UpdateAllSameLEDs()
 
 
 
-
+/**
+ *
+ * @param note
+ * @param sat
+ * @param val
+ * @return A single 24 bit color, 0x00BBGGRR
+ */
 uint32_t ECCtoHEX( uint8_t note, uint8_t sat, uint8_t val )
 {
 	uint16_t hue = 0;
@@ -303,6 +309,14 @@ uint32_t ECCtoHEX( uint8_t note, uint8_t sat, uint8_t val )
 	return EHSVtoHEX( hue, sat, val );
 }
 
+/**
+ * TODO
+ *
+ * @param hue
+ * @param sat
+ * @param val
+ * @return A single 24 bit color, 0x00BBGGRR
+ */
 uint32_t EHSVtoHEX( uint8_t hue, uint8_t sat, uint8_t val )
 {
 	#define SIXTH1 43

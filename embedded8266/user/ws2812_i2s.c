@@ -42,6 +42,11 @@ Extra copyright info:
 #include "user_interface.h"
 #include "pin_mux_register.h"
 
+// This should be defined in the cfg file, but if the eclipse indexer can't see that...
+#if !defined(WS2812_THREE_SAMPLE) && !defined(DWS2812_FOUR_SAMPLE)
+#define WS2812_FOUR_SAMPLE
+#endif
+
 //Creates an I2S SR of 93,750 Hz, or 3 MHz Bitclock (.333us/sample)
 // 12000000L/(div*bestbck*2)
 //It is likely you could speed this up a little.
@@ -271,7 +276,9 @@ LOCAL void slc_isr(void) {
 
 #endif
 
-//Initialize I2S subsystem for DMA circular buffer use
+/**
+ * Initialize I2S subsystem for WS2812 LED output via DMA circular buffer use
+ */
 void ICACHE_FLASH_ATTR ws2812_init()
 {
 	int x, y;
@@ -427,6 +434,15 @@ static const uint16_t bitpatterns[16] = {
 };
 #endif
 
+/**
+ * Set the WS2812 LED colors
+ *
+ * @param buffer     Array of LED color data. Every three bytes corresponds to
+ *                   one LED in RGB order. So index 0 is LED1_R, index 1 is
+ *                   LED1_G, index 2 is LED1_B, index 3 is LED2_R, etc.
+ * @param buffersize The length of buffer, if WS2812_FOUR_SAMPLE is defined,
+ *                   no longer than 1000
+ */
 void ws2812_push( uint8_t * buffer, uint16_t buffersize )
 {
 	uint16_t place;
@@ -481,12 +497,18 @@ void ws2812_push( uint8_t * buffer, uint16_t buffersize )
 		*(bufferpl++) = STEP3(3);
 	}
 
-	while( bufferpl < &((uint8_t*)i2sBlock)[WS_BLOCKSIZE] ) *(bufferpl++) = 0;
+	while( bufferpl < &((uint8_t*)i2sBlock)[WS_BLOCKSIZE] )
+	{
+		*(bufferpl++) = 0;
+	}
 
 #elif defined(WS2812_FOUR_SAMPLE)
 	uint16_t * bufferpl = (uint16_t*)&i2sBlock[0];
 
-	if( buffersize * 4 > WS_BLOCKSIZE ) return;
+	if( buffersize * 4 > WS_BLOCKSIZE )
+	{
+		return;
+	}
 
 	for( place = 0; place < buffersize; place++ )
 	{
