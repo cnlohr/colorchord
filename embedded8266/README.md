@@ -34,9 +34,9 @@ not being written correctly.
 
 ## UDP Commands
 
-These commands can be sent to port 7878, defined in user.cfg
+These commands can be sent to port 7878, defined in user.cfg. Custom commands from custom_commands.c all start with 'C'. All others from commonservices.c do not. The non-custom commands reference can be found at https://github.com/cnlohr/esp82xx#commands
 
-| Custom Command | Name | Description |
+| Command | Name | Description |
 | -------------- | ---- | ----------- |
 | CB | Bins | Given an integer, return the bins vals in a string over UDP. 0 == embeddedBins32, 1 == fizzed_bins, 3 == folded_bins |
 | CL | LEDs | Return the LED values in a string over UDP |
