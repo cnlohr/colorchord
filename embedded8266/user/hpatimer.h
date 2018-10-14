@@ -14,8 +14,8 @@
 
 //BUFFSIZE must be a power-of-two
 #define HPABUFFSIZE 512
-extern volatile uint8_t sounddata[HPABUFFSIZE];
-extern volatile uint16_t soundhead;
+uint8_t getSample(void);
+bool sampleAvailable(void);
 
 void StartHPATimer();
 

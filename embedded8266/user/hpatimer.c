@@ -15,9 +15,11 @@ typedef enum {
 } FRC1_TIMER_SOURCE_TYPE;
 
 //BUFFSIZE must be a power-of-two
-volatile uint8_t sounddata[HPABUFFSIZE];
-volatile uint16_t soundhead;
+volatile uint8_t sounddata[HPABUFFSIZE] = {0};
+volatile uint16_t soundhead = 0;
+volatile uint16_t soundtail = 0;
 
+bool hpaRunning = false;
 
 #define FRC1_ENABLE_TIMER  BIT7
 
@@ -46,6 +48,27 @@ static void timerhandle( void * v )
 	uint16_t r = hs_adc_read();
 	sounddata[soundhead] = r>>6;
 	soundhead = (soundhead+1)&(HPABUFFSIZE-1);
+}
+
+/**
+ * @return true if a sample has been read from the ADC and is queued for processing
+ */
+bool sampleAvailable(void)
+{
+	return soundhead != soundtail;
+}
+
+/**
+ * Get a sample from the ADC in the queue, return it, and increment the queue so
+ * the next sample is returned the next time this is called
+ *
+ * @return the sample which was read from the ADC
+ */
+uint8_t getSample(void)
+{
+	uint8_t samp = sounddata[soundtail];
+	soundtail = (soundtail + 1) % (HPABUFFSIZE);
+	return samp;
 }
 
 /**
@@ -86,6 +109,7 @@ void ICACHE_FLASH_ATTR PauseHPATimer()
     TM1_EDGE_INT_DISABLE();
     ETS_FRC1_INTR_DISABLE();
 	system_timer_reinit(); // TODO this is the SW timer??
+	hpaRunning = false;
 }
 
 /**
@@ -97,7 +121,14 @@ void ICACHE_FLASH_ATTR ContinueHPATimer()
     ETS_FRC1_INTR_ENABLE();
 	system_timer_reinit(); // TODO this is the SW timer??
 	hs_adc_start();
+	hpaRunning = true;
 }
 
-
+/**
+ * @return true if the hpa timer is running, false otherwise
+ */
+bool isHpaRunning(void)
+{
+	return hpaRunning;
+}
 

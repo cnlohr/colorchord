@@ -43,7 +43,7 @@ Extra copyright info:
 #include "pin_mux_register.h"
 
 // This should be defined in the cfg file, but if the eclipse indexer can't see that...
-#if !defined(WS2812_THREE_SAMPLE) && !defined(DWS2812_FOUR_SAMPLE)
+#if !defined(WS2812_THREE_SAMPLE) && !defined(WS2812_FOUR_SAMPLE)
 #define WS2812_FOUR_SAMPLE
 #endif
 

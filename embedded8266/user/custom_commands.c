@@ -6,6 +6,7 @@
 #include <DFT32.h>
 #include <embeddednf.h>
 #include <embeddedout.h>
+#include "custom_commands.h"
 
 extern volatile uint8_t sounddata[];
 extern volatile uint16_t soundhead;

@@ -1,6 +1,10 @@
 //Copyright 2015 <>< Charles Lohr Under the MIT/x11 License, NewBSD License or
 // ColorChord License.  You Choose.
 
+/*============================================================================
+ * Includes
+ *==========================================================================*/
+
 #include "mem.h"
 #include "c_types.h"
 #include "user_interface.h"
@@ -18,6 +22,12 @@
 #include <commonservices.h>
 #include "ets_sys.h"
 #include "gpio.h"
+#include "custom_commands.h"
+
+/*============================================================================
+ * Defines
+ *==========================================================================*/
+
 //#define PROFILE
 
 #define PORT 7777
@@ -28,24 +38,23 @@
 #define PROC_TASK_PRIO        0
 #define PROC_TASK_QUEUE_LEN    1
 
-struct CCSettings CCS;
-static volatile os_timer_t some_timer;
-static struct espconn *pUdpServer;
+/*============================================================================
+ * Variables
+ *==========================================================================*/
 
-extern volatile uint8_t sounddata[HPABUFFSIZE];
-extern volatile uint16_t soundhead;
-uint16_t soundtail;
+struct CCSettings CCS = {0};
+static volatile os_timer_t some_timer = {0};
+static struct espconn *pUdpServer = NULL;
 
-static uint8_t hpa_running = 0;
-static uint8_t hpa_is_paused_for_wifi;
+static bool hpa_is_paused_for_wifi = false;
 
-os_event_t    procTaskQueue[PROC_TASK_QUEUE_LEN];
+os_event_t    procTaskQueue[PROC_TASK_QUEUE_LEN] = {0};
 uint32_t samp_iir = 0;
-int wf = 0;
+int samplesProcessed = 0;
 
-void EnterCritical();
-void ExitCritical();
-void ICACHE_FLASH_ATTR CustomStart( );
+/*============================================================================
+ * Functions
+ *==========================================================================*/
 
 /**
  * Required. Users can call system_phy_set_rfoption to set the RF option in user_rf_pre_init,
@@ -105,38 +114,36 @@ static void NewFrame()
  */
 static void procTask(os_event_t *events)
 {
+	// TODO why this instead of a while(1) loop?
 	system_os_post(PROC_TASK_PRIO, 0, 0 );
 
-	if( COLORCHORD_ACTIVE && !hpa_running )
+	if( COLORCHORD_ACTIVE && !isHpaRunning() )
 	{
 		ExitCritical();
-		hpa_running = 1;
 	}
 
-	if( !COLORCHORD_ACTIVE && hpa_running )
+	if( !COLORCHORD_ACTIVE && isHpaRunning() )
 	{
 		EnterCritical();
-		hpa_running = 0;
 	}
 	
 	//For profiling so we can see how much CPU is spent in this loop.
 #ifdef PROFILE
 	WRITE_PERI_REG( PERIPHS_GPIO_BASEADDR + GPIO_ID_PIN(0), 1 );
 #endif
-	while( soundtail != soundhead )
+	while( sampleAvailable() )
 	{
-		int32_t samp = sounddata[soundtail];
+		int32_t samp = getSample();
 		samp_iir = samp_iir - (samp_iir>>10) + samp;
 		samp = (samp - (samp_iir>>10))*16;
 		samp = (samp * CCS.gINITIAL_AMP) >> 4;
 		PushSample32( samp );
-		soundtail = (soundtail+1)&(HPABUFFSIZE-1);
 
-		wf++;
-		if( wf == 128 )
+		samplesProcessed++;
+		if( samplesProcessed == 128 )
 		{
 			NewFrame();
-			wf = 0; 
+			samplesProcessed = 0; 
 		}
 	}
 #ifdef PROFILE
@@ -165,8 +172,7 @@ static void ICACHE_FLASH_ATTR myTimer(void *arg)
 	if( hpa_is_paused_for_wifi && printed_ip )
 	{
 		StartHPATimer(); //Init the high speed  ADC timer.
-		hpa_running = 1;
-		hpa_is_paused_for_wifi = 0; // only need to do once prevents unstable ADC
+		hpa_is_paused_for_wifi = false; // only need to do once prevents unstable ADC
 	}
 //	uart0_sendStr(".");
 //	printf( "%d/%d\n",soundtail,soundhead );
@@ -268,13 +274,12 @@ void ICACHE_FLASH_ATTR user_init(void)
 	// Tricky: If we are in station mode, wait for that to get resolved before enabling the high speed timer.
 	if( wifi_get_opmode() == 1 )
 	{
-		hpa_is_paused_for_wifi = 1;
+		hpa_is_paused_for_wifi = true;
 	}
 	else
 	{
 		// Init the high speed  ADC timer.
 		StartHPATimer();
-		hpa_running = 1;
 	}
 
 	// Initialize LEDs
