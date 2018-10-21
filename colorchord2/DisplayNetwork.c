@@ -45,6 +45,19 @@ struct DPODriver
 static void DPOUpdate(void * id, struct NoteFinder*nf)
 {
 	struct DPODriver * d = (struct DPODriver*)id;
+#ifdef WIN32
+	static int wsa_did_start;
+	if( !wsa_did_start )
+	{
+		
+		WORD wVersionRequested;
+		WSADATA wsaData;
+		int err;
+		wVersionRequested = MAKEWORD(2, 2);
+		err = WSAStartup(wVersionRequested, &wsaData);
+	}
+#endif
+
 	int i, j;
 
 	if( strcmp( d->oldaddress, d->address ) != 0 || d->socket == -1 || d->oldport != d->port )

@@ -50,8 +50,10 @@ int set_screenx = 640;	REGISTER_PARAM( set_screenx, PAINT );
 int set_screeny = 480;	REGISTER_PARAM( set_screeny, PAINT );
 char sound_source[16]; 	REGISTER_PARAM( sound_source, PABUFFER );
 int cpu_autolimit = 1; 	REGISTER_PARAM( cpu_autolimit, PAINT );
+float cpu_autolimit_interval = 0.016; 	REGISTER_PARAM( cpu_autolimit_interval, PAFLOAT );
 int sample_channel = -1;REGISTER_PARAM( sample_channel, PAINT );
 int showfps = 0;        REGISTER_PARAM( showfps, PAINT );
+float in_amplitude = 1; REGISTER_PARAM( in_amplitude, PAFLOAT );
 
 struct NoteFinder * nf;
 
@@ -132,7 +134,7 @@ void SoundCB( float * out, float * in, int samplesr, int * samplesp, struct Soun
 			}
 
 			fo /= channelin;
-			sound[soundhead] = fo;
+			sound[soundhead] = fo*in_amplitude;
 			soundhead = (soundhead+1)%SOUNDCBSIZE;
 		}
 		else
@@ -146,7 +148,7 @@ void SoundCB( float * out, float * in, int samplesr, int * samplesp, struct Soun
 
 
 			//printf( "Sound fault B %d/%d\n", i, samplesr );
-			sound[soundhead] = f;
+			sound[soundhead] = f*in_amplitude;
 			soundhead = (soundhead+1)%SOUNDCBSIZE;
 
 		}
@@ -352,7 +354,6 @@ int main(int argc, char ** argv)
 				int thisy = sound[thissoundhead] * 128 + 128; thissoundhead = (thissoundhead-1+SOUNDCBSIZE)%SOUNDCBSIZE;
 				for( i = 0; i < screenx; i++ )
 				{
-					if( thisy < 0 || thisy > 256 ) printf( "%d/%d\n", thisy,thissoundhead );
 					CNFGTackSegment( i, lasty, i+1, thisy );
 					lasty = thisy;
 					thisy = sound[thissoundhead] * 128 + 128; thissoundhead = (thissoundhead-1+SOUNDCBSIZE)%SOUNDCBSIZE;
@@ -434,8 +435,8 @@ int main(int argc, char ** argv)
 
 		if( cpu_autolimit )
 		{
-			SecToWait = .016 - ( ThisTime - LastFrameTime );
-			LastFrameTime += .016;
+			SecToWait = cpu_autolimit_interval - ( ThisTime - LastFrameTime );
+			LastFrameTime += cpu_autolimit_interval;
 			if( SecToWait < -.1 ) LastFrameTime = ThisTime - .1;
 			if( SecToWait > 0 )
 				OGUSleep( (int)( SecToWait * 1000000 ) );
