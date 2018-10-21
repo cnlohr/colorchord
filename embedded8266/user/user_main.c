@@ -53,7 +53,6 @@ static void NewFrame()
 {
 	if( !COLORCHORD_ACTIVE ) return;
 
-	//uint8_t led_outs[NUM_LIN_LEDS*3];
 	int i;
 	HandleFrameInfo();
 
@@ -67,7 +66,6 @@ static void NewFrame()
 		break;
 	};
 
-	//SendSPI2812( ledOut, NUM_LIN_LEDS );
 	ws2812_push( ledOut, USE_NUM_LIN_LEDS * 3 );
 }
 
@@ -174,6 +172,10 @@ void ICACHE_FLASH_ATTR user_init(void)
 #ifdef PROFILE
 	GPIO_OUTPUT_SET(GPIO_ID_PIN(0), 0);
 #endif
+
+	//Tricky: New recommendation is to connect GPIO14 to vcc for audio circuitry, so we turn this on by default.
+	GPIO_OUTPUT_SET( GPIO_ID_PIN(14), 1);
+	PIN_FUNC_SELECT( PERIPHS_IO_MUX_MTMS_U, 3 );
 
 	CSPreInit();
 
