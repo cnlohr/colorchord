@@ -23,7 +23,7 @@
 #include <netdb.h>
 #endif
 
-#define MAX_BUFFER 1487
+#define MAX_BUFFER 1487*2
 
 struct DPODriver
 {

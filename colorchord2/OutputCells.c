@@ -31,8 +31,9 @@ struct CellsOutDriver
 	float satamp;
 	float qtyamp;
 	int steady_bright;
-	int lastadvance;
 	int timebased; //Useful for pies, turn off for linear systems.
+	int snakey; //Advance head for where to get LEDs around.
+	int snakeyplace;
 };
 
 static void LEDUpdate(void * id, struct NoteFinder*nf)
@@ -130,9 +131,24 @@ static void LEDUpdate(void * id, struct NoteFinder*nf)
 			{
 				if( led->led_note_attached[j] != -1 ) continue;
 				if( !led->timebased ) { selindex = j; break; }
-				if( led->time_of_change[j] < seltime )
+
+				float bias = 0;
+				float timeimp = 1;
+				if( led->snakey )
 				{
-					seltime = led->time_of_change[j];
+//					bias = (j - led->snakeyplace + led->total_leds+(rand()%100)*.01);
+//					if( bias > led->total_leds ) bias -= led->total_leds;
+
+					bias = (j - led->snakeyplace + led->total_leds) % led->total_leds;
+
+					if( bias > led->total_leds / 2 ) bias = led->total_leds - bias + 1;
+					timeimp = 0;
+				}
+
+				float score = led->time_of_change[j] * timeimp + bias;
+				if( score < seltime )
+				{
+					seltime = score;
 					selindex = j;
 				}
 			}
@@ -140,6 +156,7 @@ static void LEDUpdate(void * id, struct NoteFinder*nf)
 			{
 				led->led_note_attached[selindex] = i;
 				led->time_of_change[selindex] = Now;
+				led->snakeyplace = selindex;
 			}
 			qtyDiff[i]--;
 		}
@@ -181,6 +198,10 @@ static void LEDParams(void * id )
 	led->light_siding = 1.9;RegisterValue( "light_siding", PAFLOAT, &led->light_siding, sizeof( led->light_siding ) );
 	led->qtyamp = 20;		RegisterValue( "qtyamp", PAFLOAT, &led->qtyamp, sizeof( led->qtyamp ) );
 	led->timebased = 1;		RegisterValue( "timebased", PAINT, &led->timebased, sizeof( led->timebased ) );
+
+	led->snakey = 0;		RegisterValue( "snakey", PAINT, &led->snakey, sizeof( led->snakey ) );
+
+	led->snakeyplace = 0;
 
 	printf( "Found LEDs for output.  leds=%d\n", led->total_leds );
 
