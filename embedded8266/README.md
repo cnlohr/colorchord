@@ -8,7 +8,7 @@ This project is based off of the I2S interface for the mp3 player found here:
 https://github.com/espressif/esp8266_mp3_decoder/
 
 If you want more information about the build environment, etc.  You should
-check out the regular WS2812 driver, found here: https://github.com/cnlohr/ws2812esp8266
+check out the regular WS2812 driver, found here: https://github.com/cnlohr/esp8266ws2812i2s
 
 WARNING: This subproject is very jankey!  It's about stable, but I don't think it's quite there yet.
 
