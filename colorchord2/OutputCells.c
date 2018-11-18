@@ -132,24 +132,30 @@ static void LEDUpdate(void * id, struct NoteFinder*nf)
 				if( led->led_note_attached[j] != -1 ) continue;
 				if( !led->timebased ) { selindex = j; break; }
 
-				float bias = 0;
-				float timeimp = 1;
 				if( led->snakey )
 				{
-//					bias = (j - led->snakeyplace + led->total_leds+(rand()%100)*.01);
-//					if( bias > led->total_leds ) bias -= led->total_leds;
+					float bias = 0;
+					float timeimp = 1;
 
 					bias = (j - led->snakeyplace + led->total_leds) % led->total_leds;
 
 					if( bias > led->total_leds / 2 ) bias = led->total_leds - bias + 1;
 					timeimp = 0;
-				}
 
-				float score = led->time_of_change[j] * timeimp + bias;
-				if( score < seltime )
+					float score = led->time_of_change[j] * timeimp + bias;
+					if( score < seltime )
+					{
+						seltime = score;
+						selindex = j;
+					}
+				}
+				else
 				{
-					seltime = score;
-					selindex = j;
+					if( led->time_of_change[j] < seltime )
+					{
+						seltime = led->time_of_change[j];
+						selindex = j;
+					}
 				}
 			}
 			if( selindex >= 0 )
