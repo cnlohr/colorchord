@@ -58,7 +58,7 @@ struct CCSettings
 	uint16_t gINITIAL_AMP;
 };
 
-#define CCCONFIG_ADDRESS 0x81C00
+#define CCCONFIG_ADDRESS 0xAF000
 
 extern struct CCSettings CCS;
 
