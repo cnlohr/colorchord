@@ -37,7 +37,7 @@ char * gConfigurableNames[CONFIGURABLES] = { "gROOT_NOTE_OFFSET", "gDFTIIR", "gF
 void ICACHE_FLASH_ATTR CustomStart( )
 {
 	int i;
-	spi_flash_read( 0x3D000, (uint32*)&settings, sizeof( settings ) );
+	spi_flash_read( CCCONFIG_ADDRESS, (uint32*)&settings, sizeof( settings ) );
 	if( settings.SaveLoadKey == 0xaa )
 	{
 		for( i = 0; i < CONFIGURABLES; i++ )
@@ -202,8 +202,8 @@ int ICACHE_FLASH_ATTR CustomCommand(char * buffer, int retsize, char *pusrdata, 
 
 			EnterCritical();
 			ets_intr_lock();
-			spi_flash_erase_sector( 0x3D000/4096 );
-			spi_flash_write( 0x3D000, (uint32*)&settings, ((sizeof( settings )-1)&(~0xf))+0x10 );
+			spi_flash_erase_sector( CCCONFIG_ADDRESS/4096 );
+			spi_flash_write( CCCONFIG_ADDRESS, (uint32*)&settings, ((sizeof( settings )-1)&(~0xf))+0x10 );
 			ets_intr_unlock();
 			ExitCritical();
 
