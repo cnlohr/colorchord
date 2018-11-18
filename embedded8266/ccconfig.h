@@ -38,24 +38,24 @@
 
 struct CCSettings
 {
-	uint8_t gSETTINGS_KEY;
-	uint8_t gROOT_NOTE_OFFSET; //Set to define what the root note is.  0 = A.
-	uint8_t gDFTIIR;                            //=6
-	uint8_t gFUZZ_IIR_BITS;                     //=1
-	uint8_t gFILTER_BLUR_PASSES;                //=2
-	uint8_t gSEMIBITSPERBIN;                    //=3
-	uint8_t gMAX_JUMP_DISTANCE;                 //=4
-	uint8_t gMAX_COMBINE_DISTANCE;              //=7
-	uint8_t gAMP_1_IIR_BITS;                    //=4
-	uint8_t gAMP_2_IIR_BITS;                    //=2
-	uint8_t gMIN_AMP_FOR_NOTE;                  //=80
-	uint8_t gMINIMUM_AMP_FOR_NOTE_TO_DISAPPEAR; //=64
-	uint8_t gNOTE_FINAL_AMP;                    //=12
-	uint8_t gNERF_NOTE_PORP;                    //=15
-	uint8_t gUSE_NUM_LIN_LEDS;                  // = NUM_LIN_LEDS
-	uint8_t gCOLORCHORD_ACTIVE;
-	uint8_t gCOLORCHORD_OUTPUT_DRIVER;
-	uint8_t gINITIAL_AMP;
+	uint16_t gSETTINGS_KEY;
+	uint16_t gROOT_NOTE_OFFSET; //Set to define what the root note is.  0 = A.
+	uint16_t gDFTIIR;                            //=6
+	uint16_t gFUZZ_IIR_BITS;                     //=1
+	uint16_t gFILTER_BLUR_PASSES;                //=2
+	uint16_t gSEMIBITSPERBIN;                    //=3
+	uint16_t gMAX_JUMP_DISTANCE;                 //=4
+	uint16_t gMAX_COMBINE_DISTANCE;              //=7
+	uint16_t gAMP_1_IIR_BITS;                    //=4
+	uint16_t gAMP_2_IIR_BITS;                    //=2
+	uint16_t gMIN_AMP_FOR_NOTE;                  //=80
+	uint16_t gMINIMUM_AMP_FOR_NOTE_TO_DISAPPEAR; //=64
+	uint16_t gNOTE_FINAL_AMP;                    //=12
+	uint16_t gNERF_NOTE_PORP;                    //=15
+	uint16_t gUSE_NUM_LIN_LEDS;                  // = NUM_LIN_LEDS
+	uint16_t gCOLORCHORD_ACTIVE;
+	uint16_t gCOLORCHORD_OUTPUT_DRIVER;
+	uint16_t gINITIAL_AMP;
 };
 
 extern struct CCSettings CCS;
