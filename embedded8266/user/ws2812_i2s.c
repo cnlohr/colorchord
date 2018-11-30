@@ -45,6 +45,13 @@ Extra copyright info:
 //Creates an I2S SR of 93,750 Hz, or 3 MHz Bitclock (.333us/sample)
 // 12000000L/(div*bestbck*2)
 //It is likely you could speed this up a little.
+#define LUXETRON
+
+#ifdef LUXETRON
+#define INVERT
+#define WS_I2S_BCK 14
+#define WS_I2S_DIV 5
+#else
 
 #ifdef WS2812_THREE_SAMPLE
 #define WS_I2S_BCK 22  //Seems to work as low as 19, but is shakey at 18.
@@ -54,6 +61,7 @@ Extra copyright info:
 #define WS_I2S_DIV 4
 #else
 #error You need to either define WS2812_THREE_SAMPLE or WS2812_FOUR_SAMPLE
+#endif
 #endif
 
 #ifndef i2c_bbpll
@@ -239,11 +247,13 @@ union sdio_slave_status
 //static unsigned int i2sBuf[I2SDMABUFCNT][I2SDMABUFLEN];
 //I2S DMA buffer descriptors
 //static struct sdio_queue i2sBufDesc[I2SDMABUFCNT];
-static struct sdio_queue i2sBufDescOut;
+static struct sdio_queue i2sBufDescOut0;
+static struct sdio_queue i2sBufDescOut1;
+static struct sdio_queue i2sBufDescOut2;
 static struct sdio_queue i2sBufDescZeroes;
 
 static unsigned int i2sZeroes[32];
-static unsigned int i2sBlock[WS_BLOCKSIZE/4];
+static unsigned int i2sBlock[(WS_BLOCKSIZE0 + WS_BLOCKSIZE1 + WS_BLOCKSIZE2)/4];
 
 //Queue which contains empty DMA buffers
 //DMA underrun counter
@@ -290,14 +300,32 @@ void ICACHE_FLASH_ATTR ws2812_init()
 	SET_PERI_REG_MASK(SLC_RX_DSCR_CONF,SLC_INFOR_NO_REPLACE|SLC_TOKEN_NO_REPLACE);
 	CLEAR_PERI_REG_MASK(SLC_RX_DSCR_CONF, SLC_RX_FILL_EN|SLC_RX_EOF_MODE | SLC_RX_FILL_MODE);
 
-	i2sBufDescOut.owner = 1;
-	i2sBufDescOut.eof = 1;
-	i2sBufDescOut.sub_sof = 0;
-	i2sBufDescOut.datalen = WS_BLOCKSIZE;  //Size (in bytes)
-	i2sBufDescOut.blocksize = WS_BLOCKSIZE; //Size (in bytes)
-	i2sBufDescOut.buf_ptr=(uint32_t)&i2sBlock[0];
-	i2sBufDescOut.unused=0;
-	i2sBufDescOut.next_link_ptr=(uint32_t)&i2sBufDescZeroes; //At the end, just redirect the DMA to the zero buffer.
+	i2sBufDescOut0.owner = 1;
+	i2sBufDescOut0.eof = 1;
+	i2sBufDescOut0.sub_sof = 0;
+	i2sBufDescOut0.datalen = WS_BLOCKSIZE0;  //Size (in bytes)
+	i2sBufDescOut0.blocksize = WS_BLOCKSIZE0; //Size (in bytes)
+	i2sBufDescOut0.buf_ptr=(uint32_t)&i2sBlock[0];
+	i2sBufDescOut0.unused=0;
+	i2sBufDescOut0.next_link_ptr=(uint32_t)&i2sBufDescOut1; //At the end, just redirect the DMA to the zero buffer.
+
+	i2sBufDescOut1.owner = 1;
+	i2sBufDescOut1.eof = 1;
+	i2sBufDescOut1.sub_sof = 0;
+	i2sBufDescOut1.datalen = WS_BLOCKSIZE1;  //Size (in bytes)
+	i2sBufDescOut1.blocksize = WS_BLOCKSIZE1; //Size (in bytes)
+	i2sBufDescOut1.buf_ptr=(uint32_t)&i2sBlock[WS_BLOCKSIZE0/4];
+	i2sBufDescOut1.unused=0;
+	i2sBufDescOut1.next_link_ptr=(uint32_t)&i2sBufDescOut2; //At the end, just redirect the DMA to the zero buffer.
+
+	i2sBufDescOut2.owner = 1;
+	i2sBufDescOut2.eof = 1;
+	i2sBufDescOut2.sub_sof = 0;
+	i2sBufDescOut2.datalen = WS_BLOCKSIZE2;  //Size (in bytes)
+	i2sBufDescOut2.blocksize = WS_BLOCKSIZE2; //Size (in bytes)
+	i2sBufDescOut2.buf_ptr=(uint32_t)&i2sBlock[(WS_BLOCKSIZE1+WS_BLOCKSIZE0)/4];
+	i2sBufDescOut2.unused=0;
+	i2sBufDescOut2.next_link_ptr=(uint32_t)&i2sBufDescZeroes; //At the end, just redirect the DMA to the zero buffer.
 
 	i2sBufDescZeroes.owner = 1;
 	i2sBufDescZeroes.eof = 1;
@@ -306,16 +334,24 @@ void ICACHE_FLASH_ATTR ws2812_init()
 	i2sBufDescZeroes.blocksize = 32;
 	i2sBufDescZeroes.buf_ptr=(uint32_t)&i2sZeroes[0];
 	i2sBufDescZeroes.unused=0;
-	i2sBufDescZeroes.next_link_ptr=(uint32_t)&i2sBufDescOut;
+	i2sBufDescZeroes.next_link_ptr=(uint32_t)&i2sBufDescOut0;
 
 
 	for( x = 0; x < 32; x++ )
 	{
+#ifdef INVERT
+		i2sZeroes[x] = 0xffffffff;
+#else
 		i2sZeroes[x] = 0x00;
+#endif
 	}
-	for( x = 0; x < WS_BLOCKSIZE/4; x++ )
+	for( x = 0; x < (WS_BLOCKSIZE0+WS_BLOCKSIZE1+WS_BLOCKSIZE2)/4; x++ )
 	{
+#ifdef INVERT
 		i2sBlock[x] = 0x00000000;//(x == 0 || x == 999)?0xaa:0x00;
+#else
+		i2sBlock[x] = 0xffffffff;//(x == 0 || x == 999)?0xaa:0x00;
+#endif
 	
 /*		uint16_t * tt = (uint16_t*)&i2sBlock[x];
 		(*(tt+0)) = 0xA0F0;
@@ -328,7 +364,7 @@ void ICACHE_FLASH_ATTR ws2812_init()
 //	SET_PERI_REG_MASK(SLC_TX_LINK, ((uint32)&i2sBufDescZeroes) & SLC_TXLINK_DESCADDR_MASK); //any random desc is OK, we don't use TX but it needs something valid
 
 	CLEAR_PERI_REG_MASK(SLC_RX_LINK,SLC_RXLINK_DESCADDR_MASK);
-	SET_PERI_REG_MASK(SLC_RX_LINK, ((uint32)&i2sBufDescOut) & SLC_RXLINK_DESCADDR_MASK);
+	SET_PERI_REG_MASK(SLC_RX_LINK, ((uint32)&i2sBufDescOut0) & SLC_RXLINK_DESCADDR_MASK);
 
 #if USE_2812_INTERRUPTS
 
@@ -418,6 +454,14 @@ static const uint16_t bitpatterns[16] = {
 };
 
 #elif defined(WS2812_FOUR_SAMPLE)
+#ifdef INVERT
+static const uint16_t bitpatterns[16] = {
+	~0b1000100010001000, ~0b1000100010001100, ~0b1000100011001000, ~0b1000100011001100,
+	~0b1000110010001000, ~0b1000110010001100, ~0b1000110011001000, ~0b1000110011001100,
+	~0b1100100010001000, ~0b1100100010001100, ~0b1100100011001000, ~0b1100100011001100,
+	~0b1100110010001000, ~0b1100110010001100, ~0b1100111011001000, ~0b1100110011001100,
+};
+#else
 //Tricky, send out WS2812 bits with coded pulses, one nibble, then the other.
 static const uint16_t bitpatterns[16] = {
 	0b1000100010001000, 0b1000100010001110, 0b1000100011101000, 0b1000100011101110,
@@ -426,14 +470,17 @@ static const uint16_t bitpatterns[16] = {
 	0b1110111010001000, 0b1110111010001110, 0b1110111011101000, 0b1110111011101110,
 };
 #endif
+#endif
 
-void ws2812_push( uint8_t * buffer, uint16_t buffersize )
+void ws2812_push( uint8_t * buffer, uint16_t buffersize, int driver_mode )
 {
 	uint16_t place;
 
 //	while( !ws2812_dma_complete );
 
 #ifdef WS2812_THREE_SAMPLE
+	if( driver_mode ) return;	//Not supported in three-sample mode.
+
 	uint8_t * bufferpl = (uint8_t*)&i2sBlock[0];
 
 //	buffersize += 3;
@@ -484,20 +531,76 @@ void ws2812_push( uint8_t * buffer, uint16_t buffersize )
 	while( bufferpl < &((uint8_t*)i2sBlock)[WS_BLOCKSIZE] ) *(bufferpl++) = 0;
 
 #elif defined(WS2812_FOUR_SAMPLE)
-	uint16_t * bufferpl = (uint16_t*)&i2sBlock[0];
 
-	if( buffersize * 4 > WS_BLOCKSIZE ) return;
 
-	for( place = 0; place < buffersize; place++ )
+	if( driver_mode )
 	{
-		uint8_t btosend = buffer[place];
-		*(bufferpl++) = bitpatterns[(btosend&0x0f)];
-		*(bufferpl++) = bitpatterns[(btosend>>4)&0x0f];
+		uint16_t * bufferpl = (uint16_t*)&i2sBlock[0];
+		int strips = (buffersize / 3) / 18;
+		int strip;
+		int led;
+		int side;
+		for( side = 0; side < 2; side++ )
+		for( strip = 0; strip < strips; strip++ )
+		{
+			int byte = (side | (strip<<1)) + 2;
+			*(bufferpl++) = bitpatterns[(byte&0x0f)];
+			*(bufferpl++) = 0xffff;
+			*(bufferpl++) = 0xffff;
+			*(bufferpl++) = bitpatterns[(byte>>4)&0x0f];
+
+
+			for( led = 0; led < 9; led++ )
+			{
+				int inled;
+				if( side == 0 )
+				{
+					inled = strip * 18 + led + 9;
+				}
+				else
+				{
+					inled = strip * 18 + 8 - led;
+				}
+
+
+				int g = buffer[inled*3+0];
+				int r = buffer[inled*3+1];
+				int b = buffer[inled*3+2];
+
+				int y = 0;	//R G R B
+
+				*(bufferpl++) = bitpatterns[(y&0x0f)];
+				*(bufferpl++) = bitpatterns[(y>>4)&0x0f];
+				*(bufferpl++) = bitpatterns[(g&0x0f)];
+				*(bufferpl++) = bitpatterns[(g>>4)&0x0f];
+				*(bufferpl++) = bitpatterns[(r&0x0f)];
+				*(bufferpl++) = bitpatterns[(r>>4)&0x0f];
+				*(bufferpl++) = bitpatterns[(b&0x0f)];
+				*(bufferpl++) = bitpatterns[(b>>4)&0x0f];
+			}
+			*(bufferpl++) = 0x0000;
+			*(bufferpl++) = 0xffff;
+		}
+		while( bufferpl != (uint16_t*)&i2sBlock[(WS_BLOCKSIZE0+WS_BLOCKSIZE1+WS_BLOCKSIZE2)/4] )
+			*(bufferpl++) = 0xffff;
 	}
+	else
+	{
+		uint16_t * bufferpl = (uint16_t*)&i2sBlock[0];
+
+		if( buffersize * 4 > WS_BLOCKSIZE0 + WS_BLOCKSIZE1 + WS_BLOCKSIZE2 ) return;
+
+		for( place = 0; place < buffersize; place++ )
+		{
+			uint8_t btosend = buffer[place];
+			*(bufferpl++) = bitpatterns[(btosend&0x0f)];
+			*(bufferpl++) = bitpatterns[(btosend>>4)&0x0f];
+		}
+	}
+
 #endif
 
 #if USE_2812_INTERRUPTS
-
 	uint16_t leftover = buffersize & 0x1f;
 	if( leftover ) leftover = 32 - leftover;
 	for( place = 0; place < leftover; place++ )
@@ -510,18 +613,42 @@ void ws2812_push( uint8_t * buffer, uint16_t buffersize )
 
 	uint16_t sizeout_words = buffersize * 2;
 
-	i2sBufDescOut.owner = 1;
-	i2sBufDescOut.eof = 1;
-	i2sBufDescOut.sub_sof = 0;
-	i2sBufDescOut.datalen = sizeout_words*2;  //Size (in bytes)
-	i2sBufDescOut.blocksize = sizeout_words*2; //Size (in bytes)
-	i2sBufDescOut.buf_ptr = (uint32_t)&i2sBlock[0];
-	i2sBufDescOut.unused = 0;
-	i2sBufDescOut.next_link_ptr=(uint32_t)&i2sBufDescZeroes; //At the end, just redirect the DMA to the zero buffer.
+	int firstsize = sizeout_words, secondsize = 0;
+	if( sizeout_words > WS_BLOCKSIZE0 )
+	{
+		secondsize = firstsize - (WS_BLOCKSIZE0/4);
+		firstsize = WS_BLOCKSIZE0/4;
+	}
+	i2sBufDescOut0.owner = 1;
+	i2sBufDescOut0.eof = 1;
+	i2sBufDescOut0.sub_sof = 0;
+	i2sBufDescOut0.datalen = sizeout_words*2;  //Size (in bytes)
+	i2sBufDescOut0.blocksize = sizeout_words*2; //Size (in bytes)
+	i2sBufDescOut0.buf_ptr = (uint32_t)&i2sBlock[0];
+	i2sBufDescOut0.unused = 0;
+	i2sBufDescOut0.next_link_ptr=(uint32_t)&i2sBufDescOut1; //At the end, just redirect the DMA to the zero buffer.
+
+	i2sBufDescOut1.owner = 1;
+	i2sBufDescOut1.eof = 1;
+	i2sBufDescOut1.sub_sof = 0;
+	i2sBufDescOut1.datalen = sizeout_words*2;  //Size (in bytes)
+	i2sBufDescOut1.blocksize = sizeout_words*2; //Size (in bytes)
+	i2sBufDescOut1.buf_ptr = (uint32_t)&i2sBlock[WS_BLOCKSIZE0/4];
+	i2sBufDescOut1.unused = 0;
+	i2sBufDescOut1.next_link_ptr=(uint32_t)&i2sBufDescOut2; //At the end, just redirect the DMA to the zero buffer.
+
+	i2sBufDescOut2.owner = 1;
+	i2sBufDescOut2.eof = 1;
+	i2sBufDescOut2.sub_sof = 0;
+	i2sBufDescOut2.datalen = sizeout_words*2;  //Size (in bytes)
+	i2sBufDescOut2.blocksize = sizeout_words*2; //Size (in bytes)
+	i2sBufDescOut2.buf_ptr = (uint32_t)&i2sBlock[(WS_BLOCKSIZE0+WS_BLOCKSIZE1)/4];
+	i2sBufDescOut2.unused = 0;
+	i2sBufDescOut2.next_link_ptr=(uint32_t)&i2sBufDescZeroes; //At the end, just redirect the DMA to the zero buffer.
 
 	SET_PERI_REG_MASK(SLC_RX_LINK, SLC_RXLINK_STOP);
 	CLEAR_PERI_REG_MASK(SLC_RX_LINK,SLC_RXLINK_DESCADDR_MASK);
-	SET_PERI_REG_MASK(SLC_RX_LINK, ((uint32)&i2sBufDescOut) & SLC_RXLINK_DESCADDR_MASK);
+	SET_PERI_REG_MASK(SLC_RX_LINK, ((uint32)&i2sBufDescOut0) & SLC_RXLINK_DESCADDR_MASK);
 	SET_PERI_REG_MASK(SLC_RX_LINK, SLC_RXLINK_START);
 
 #endif

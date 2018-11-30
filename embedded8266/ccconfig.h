@@ -6,7 +6,7 @@
 #define HPABUFFSIZE 512
 
 #define CCEMBEDDED
-#define NUM_LIN_LEDS 255
+#define NUM_LIN_LEDS 541
 #define DFREQ 16000
 
 #define memcpy ets_memcpy
@@ -30,6 +30,7 @@
 #define COLORCHORD_OUTPUT_DRIVER	CCS.gCOLORCHORD_OUTPUT_DRIVER
 #define COLORCHORD_ACTIVE	CCS.gCOLORCHORD_ACTIVE
 #define INITIAL_AMP	CCS.gINITIAL_AMP
+#define LED_DRIVER_MODE		CCS.gLED_DRIVER_MODE
 
 //We are not enabling these for the ESP8266 port.
 #define LIN_WRAPAROUND 0 
@@ -55,6 +56,7 @@ struct CCSettings
 	uint16_t gUSE_NUM_LIN_LEDS;                  // = NUM_LIN_LEDS
 	uint16_t gCOLORCHORD_ACTIVE;
 	uint16_t gCOLORCHORD_OUTPUT_DRIVER;
+	uint16_t gLED_DRIVER_MODE;
 	uint16_t gINITIAL_AMP;
 };
 

@@ -62,7 +62,7 @@ static void NewFrame()
 		break;
 	};
 
-	ws2812_push( ledOut, USE_NUM_LIN_LEDS * 3 );
+	ws2812_push( ledOut, USE_NUM_LIN_LEDS * 3, LED_DRIVER_MODE );
 }
 
 os_event_t    procTaskQueue[procTaskQueueLen];
@@ -151,7 +151,7 @@ static void ICACHE_FLASH_ATTR myTimer(void *arg)
 //	printf( "%d/%d\n",soundtail,soundhead );
 //	printf( "%d/%d\n",soundtail,soundhead );
 //	uint8_t ledout[] = { 0x00, 0xff, 0xaa, 0x00, 0xff, 0xaa, };
-//	ws2812_push( ledout, 6 );
+//	ws2812_push( ledout, 6, LED_DRIVER_MODE );
 }
 
 
@@ -162,7 +162,7 @@ static void ICACHE_FLASH_ATTR udpserver_recv(void *arg, char *pusrdata, unsigned
 //	uint8_t buffer[MAX_FRAME];
 //	uint8_t ledout[] = { 0x00, 0xff, 0xaa, 0x00, 0xff, 0xaa, };
 	uart0_sendStr("X");
-	ws2812_push( pusrdata+3, len );
+	ws2812_push( pusrdata+3, len, LED_DRIVER_MODE );
 }
 
 void ICACHE_FLASH_ATTR charrx( uint8_t c )
@@ -216,6 +216,7 @@ void ICACHE_FLASH_ATTR user_init(void)
 	os_timer_arm(&some_timer, 100, 1);
 
 	//Set GPIO16 for Input
+#if 0
     WRITE_PERI_REG(PAD_XPD_DCDC_CONF,
                    (READ_PERI_REG(PAD_XPD_DCDC_CONF) & 0xffffffbc) | (uint32)0x1); 	// mux configuration for XPD_DCDC and rtc_gpio0 connection
 
@@ -224,6 +225,9 @@ void ICACHE_FLASH_ATTR user_init(void)
 
     WRITE_PERI_REG(RTC_GPIO_ENABLE,
                    READ_PERI_REG(RTC_GPIO_ENABLE) & (uint32)0xfffffffe);	//out disable
+#endif
+
+	system_update_cpu_freq(SYS_CPU_160MHZ);
 
 	InitColorChord(); //Init colorchord
 
