@@ -18,6 +18,7 @@ struct SoundDriverAlsa
 	int spsPlay;
 	int channelsRec;
 	int spsRec;
+	int alsa_fmt_s16le;
 
 	snd_pcm_uframes_t buffer;
 	og_thread_t thread;
@@ -51,7 +52,7 @@ void CloseSoundAlsa( struct SoundDriverAlsa * r )
 }
 
 
-static int SetHWParams( snd_pcm_t * handle, int * samplerate, int * channels, snd_pcm_uframes_t * buffer )
+static int SetHWParams( snd_pcm_t * handle, int * samplerate, int * channels, snd_pcm_uframes_t * buffer, struct SoundDriverAlsa * a )
 {
 	int err;
 	snd_pcm_hw_params_t *hw_params;
@@ -76,7 +77,15 @@ static int SetHWParams( snd_pcm_t * handle, int * samplerate, int * channels, sn
 	if ((err = snd_pcm_hw_params_set_format (handle, hw_params, SND_PCM_FORMAT_FLOAT )) < 0) {
 		fprintf (stderr, "cannot set sample format (%s)\n",
 			 snd_strerror (err));
-		goto fail;
+
+		printf( "Trying backup: S16LE.\n" );	
+		if ((err = snd_pcm_hw_params_set_format (handle, hw_params,  SND_PCM_FORMAT_S16_LE )) < 0) {
+			fprintf (stderr, "cannot set sample format (%s)\n",
+				 snd_strerror (err));
+			goto fail;
+		}
+
+		a->alsa_fmt_s16le = 1;
 	}
 
 	if ((err = snd_pcm_hw_params_set_rate_near (handle, hw_params, (unsigned int*)samplerate, 0)) < 0) {
@@ -208,6 +217,18 @@ static void * SoundThread( void * v )
 			}
 		}
 
+		if( a->alsa_fmt_s16le )
+		{
+			//Hacky: Turns out data was s16le.
+			int16_t * dat = (int16_t*)bufr[i];
+			float *   dot = bufr[i];
+			int i;
+			int len = a->buffer;
+			for( i = len-1; i >= 0; i-- )
+			{
+				dot[i] = dat[i]/32768.0;
+			}
+		}
 		//Do our callback.
 		int playbacksamples = 0;
 		a->callback( bufp[i], bufr[i], a->buffer, &playbacksamples, (struct SoundDriver*)a );
@@ -276,7 +297,7 @@ static struct SoundDriverAlsa * InitASound( struct SoundDriverAlsa * r )
 
 	if( r->playback_handle )
 	{
-		if( SetHWParams( r->playback_handle, &r->spsPlay, &r->channelsPlay, &r->buffer ) < 0 ) 
+		if( SetHWParams( r->playback_handle, &r->spsPlay, &r->channelsPlay, &r->buffer, r ) < 0 ) 
 			goto fail;
 		if( SetSWParams( r->playback_handle, 0 ) < 0 )
 			goto fail;
@@ -284,7 +305,7 @@ static struct SoundDriverAlsa * InitASound( struct SoundDriverAlsa * r )
 
 	if( r->record_handle )
 	{
-		if( SetHWParams( r->record_handle, &r->spsRec, &r->channelsRec, &r->buffer ) < 0 )
+		if( SetHWParams( r->record_handle, &r->spsRec, &r->channelsRec, &r->buffer, r ) < 0 )
 			goto fail;
 		if( SetSWParams( r->record_handle, 1 ) < 0 )
 			goto fail;
@@ -332,6 +353,7 @@ void * InitSoundAlsa( SoundCBType cb )
 	r->record_handle = 0;
 	r->buffer = GetParameterI( "buffer", 1024 );
 
+	r->alsa_fmt_s16le = 0;
 
 
 	return InitASound(r);
