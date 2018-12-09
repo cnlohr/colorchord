@@ -15,7 +15,9 @@
 //NOTE: Blocksize MUST be divisible by 4.  Cannot exceed 4092
 //Each LED takes up 12 block bytes in WS2812_FOUR_SAMPLE
 //Or 9 block bytes in WS2812_THREE_SAMPLE
-#define WS_BLOCKSIZE 4000
+#define WS_BLOCKSIZE0 4000
+#define WS_BLOCKSIZE1 4000
+#define WS_BLOCKSIZE2 4000
 
 //You can either have 3 or 4 samples per bit for WS2812s.
 //3 sample can't go quite as fast as 4.
@@ -28,7 +30,9 @@
 //#define WS2812_FOUR_SAMPLE
 
 void ICACHE_FLASH_ATTR ws2812_init();
-void ws2812_push( uint8_t * buffer, uint16_t buffersize ); //Buffersize = Nr LEDs * 3
+void ws2812_push( uint8_t * buffer, uint16_t buffersize, int led_mode ); //Buffersize = Nr LEDs * 3
+//led_mode = 0 for WS2812B
+//led_mode = 1 for luxehedron
 
 #endif
 

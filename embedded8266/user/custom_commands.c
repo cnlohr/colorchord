@@ -11,33 +11,33 @@ extern volatile uint8_t sounddata[];
 extern volatile uint16_t soundhead;
 
 
-#define CONFIGURABLES 18 //(plus1)
+#define CONFIGURABLES 19 //(plus1)
 
 
 struct SaveLoad
 {
-	uint8_t configs[CONFIGURABLES];
-	uint8_t SaveLoadKey; //Must be 0xaa to be valid.
+	uint16_t configs[CONFIGURABLES];
+	uint16_t SaveLoadKey; //Must be 0xaa to be valid.
 } settings;
 
 struct CCSettings CCS;
 
-uint8_t gConfigDefaults[CONFIGURABLES] =  { 0, 6, 1, 2, 3, 4, 7, 4, 2, 80, 64, 12, 15, NUM_LIN_LEDS, 1, 0, 16, 0 };
+uint16_t gConfigDefaults[CONFIGURABLES] =  { 0, 6, 1, 2, 3, 4, 7, 4, 2, 80, 64, 12, 15, NUM_LIN_LEDS, 1, 0, 16, 0, 0 };
 
-uint8_t * gConfigurables[CONFIGURABLES] = { &CCS.gROOT_NOTE_OFFSET, &CCS.gDFTIIR, &CCS.gFUZZ_IIR_BITS, &CCS.gFILTER_BLUR_PASSES,
+uint16_t * gConfigurables[CONFIGURABLES] = { &CCS.gROOT_NOTE_OFFSET, &CCS.gDFTIIR, &CCS.gFUZZ_IIR_BITS, &CCS.gFILTER_BLUR_PASSES,
 	&CCS.gSEMIBITSPERBIN, &CCS.gMAX_JUMP_DISTANCE, &CCS.gMAX_COMBINE_DISTANCE, &CCS.gAMP_1_IIR_BITS,
 	&CCS.gAMP_2_IIR_BITS, &CCS.gMIN_AMP_FOR_NOTE, &CCS.gMINIMUM_AMP_FOR_NOTE_TO_DISAPPEAR, &CCS.gNOTE_FINAL_AMP,
-	&CCS.gNERF_NOTE_PORP, &CCS.gUSE_NUM_LIN_LEDS, &CCS.gCOLORCHORD_ACTIVE, &CCS.gCOLORCHORD_OUTPUT_DRIVER, &CCS.gINITIAL_AMP, 0 };
+	&CCS.gNERF_NOTE_PORP, &CCS.gUSE_NUM_LIN_LEDS, &CCS.gCOLORCHORD_ACTIVE, &CCS.gCOLORCHORD_OUTPUT_DRIVER, &CCS.gINITIAL_AMP, &CCS.gLED_DRIVER_MODE, 0 };
 
 char * gConfigurableNames[CONFIGURABLES] = { "gROOT_NOTE_OFFSET", "gDFTIIR", "gFUZZ_IIR_BITS", "gFILTER_BLUR_PASSES",
 	"gSEMIBITSPERBIN", "gMAX_JUMP_DISTANCE", "gMAX_COMBINE_DISTANCE", "gAMP_1_IIR_BITS",
 	"gAMP_2_IIR_BITS", "gMIN_AMP_FOR_NOTE", "gMINIMUM_AMP_FOR_NOTE_TO_DISAPPEAR", "gNOTE_FINAL_AMP",
-	"gNERF_NOTE_PORP", "gUSE_NUM_LIN_LEDS", "gCOLORCHORD_ACTIVE", "gCOLORCHORD_OUTPUT_DRIVER", "gINITIAL_AMP", 0 };
+	"gNERF_NOTE_PORP", "gUSE_NUM_LIN_LEDS", "gCOLORCHORD_ACTIVE", "gCOLORCHORD_OUTPUT_DRIVER", "gINITIAL_AMP", "gLED_DRIVER_MODE", 0 };
 
 void ICACHE_FLASH_ATTR CustomStart( )
 {
 	int i;
-	spi_flash_read( 0x3D000, (uint32*)&settings, sizeof( settings ) );
+	spi_flash_read( CCCONFIG_ADDRESS, (uint32*)&settings, sizeof( settings ) );
 	if( settings.SaveLoadKey == 0xaa )
 	{
 		for( i = 0; i < CONFIGURABLES; i++ )
@@ -202,8 +202,8 @@ int ICACHE_FLASH_ATTR CustomCommand(char * buffer, int retsize, char *pusrdata, 
 
 			EnterCritical();
 			ets_intr_lock();
-			spi_flash_erase_sector( 0x3D000/4096 );
-			spi_flash_write( 0x3D000, (uint32*)&settings, ((sizeof( settings )-1)&(~0xf))+0x10 );
+			spi_flash_erase_sector( CCCONFIG_ADDRESS/4096 );
+			spi_flash_write( CCCONFIG_ADDRESS, (uint32*)&settings, ((sizeof( settings )-1)&(~0xf))+0x10 );
 			ets_intr_unlock();
 			ExitCritical();
 
