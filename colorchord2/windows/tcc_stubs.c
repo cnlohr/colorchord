@@ -1,7 +1,12 @@
-
+#include <string.h>
 #include <_mingw.h>
+#include <tcclib.h>
+#include "symbol_enumerator.h"
 
-#define REMATH(x)  double __cdecl x( double f ); float x##f(float v) { return x(v); }
+_CRTIMP int __cdecl _vscprintf(const char *_Format,va_list _ArgList);
+
+#define REMATH(x)   double __cdecl x( double f ); float x##f(float v) { return x(v); }
+#define REMATH2(x)  double __cdecl x( double f, double g ); float x##f(float v, float w) { return x(v,w); }
 
 int SymnumCheck( const char * path, const char * name, void * location, long size )
 {
@@ -27,8 +32,8 @@ REMATH( sin );
 REMATH( sqrt );
 REMATH( asin );
 REMATH( exp );
-REMATH( fmod );
-REMATH( pow );
+REMATH2( fmod );
+REMATH2( pow );
 
 double __cdecl strtod (const char* str, char** endptr);
 float strtof( const char* str, char** endptr)

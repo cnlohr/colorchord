@@ -97,6 +97,39 @@ extern "C" {
 	};
 	#define CTL_CODE(t,f,m,a) (((t)<<16)|((a)<<14)|((f)<<2)|(m))
 
+#define WINSETUPAPI __declspec(dllimport) //XXX Should these be CDECL?
+WINSETUPAPI BOOL SetupDiEnumDeviceInterfaces(
+  HDEVINFO                  DeviceInfoSet,
+  PSP_DEVINFO_DATA          DeviceInfoData,
+  const GUID                *InterfaceClassGuid,
+  DWORD                     MemberIndex,
+  PSP_DEVICE_INTERFACE_DATA DeviceInterfaceData
+);
+WINSETUPAPI BOOL SetupDiGetDeviceInterfaceDetailA(
+  HDEVINFO                           DeviceInfoSet,
+  PSP_DEVICE_INTERFACE_DATA          DeviceInterfaceData,
+  PSP_DEVICE_INTERFACE_DETAIL_DATA_A DeviceInterfaceDetailData,
+  DWORD                              DeviceInterfaceDetailDataSize,
+  PDWORD                             RequiredSize,
+  PSP_DEVINFO_DATA                   DeviceInfoData
+);
+WINSETUPAPI BOOL SetupDiEnumDeviceInfo(
+  HDEVINFO         DeviceInfoSet,
+  DWORD            MemberIndex,
+  PSP_DEVINFO_DATA DeviceInfoData
+);
+WINSETUPAPI BOOL SetupDiGetDeviceRegistryPropertyA(
+  HDEVINFO         DeviceInfoSet,
+  PSP_DEVINFO_DATA DeviceInfoData,
+  DWORD            Property,
+  PDWORD           PropertyRegDataType,
+  PBYTE            PropertyBuffer,
+  DWORD            PropertyBufferSize,
+  PDWORD           RequiredSize
+);
+WINSETUPAPI BOOL SetupDiDestroyDeviceInfoList(
+  HDEVINFO DeviceInfoSet
+);
 #else
 	#include <setupapi.h>
 	#include <winioctl.h>

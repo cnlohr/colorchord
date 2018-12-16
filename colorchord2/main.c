@@ -166,6 +166,7 @@ int main(int argc, char ** argv)
 {
 	int i;
 #ifdef TCC
+	void ManuallyRegisterDevices();
 	ManuallyRegisterDevices();
 #endif
 	

@@ -7,8 +7,9 @@
 #include <stdio.h>
 #include <stdint.h>
 #include <mmsystem.h>
+#include <stdlib.h>
 
-#if defined(WIN32)
+#if defined(WIN32) && !defined( TCC )
 #pragma comment(lib,"winmm.lib")
 #endif
 
@@ -133,11 +134,14 @@ static struct SoundDriverWin * InitWinSound( struct SoundDriverWin * r )
 
 	printf( "Wave Devs: %d; WAVE_MAPPER: %d; Selected Input: %d\n", waveInGetNumDevs(), WAVE_MAPPER, dwdevice );
 
-	printf( "waveInOpen: %p, %p\n", &r->hMyWave, &wfmt );
+	printf( "waveInOpen: %p, %p\n", r->hMyWave, &wfmt );
 
-	int p = waveInOpen(&r->hMyWave, dwdevice, &wfmt,(DWORD)(void*)(&HANDLEMIC) , 0, CALLBACK_FUNCTION);
-
-	printf( "WIO: %d\n", p );
+	int p = waveInOpen(&r->hMyWave, dwdevice, &wfmt, (void*)(&HANDLEMIC) , 0, CALLBACK_FUNCTION);
+	
+	if( p )
+	{
+		fprintf( stderr, "Error performing waveInOpen.  Received code: %d\n", p );
+	}
 
 	for ( i=0;i<BUFFS;i++)
 	{
@@ -145,13 +149,17 @@ static struct SoundDriverWin * InitWinSound( struct SoundDriverWin * r )
 		(r->WavBuff[i]).dwBufferLength = r->buffer*2*r->channelsRec;
 		(r->WavBuff[i]).dwLoops = 1;
 		(r->WavBuff[i]).lpData=(char*) malloc(r->buffer*r->channelsRec*2);
-		waveInPrepareHeader(r->hMyWave,&(r->WavBuff[i]),sizeof(WAVEHDR));
+		p = waveInPrepareHeader(r->hMyWave,&(r->WavBuff[i]),sizeof(WAVEHDR));
+		printf( "WIP: %d\n", p );
 		waveInAddBuffer(r->hMyWave,&(r->WavBuff[i]),sizeof(WAVEHDR));
+		printf( "WIA: %d\n", p );
 	}
-
+\
 	p = waveInStart(r->hMyWave);
-
-	printf( "WIS: %d\n", p );
+	if( p )
+	{
+		fprintf( stderr, "Error performing waveInStart.  Received code %d\n", p );
+	}
 
 	return r;
 }

@@ -17,6 +17,7 @@
 #endif
 #define MSG_NOSIGNAL 0
 #else
+#define closesocket( x ) close( x )
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
@@ -191,7 +192,7 @@ static void DPOUpdate(void * id, struct NoteFinder*nf)
 		if( r < 0 )
 		{
 			fprintf( stderr, "Send fault.\n" );
-			close( d->socket );
+			closesocket( d->socket );
 			d->socket = -1;
 		}
 	}
