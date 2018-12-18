@@ -9,3 +9,4 @@ set CC=C:\tcc\i386-win32-tcc.exe
 rem set CC=C:\tcc\x86_64-win32-tcc.exe
 @echo on
 %CC% %CFLAGS% %ARCH_SPECIFIC% %SOURCES% %LDFLAGS% -o ..\colorchord.exe
+pause
