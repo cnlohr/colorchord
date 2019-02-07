@@ -18,6 +18,11 @@ Unfortunately the I2S Out (WS2812 in) pin is the same as RX1 (pin 25), which mea
 
 The audio data is taken from TOUT, but must be kept between 0 and 1V.
 
+An option that has been thurroughly tested is for use with the 2019 MAGFest Swadge.  https://github.com/cnlohr/swadge2019
+
+Audio portion:
+![Audio portion of schematic](https://raw.githubusercontent.com/cnlohr/swadge2019/master/hardware/swadge2019_schematic_audio.png)
+
 ## Notes
 
 ./makeconf.inc has a few variables that Make uses for building and flashing the firmware.
