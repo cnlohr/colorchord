@@ -87,10 +87,10 @@ int main()
 
 
 
-uint16_t Sdatspace32A[FIXBINS*2];  //(advances,places)
+uint16_t Sdatspace32A[FIXBINS*2];  //(advances,places) full revolution is 256. 8bits integer part 8bit fractional
 int32_t Sdatspace32B[FIXBINS*2];  //(isses,icses)
 
-//This is updated every time the DFT hits the octavecount, or 1/32 updates.
+//This is updated every time the DFT hits the octavecount, or 1 out of (1<<OCTAVES) times which is (1<<(OCTAVES-1)) samples
 int32_t Sdatspace32BOut[FIXBINS*2];  //(isses,icses)
 
 //Sdo_this_octave is a scheduling state for the running SIN/COS states for
@@ -107,6 +107,9 @@ static uint8_t Swhichoctaveplace;
 uint16_t embeddedbins[FIXBINS]; 
 
 //From: http://stackoverflow.com/questions/1100090/looking-for-an-efficient-integer-square-root-algorithm-for-arm-thumb2
+//  for sqrt approx but also suggestion for quick norm approximation that would work in this DFT
+
+#if APPROXNORM != 1
 /**
  * \brief    Fast Square root algorithm, with rounding
  *
@@ -157,6 +160,7 @@ static uint16_t SquareRootRounded(uint32_t a_nInput)
 
     return res;
 }
+#endif
 
 void UpdateOutputBins32()
 {
@@ -164,8 +168,13 @@ void UpdateOutputBins32()
 	int32_t * ipt = &Sdatspace32BOut[0];
 	for( i = 0; i < FIXBINS; i++ )
 	{
-		int16_t isps = *(ipt++)>>16;
+#if APPROXNORM == 1
+		int32_t isps = *(ipt++); //can keep 32 bits as no need to square
+		int32_t ispc = *(ipt++);
+#else
+		int16_t isps = *(ipt++)>>16; //might loose some precision with this
 		int16_t ispc = *(ipt++)>>16;
+#endif
 
 		int octave = i / FIXBPERO;
 
@@ -175,15 +184,22 @@ void UpdateOutputBins32()
 #ifndef CCEMBEDDED
 		uint32_t mux = ( (isps) * (isps)) + ((ispc) * (ispc));
 		goutbins[i] = sqrtf( (float)mux );
-		//reasonable (but arbitrary amplification)
+		//reasonable (but arbitrary attenuation)
 		goutbins[i] /= (78<<DFTIIR)*(1<<octave); 
 #endif
 
+#if APPROXNORM == 1
+		isps = isps<0? -isps : isps;
+		ispc = ispc<0? -ispc : ispc;
+		uint32_t rmux = isps>ispc? isps + (ispc>>1) : ispc + (isps>>1);
+#else
 		uint32_t rmux = ( (isps) * (isps)) + ((ispc) * (ispc));
+		rmux = SquareRootRounded( rmux );
+#endif
 
 		//bump up all outputs here, so when we nerf it by bit shifting by
-		//ctave we don't lose a lot of detail.
-		rmux = SquareRootRounded( rmux ) << 1; 
+		//octave we don't lose a lot of detail.
+		rmux = rmux << 1;
 
 		embeddedbins32[i] = rmux >> octave;
 	}
@@ -194,6 +210,7 @@ static void HandleInt( int16_t sample )
 	int i;
 	uint16_t adv;
 	uint8_t localipl;
+	int16_t filteredsample;
 
 	uint8_t oct = Sdo_this_octave[Swhichoctaveplace];
 	Swhichoctaveplace ++;
@@ -208,6 +225,7 @@ static void HandleInt( int16_t sample )
 	{
 		//Special: This is when we can update everything.
 		//This gets run once out of every (1<<OCTAVES) times.
+		// which is half as many samples
 		//It handles updating part of the DFT.
 		//It should happen at the very first call to HandleInit
 		int32_t * bins = &Sdatspace32B[0];
@@ -227,10 +245,11 @@ static void HandleInt( int16_t sample )
 		return;
 	}
 
+	// process a filtered sample for one of the octaves
 	uint16_t * dsA = &Sdatspace32A[oct*FIXBPERO*2];
 	int32_t * dsB = &Sdatspace32B[oct*FIXBPERO*2];
 
-	sample = Saccum_octavebins[oct]>>(OCTAVES-oct);
+	filteredsample = Saccum_octavebins[oct]>>(OCTAVES-oct);
 	Saccum_octavebins[oct] = 0;
 
 	for( i = 0; i < FIXBPERO; i++ )
@@ -239,10 +258,10 @@ static void HandleInt( int16_t sample )
 		localipl = *(dsA) >> 8;
 		*(dsA++) += adv;
 
-		*(dsB++) += (Ssinonlytable[localipl] * sample);
+		*(dsB++) += (Ssinonlytable[localipl] * filteredsample);
 		//Get the cosine (1/4 wavelength out-of-phase with sin)
 		localipl += 64;
-		*(dsB++) += (Ssinonlytable[localipl] * sample);
+		*(dsB++) += (Ssinonlytable[localipl] * filteredsample);
 	}
 }
 
@@ -281,10 +300,12 @@ int SetupDFTProgressive32()
 
 void UpdateBins32( const uint16_t * frequencies )
 {
-	int i;	
-	for( i = 0; i < FIXBINS; i++ )
+	int i;
+	int imod = 0;
+	for( i = 0; i < FIXBINS; i++, imod++ )
 	{
-		uint16_t freq = frequencies[i%FIXBPERO];
+		if (imod >= FIXBPERO) imod=0;
+		uint16_t freq = frequencies[imod];
 		Sdatspace32A[i*2] = freq;// / oneoveroctave;
 	}
 }
