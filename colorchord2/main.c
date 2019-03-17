@@ -162,12 +162,20 @@ void SoundCB( float * out, float * in, int samplesr, int * samplesp, struct Soun
 	*samplesp = samplesr;
 }
 
-static void deconstruct(void){
-	printf("Deocnstructing output-Drivers");
+void deconstruct(){
+	printf("Deconstructing OutputDrivers");
 	int i;
 	for( i = 0; i < MAX_OUT_DRIVERS; i++ ){
 		if( outdriver[i] != 0){
-			outdriver[i]->deconstructDriver( outdriver[i]->id);
+			if(outdriver[i]->deconstructDriver != 0){
+				outdriver[i]->deconstructDriver( outdriver[i]->id);
+			}
+		}
+	}
+	printf("Deconstructing SoundDriver");
+	if(sd != 0){
+		if(sd->CloseFn != 0){
+			sd->CloseFn(sd);
 		}
 	}
 }
