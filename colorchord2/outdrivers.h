@@ -8,6 +8,10 @@
 
 #include "os_generic.h"
 
+#include "notefinder.h"
+#include "parameters.h"
+
+
 struct NoteFinder;
 
 #define MAX_LEDS 32678
