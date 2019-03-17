@@ -1,11 +1,11 @@
 //Copyright 2015 <>< Charles Lohr under the ColorChord License.
-
-#include "outdrivers.h"
 #include <string.h>
-#include "parameters.h"
-#include "os_generic.h"
 #include <stdio.h>
 #include <stdlib.h>
+
+#include "outdrivers.h"
+#include "parameters.h"
+#include "os_generic.h"
 
 int force_white = 0;
 unsigned char	OutLEDs[MAX_LEDS*3];
