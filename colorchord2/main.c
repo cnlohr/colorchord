@@ -162,6 +162,12 @@ void SoundCB( float * out, float * in, int samplesr, int * samplesp, struct Soun
 	*samplesp = samplesr;
 }
 
+/**
+ * Called on progamm close via atexit(...)
+ * Deconstructs Drivers and things which need something to
+ * happen at exit to leave everything in a clean state.
+ * And to free malloced things.
+ */
 void deconstruct(){
 	printf("Deconstructing OutputDrivers");
 	int i;
@@ -275,7 +281,7 @@ int main(int argc, char ** argv)
 
 	nf = CreateNoteFinder( sd->spsRec );
 
-	//
+	// set Deconstructor
 	atexit(deconstruct);
 
 	//Once everything was reinitialized, re-read the ini files.
