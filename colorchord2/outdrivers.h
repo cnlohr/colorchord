@@ -34,11 +34,14 @@ struct DriverInstances
 {
 	void * id;
 	void (*Func)(void * id, struct NoteFinder* nf );
+	void (*deconstructDriver)(void * id);
 	void (*Params)(void * id);
 };
 
 extern struct OutDriverListElem ODList[MAX_OUT_DRIVERS];
 extern const char OutDriverParameters[MAX_OUT_DRIVER_STRING];
+
+void deconstructDriver(void * id);
 
 //Pass setup "name=[driver]"
 struct DriverInstances * SetupOutDriver( );

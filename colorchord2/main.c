@@ -162,6 +162,17 @@ void SoundCB( float * out, float * in, int samplesr, int * samplesp, struct Soun
 	*samplesp = samplesr;
 }
 
+static void deconstruct(void){
+	printf("Deocnstructing output-Drivers");
+	int i;
+	for( i = 0; i < MAX_OUT_DRIVERS; i++ ){
+		if( outdriver[i] != 0){
+			outdriver[i]->deconstructDriver( outdriver[i]->id);
+		}
+	}
+}
+
+
 int main(int argc, char ** argv)
 {
 	int i;
@@ -255,6 +266,9 @@ int main(int argc, char ** argv)
 	}
 
 	nf = CreateNoteFinder( sd->spsRec );
+
+	//
+	atexit(deconstruct);
 
 	//Once everything was reinitialized, re-read the ini files.
 	SetEnvValues( 1 );
