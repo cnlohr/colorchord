@@ -1,18 +1,18 @@
 //Copyright 2015 <>< Charles Lohr under the ColorChord License.
 
-#include "outdrivers.h"
-#include "notefinder.h"
 #include <stdio.h>
-#include "parameters.h"
 #include <stdlib.h>
 #include <math.h>
 #include <string.h>
-#include "color.h"
-#include "DrawFunctions.h"
 #include <sys/mman.h>
 #include <sys/stat.h>        /* For mode constants */
 #include <fcntl.h>           /* For O_* constants */
 #include <unistd.h>
+
+#include "outdrivers.h"
+#include "DrawFunctions.h"
+
+#include "color.h"
 
 extern struct NoteFinder * nf;
 

@@ -1,14 +1,14 @@
 //Copyright 2015 <>< Charles Lohr under the ColorChord License.
 
-#include "outdrivers.h"
-#include "notefinder.h"
 #include <stdio.h>
 #include <string.h>
-#include "parameters.h"
 #include <stdlib.h>
-#include "hidapi.h"
-#include "color.h"
 #include <math.h>
+
+#include "outdrivers.h"
+
+#include "color.h"
+#include "hidapi.h"
 
 struct HIDAPIOutDriver
 {

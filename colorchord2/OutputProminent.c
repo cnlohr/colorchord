@@ -2,15 +2,15 @@
 
 //Really basic driver, that just selects the most prominent color and washes all the LEDs with that.
 
-#include "outdrivers.h"
-#include "notefinder.h"
 #include <stdio.h>
 #include <string.h>
-#include "parameters.h"
 #include <stdlib.h>
-#include "color.h"
 #include <stdlib.h>
 #include <math.h>
+
+#include "outdrivers.h"
+
+#include "color.h"
 
 struct ProminentDriver
 {

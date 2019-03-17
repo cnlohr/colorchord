@@ -1,14 +1,14 @@
 //Copyright 2015 <>< Charles Lohr under the ColorChord License.
 
-#include "outdrivers.h"
-#include "notefinder.h"
 #include <stdio.h>
-#include "parameters.h"
 #include <stdlib.h>
 #include <math.h>
 #include <string.h>
-#include "color.h"
+
+#include "outdrivers.h"
 #include "DrawFunctions.h"
+
+#include "color.h"
 
 //Uses: note_amplitudes2[note] for how many lights to use.
 //Uses: note_amplitudes_out[note] for how bright it should be.

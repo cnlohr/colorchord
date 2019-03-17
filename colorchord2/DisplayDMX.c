@@ -1,15 +1,15 @@
 //Copyright 2015 <>< Charles Lohr under the ColorChord License.
 
-#include "outdrivers.h"
-#include "notefinder.h"
 #include <stdio.h>
 #include <string.h>
-#include "parameters.h"
 #include <stdlib.h>
 #include <libusb-1.0/libusb.h>
-#include "color.h"
 #include <math.h>
 #include <unistd.h>
+
+#include "outdrivers.h"
+
+#include "color.h"
 
 struct DMXOutDriver
 {

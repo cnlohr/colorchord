@@ -4,7 +4,6 @@
 #include <stdlib.h>
 
 #include "outdrivers.h"
-#include "parameters.h"
 
 
 int force_white = 0;

@@ -2,16 +2,15 @@
 
 //XXX TODO Figure out why it STILL fails when going around a loop
 
-
-#include "outdrivers.h"
-#include "notefinder.h"
 #include <stdio.h>
 #include <string.h>
-#include "parameters.h"
 #include <stdlib.h>
-#include "color.h"
 #include <stdlib.h>
 #include <math.h>
+
+#include "outdrivers.h"
+
+#include "color.h"
 
 extern float DeltaFrameTime;
 extern double Now;
