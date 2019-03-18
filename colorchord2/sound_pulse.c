@@ -53,21 +53,23 @@ int SoundStatePulse( struct SoundDriverPulse * soundobject )
 
 void CloseSoundPulse( struct SoundDriverPulse * r )
 {
-	if( r )
+    if( r )
 	{
-		if( r->play )
-		{
-			pa_stream_unref (r->play);
-			r->play = 0;
-		}
+        // Stop thread, remove play / rec streams, free driver. Otherwise, SoundThread segfaults.
+        OGUSleep(2000);
+        OGCancelThread( r->thread );
 
-		if( r->rec )
+        if( r->play )
 		{
-			pa_stream_unref (r->rec);
-			r->rec = 0;
-		}
-		OGUSleep(2000);
-		OGCancelThread( r->thread );
+            pa_stream_unref (r->play);
+            r->play = 0;
+        }
+
+        if( r->rec )
+		{
+            pa_stream_unref (r->rec);
+            r->rec = 0;
+        }
 		free( r );
 	}
 }
