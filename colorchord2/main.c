@@ -169,7 +169,7 @@ void SoundCB( float * out, float * in, int samplesr, int * samplesp, struct Soun
  * And to free malloced things.
  */
 void deconstruct(){
-	printf("Deconstructing OutputDrivers");
+	printf("Deconstructing OutputDrivers\n");
 	int i;
 	for( i = 0; i < MAX_OUT_DRIVERS; i++ ){
 		if( outdriver[i] != 0){
@@ -178,7 +178,7 @@ void deconstruct(){
 			}
 		}
 	}
-	printf("Deconstructing SoundDriver");
+	printf("Deconstructing SoundDriver\n");
 	if(sd != 0){
 		if(sd->CloseFn != 0){
 			sd->CloseFn(sd);
