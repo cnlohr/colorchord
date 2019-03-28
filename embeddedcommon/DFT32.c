@@ -353,6 +353,3 @@ void DoDFTProgressive32( float * outbins, float * frequencies, int bins, const f
 
 #endif
 
-
-
-

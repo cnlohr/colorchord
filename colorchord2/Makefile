@@ -17,7 +17,7 @@ LDLIBS:=-lpthread -lasound -lm -lpulse-simple -lpulse -ludev -lrt
 CFLAGS:=-g -O0 -flto -Wall -ffast-math -I../embeddedcommon -I. -DICACHE_FLASH_ATTR=
 EXTRALIBS:=-lusb-1.0
 
-colorchord : os_generic.o main.o  dft.o decompose.o filter.o color.o notefinder.o util.o outdrivers.o $(RAWDRAW) $(SOUND) $(OUTS) parameters.o chash.o hook.o ../embeddedcommon/DFT32.o configs.o
+colorchord : os_generic.o main.o  dft.o decompose.o filter.o color.o notefinder.o util.o outdrivers.o $(RAWDRAW) $(SOUND) $(OUTS) parameters.o chash.o hook.o ../embeddedcommon/DFT32.o configs.o ../embeddedcommon/DFT8Turbo.o
 	gcc -o $@ $^ $(CFLAGS) $(LDLIBS) $(EXTRALIBS) $(RAWDRAWLIBS)
 
 

@@ -11,6 +11,7 @@
 #include "filter.h"
 #include "decompose.h"
 #include "DFT32.h"
+#include "DFT8Turbo.h"
 
 struct NoteFinder * CreateNoteFinder( int spsRec )
 {
@@ -198,6 +199,9 @@ void RunNoteFinder( struct NoteFinder * nf, const float * audio_stream, int head
 		break;
 	case 4:
 		DoDFTProgressive32( dftbins, nf->frequencies, freqs, audio_stream, head, buffersize, nf->dft_q, nf->dft_speedup );
+		break;
+	case 5:
+		DoDFT8BitTurbo( dftbins, nf->frequencies, freqs, audio_stream, head, buffersize, nf->dft_q, nf->dft_speedup );
 		break;
 	default:
 		fprintf( stderr, "Error: No DFT Seleced\n" );
