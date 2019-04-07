@@ -26,4 +26,4 @@ colorchord.exe : os_generic.c main.c  dft.c decompose.c filter.c color.c notefin
 
 
 clean :
-	rm -rf *.o *~ colorchord colorchord.exe embeddedcc
+	rm -rf *.o *~ ../embeddedcommon/*.o colorchord colorchord.exe embeddedcc

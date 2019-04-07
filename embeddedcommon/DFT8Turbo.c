@@ -100,8 +100,8 @@
 // Observation: The two tables are actually mirror images of each other, well diagonally mirrored.  That's odd.  But, would take CPU to exploit.
 
 #define SSTABLESIZE 256
-int8_t  spikysin_interleved_cos[SSTABLESIZE*2];
-uint16_t advancespeed[MAX_FREQS];
+int8_t  spikysin_interleved_cos[SSTABLESIZE][2];
+uint32_t advancespeed[MAX_FREQS];
 
 static int CompTableWithPhase( int nelements, float phase, int scaling )
 {
@@ -117,14 +117,14 @@ static int CompTableWithPhase( int nelements, float phase, int scaling )
 			combsin += sin( taued * (1<<o) + phase);
 		}
 		combsin /= OCTAVES;
-		int csadapt =  combsin * scaling;	//No value is higher with five octaves.  XXX TODO Lookout.  If you change # of octaves, need to change this, too.
+		int csadapt =  combsin * scaling - 0.5;	//No value is higher with five octaves.  XXX TODO Lookout.  If you change # of octaves, need to change this, too.
 
 		if( csadapt > highest ) highest = csadapt;
 		if( -csadapt > highest ) highest = -csadapt;
 
 		if( csadapt > 127 ) csadapt = 127;
-		if( csadapt < -127 ) csadapt = -127;  //tricky: Keep balanced.
-		spikysin_interleved_cos[i*2+0] = csadapt;
+		if( csadapt < -128 ) csadapt = -128;  //tricky: Keep balanced.
+		spikysin_interleved_cos[i][0] = csadapt;
 
 		float combcos = 0;
 		for( o = 0; o < OCTAVES; o++ )
@@ -132,14 +132,14 @@ static int CompTableWithPhase( int nelements, float phase, int scaling )
 			combcos += cos( taued * (1<<o) + phase );
 		}
 		combcos /= OCTAVES;
-		csadapt = combcos * scaling;	//No value is higher with five octaves.  XXX TODO Lookout.  If you change # of octaves, need to change this, too.
+		csadapt = combcos * scaling - 0.5;	//No value is higher with five octaves.  XXX TODO Lookout.  If you change # of octaves, need to change this, too.
 
 		if( csadapt > highest ) highest = csadapt;
 		if( -csadapt > highest ) highest = -csadapt;
 
 		if( csadapt > 127 ) csadapt = 127;
-		if( csadapt < -127 ) csadapt = -127;  //tricky: Keep balanced.
-		spikysin_interleved_cos[i*2+1] = csadapt;
+		if( csadapt < -128 ) csadapt = -128;  //tricky: Keep balanced.
+		spikysin_interleved_cos[i][1] = csadapt;
 	}
 	return highest;
 }
@@ -166,7 +166,11 @@ static int Setup( float * frequencies, int bins )
 	}
 	printf( "Best comp: %f : %d\n", bestphase, highest_val_at_best_phase );
 
-	CompTableWithPhase( SSTABLESIZE, bestphase, (65536*128)/highest_val_at_best_phase );
+	//Set this because we would overflow the sinm and cosm regs if we don't.  This is sort of like a master volume.
+	//use this as that input volume knob thing.
+	float further_reduce = 1.0;
+
+	CompTableWithPhase( SSTABLESIZE, bestphase, (65536*128*further_reduce)/highest_val_at_best_phase );
 
 //	for( i = 0; i < SSTABLESIZE; i++ )
 //	{
@@ -177,7 +181,7 @@ static int Setup( float * frequencies, int bins )
 	{
 		//frequencies[i] = SPS / Freq
 		// Need to decide how quickly we sweep through the table.
-		advancespeed[i] = 256.0 /* fixed point */ * 256.0 /* size of table */ / frequencies[i];
+		advancespeed[i] = 65536 * 256.0 /* fixed point */ * 256.0 /* size of table */ / frequencies[i];
 		//printf( "%f\n", frequencies[i] );
 	}
 	return 0;
@@ -193,7 +197,7 @@ float toutbins[MAX_FREQS];
 
 struct notedat
 {
-	uint16_t time;
+	uint32_t time;
 	int32_t sinm;
 	int32_t cosm;
 };
@@ -205,30 +209,53 @@ void Turbo8BitRun( int8_t adcval )
 	int i;
 	for( i = 0; i < MAX_FREQS; i++ )
 	{
-		uint16_t ct = nd[i].time;
+		uint32_t ct = nd[i].time;
 		int32_t muxres;
 		int32_t running;
 		int32_t rdesc, rdess;
-		int8_t  ss = spikysin_interleved_cos[(ct>>8) + 0];
-		muxres = ((int16_t)adcval * ss) >> 8;
+		uint8_t * spikysintable = &spikysin_interleved_cos[(ct>>24)][0];
+
+		int8_t  ss = *(spikysintable++);
+
+		#define DECIR 8
+
+		muxres = ((int16_t)adcval * ss + (1<<(DECIR-1)) ) >> (DECIR);
 		running = nd[i].cosm;
 		running += muxres;
 		rdesc = running >> 8;
-		running -= rdesc>>6;
-		nd[i].cosm = running;
+		running -= rdesc >> 3;
 
-		int8_t  sc = spikysin_interleved_cos[(ct>>8) + 1];
-		muxres = ((int16_t)adcval * sc) >> 8;
+		nd[i].cosm = running;
+if( i == 0) printf( "MRX %5d  %9d %9d  %9d %9d\n", muxres, adcval, ss, running, nd[i].sinm );
+		int8_t  sc = *(spikysintable++);
+		muxres = ((int16_t)adcval * sc + (1<<(DECIR-1)) ) >> (DECIR);
 		running = nd[i].sinm;
 		running += muxres;
+
 		rdess = running>>8;
-		running -= rdess>>6;
+		running -= rdess >> 3;
+
 		nd[i].sinm = running;
 
 		nd[i].time = ct + advancespeed[i];
+
 		toutbins[i] = rdess * rdess + rdesc * rdesc;
 		//printf( "%d %d = %f %p\n", rdess, rdesc, toutbins[i], &toutbins[i] );
 	}
+
+	static uint8_t stater;
+/*	stater++;
+	if( stater == 16 )
+	{
+		stater = 0;
+		for( i = 0; i < MAX_FREQS; i++ )
+		{
+			nd[i].sinm -= nd[i].sinm >> 12;
+			nd[i].cosm -= nd[i].cosm >> 12;
+			nd[i].sinm += 8;
+			nd[i].cosm += 8;
+		}
+	}*/
 }
 
 
@@ -243,8 +270,10 @@ void DoDFT8BitTurbo( float * outbins, float * frequencies, int bins, const float
 	{
 		int16_t ifr1 = (int16_t)( ((databuffer[i]) ) * 4095 );
 		//ifr1 += 4095;
-		Turbo8BitRun( ifr1>>5 );
+		//ifr1 += 512;
+		Turbo8BitRun( ifr1>>5 ); //6 = Actually only feed algorithm numbers from -64 to 63.
 	}
+	last_place = place_in_data_buffer;
 
 	for( i = 0; i < bins; i++ )
 	{
@@ -252,11 +281,13 @@ void DoDFT8BitTurbo( float * outbins, float * frequencies, int bins, const float
 	}
 	for( i = 0; i < MAX_FREQS; i++ )
 	{
-		int iss = nd[i].sinm;
-		int isc = nd[i].cosm;
+		int iss = nd[i].sinm>>8;
+		int isc = nd[i].cosm>>8;
 		int mux = iss * iss + isc * isc;
 		if( mux == 0 ) mux = 1;
-		outbins[i+MAX_FREQS] = sqrt(mux)/1000.0;
+		if( i == 0 )
+		printf( "MUX: %d %d\n", isc, iss );
+		outbins[i+MAX_FREQS] = sqrt(mux)/200.0;
 	} 
 
 }

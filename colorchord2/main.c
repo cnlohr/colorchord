@@ -54,6 +54,7 @@ float cpu_autolimit_interval = 0.016; 	REGISTER_PARAM( cpu_autolimit_interval, P
 int sample_channel = -1;REGISTER_PARAM( sample_channel, PAINT );
 int showfps = 0;        REGISTER_PARAM( showfps, PAINT );
 float in_amplitude = 1; REGISTER_PARAM( in_amplitude, PAFLOAT );
+int shim_sinewave = 0;  REGISTER_PARAM( shim_sinewave, PAINT );
 
 struct NoteFinder * nf;
 
@@ -96,6 +97,9 @@ void HandleMotion( int x, int y, int mask )
 
 void SoundCB( float * out, float * in, int samplesr, int * samplesp, struct SoundDriver * sd )
 {
+	static og_sema_t tss;
+	if( !tss ) tss = OGCreateSema();
+	else OGLockSema( tss );
 	int channelin = sd->channelsRec;
 //	int channelout = sd->channelsPlay;
 	//*samplesp = 0;
@@ -106,53 +110,90 @@ void SoundCB( float * out, float * in, int samplesr, int * samplesp, struct Soun
 	int i;
 	int j;
 
-	for( i = 0; i < samplesr; i++ )
+	if( out )
 	{
-		if( out )
+		for( i = 0; i < samplesr; i++ )
 		{
 			for( j = 0; j < channelin; j++ )
 			{
 				out[i*channelin+j] = 0;
 			}
 		}
+	}
 
-		if( sample_channel < 0 )
-		{
-			float fo = 0;
-			for( j = 0; j < channelin; j++ )
-			{
-				float f = in[i*channelin+j];
-				if( f >= -1 && f <= 1 )
-				{
-					fo += f;
-				}
-				else
-				{
-					fo += (f>0)?1:-1;
-//					printf( "Sound fault A %d/%d %d/%d %f\n", j, channelin, i, samplesr, f );
-				}
-			}
+	if( shim_sinewave )
+	{
+		static double sinplace;
+		static double sinfreq = 0;
+		static int msp;
 
-			fo /= channelin;
-			sound[soundhead] = fo*in_amplitude;
-			soundhead = (soundhead+1)%SOUNDCBSIZE;
-		}
-		else
+		for( i = 0; i < samplesr; i++ )
 		{
-			float f = in[i*channelin+sample_channel];
+			sinfreq = 3.14159 * 2 * 110 * pow( 2, 5.0/12 ) / 16000;
+//			sinfreq += .000001;
+//			if( sinfreq > .2 ) sinfreq = 0;
+			sinplace += sinfreq;
+			if( sinplace > (3.14159*2) ) sinplace -= 3.14159 * 2;
+
+			msp++;
+			float f = sin( sinplace );
+			//if( msp % 20000 > 10000 ) f = 0;
 
 			if( f > 1 || f < -1 )
 			{ 	
 				f = (f>0)?1:-1;
 			}
 
-
 			//printf( "Sound fault B %d/%d\n", i, samplesr );
 			sound[soundhead] = f*in_amplitude;
 			soundhead = (soundhead+1)%SOUNDCBSIZE;
-
 		}
 	}
+	else
+	{
+		if( sample_channel < 0 )
+		{
+			for( i = 0; i < samplesr; i++ )
+			{
+				float fo = 0;
+				for( j = 0; j < channelin; j++ )
+				{
+					float f = in[i*channelin+j];
+					if( f >= -1 && f <= 1 )
+					{
+						fo += f;
+					}
+					else
+					{
+						fo += (f>0)?1:-1;
+	//					printf( "Sound fault A %d/%d %d/%d %f\n", j, channelin, i, samplesr, f );
+					}
+				}
+
+				fo /= channelin;
+				sound[soundhead] = fo*in_amplitude;
+				soundhead = (soundhead+1)%SOUNDCBSIZE;
+			}
+		}
+		else
+		{
+			for( i = 0; i < samplesr; i++ )
+			{
+				float f = in[i*channelin+sample_channel];
+
+				if( f > 1 || f < -1 )
+				{
+					f = (f>0)?1:-1;
+				}
+
+
+				//printf( "Sound fault B %d/%d\n", i, samplesr );
+				sound[soundhead] = f*in_amplitude;
+				soundhead = (soundhead+1)%SOUNDCBSIZE;
+			}
+		}
+	}
+
 
 	SoundEventHappened( samplesr, in, 0, channelin );
 	if( out )
@@ -160,6 +201,8 @@ void SoundCB( float * out, float * in, int samplesr, int * samplesp, struct Soun
 		SoundEventHappened( samplesr, out, 1, sd->channelsPlay );
 	}
 	*samplesp = samplesr;
+	OGUnlockSema( tss );
+
 }
 
 int main(int argc, char ** argv)
