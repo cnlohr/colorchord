@@ -192,6 +192,7 @@ void UpdateOutputBins32()
 		isps = isps<0? -isps : isps;
 		ispc = ispc<0? -ispc : ispc;
 		uint32_t rmux = isps>ispc? isps + (ispc>>1) : ispc + (isps>>1);
+		rmux = rmux>>16;
 #else
 		uint32_t rmux = ( (isps) * (isps)) + ((ispc) * (ispc));
 		rmux = SquareRootRounded( rmux );

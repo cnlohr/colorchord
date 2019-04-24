@@ -45,9 +45,8 @@ Extra copyright info:
 //Creates an I2S SR of 93,750 Hz, or 3 MHz Bitclock (.333us/sample)
 // 12000000L/(div*bestbck*2)
 //It is likely you could speed this up a little.
-#define LUXETRON
 
-#ifdef LUXETRON
+#if LUXETRON == 1
 #define INVERT
 #define WS_I2S_BCK 14
 #define WS_I2S_DIV 5

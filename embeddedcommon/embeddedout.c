@@ -61,17 +61,17 @@ void UpdateLinearLEDs()
 		{
 			if( note_peak_freqs[ sorted_note_map[j] ] > nff )
 			{
-				break;
+				break; // so j is correct place to insert
 			}
 		}
-		for( k = sorted_map_count; k > j; k-- )
+		for( k = sorted_map_count; k > j; k-- ) // make room
 		{
 			sorted_note_map[k] = sorted_note_map[k-1];
 		}
-		sorted_note_map[j] = i;
+		sorted_note_map[j] = i; // insert in correct place
 #else
+		sorted_note_map[sorted_map_count] = i; // insert at end
 #endif
-		sorted_note_map[sorted_map_count] = i;
 		sorted_map_count++;
 	}
 
