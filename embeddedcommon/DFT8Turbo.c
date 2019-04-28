@@ -5,9 +5,16 @@
 
 #include <stdio.h>
 
-#define MAX_FREQS (24)
-#define OCTAVES   (5)
+#define MAX_FREQS (8)
+#define OCTAVES   (4)
 
+//Right now, we need 8*freqs*octaves bytes.
+//This is bad.
+//What can we do to fix it?
+
+//4x the hits (sin/cos and we need to do it once for each edge)
+//8x for selecting a higher octave.
+#define FREQREBASE 8.0 
 #define TARGFREQ 8000.0
 
 /*
@@ -23,16 +30,11 @@
 	It is constantly summing, so we can take an integral of it.  Or rather an integral range.
 
 	Over time, we perform operations like adding or subtracting from a current place.
-
-
-NOTE: 
-	Optimizations:
-		Only use 16 bins, lets action table be 16-bits wide.
 */
 
 //These live in RAM.
 int16_t running_integral;
-int16_t integral_at[MAX_FREQS*OCTAVES*2];
+int16_t integral_at[MAX_FREQS*OCTAVES*2];	//THIS CAN BE COMPRESSED.
 int32_t cossindata[MAX_FREQS*OCTAVES*2]; //Contains COS and SIN data.  (32-bit for now, will be 16-bit)
 uint8_t which_octave_for_op[MAX_FREQS]; //counts up, tells you which ocative you are operating on.  PUT IN RAM.
 
@@ -45,7 +47,7 @@ uint8_t  optable[NR_OF_OPS]; //PUT IN FLASH
 
 
 #define ACTIONTABLESIZE 256
-uint32_t actiontable[ACTIONTABLESIZE]; //PUT IN FLASH
+uint8_t actiontable[ACTIONTABLESIZE]; //PUT IN FLASH // If there are more than 8 freqbins, this must be a uint16_t, otherwise if more than 16, 32.
 uint8_t actiontableplace;
 //Format is
 
@@ -56,12 +58,17 @@ static int Setup( float * frequencies, int bins )
 	for( i = bins-MAX_FREQS; i < bins; i++ )
 	{
 		int topbin = i - (bins-MAX_FREQS);
-		float f = frequencies[i]/4.0; //4x the hits (sin/cos and we need to do it once for each edge)
+		float f = frequencies[i]/FREQREBASE; 
 		float hits_per_table = (float)ACTIONTABLESIZE/f;
 		int dhrpertable = (int)(hits_per_table+.5);//TRICKY: You might think you need to have even number of hits (sin/cos), but you don't!  It can flip sin/cos each time through the table!
 		float err = (TARGFREQ/((float)ACTIONTABLESIZE/dhrpertable) - (float)TARGFREQ/f)/((float)TARGFREQ/f);
 		//Perform an op every X samples.  How well does this map into units of 1024?
 		printf( "%d %f -> hits per %d: %f %d (%.2f%% error)\n", topbin, f, ACTIONTABLESIZE, (float)ACTIONTABLESIZE/f, dhrpertable, err * 100.0 );
+		if( dhrpertable >= ACTIONTABLESIZE )
+		{
+			fprintf( stderr, "Error: Too many hits.\n" );
+			exit(0);
+		}
 
 		float advance_per_step = dhrpertable/(float)ACTIONTABLESIZE;
 		float fvadv = 0.0;
@@ -100,14 +107,15 @@ static int Setup( float * frequencies, int bins )
 		}
 		else
 		{
+			longestzeroes = OCTAVES-1-longestzeroes;	//Actually do octave 0 least often.
 			int iop = phaseinop[longestzeroes]++;
 			optable[i] = (longestzeroes<<1) | (iop & 1);
 			if( iop & 2 ) optable[i] |= 1<<4;
-			//printf( "  %d %d\n", iop, val );
+			//printf( "  %d %d %d\n", iop, val, longestzeroes );
 		}
 		//printf( "HBT: %d = %d\n", i, optable[i] );
 	}
-	
+	//exit(1);
 
 	return 0;
 }
@@ -134,7 +142,7 @@ uint32_t actiontable[ACTIONTABLESIZE]; //PUT IN FLASH
 
 void Turbo8BitRun( int8_t adcval )
 {
-	running_integral += adcval;
+	running_integral += adcval>>0;
 
 #define dprintf( ... )
 
@@ -158,25 +166,32 @@ void Turbo8BitRun( int8_t adcval )
 			else
 			{
 				int octaveplace = op & 0xf;
-				int idx = (octaveplace>>1) * MAX_FREQS * 2 + n * (octaveplace&1)*2;
+				int idx = (octaveplace>>1) * MAX_FREQS * 2 + n * 2 + (octaveplace&1);
 
+				//int invoct = OCTAVES-1-octaveplace;
 				int16_t diff;
 
 				if( op & 0x10 )	//ADD
 				{
-					diff = integral_at[idx>>1] - running_integral;
+					diff = integral_at[idx] - running_integral;
 					dprintf( "%c", 'a' + octaveplace );
 				}
 				else	//SUBTRACT
 				{
-					diff = running_integral - integral_at[idx>>1];
+					diff = running_integral - integral_at[idx];
 					dprintf( "%c", 'A' + octaveplace );
 				}
-				integral_at[idx>>1] = running_integral;
-				printf( "%d\n", diff );
+				//diff = diff * (octaveplace+1);
+				if( diff > 256 || diff < -256 ) printf( "%d\n", diff );
+
+				integral_at[idx] = running_integral;
+				//if( n == 1 ) printf( "%d %d %d  %d\n", n, idx, diff, op & 0x10 );
 				//dprintf( "%d\n", idx );
-				cossindata[idx] += diff;
-				cossindata[idx] -= cossindata[idx] >> 8;
+				cossindata[idx] = cossindata[idx] + diff - (cossindata[idx]>>3);
+			//	if( cossindata[idx] > 1 ) cossindata[idx]--;
+			//	if( cossindata[idx] < -1 ) cossindata[idx]++;
+			//	if( cossindata[idx] > 16 ) cossindata[idx]-=8;
+			//	if( cossindata[idx] < -16 ) cossindata[idx]+=8;
 			}
 		}
 		else
@@ -224,21 +239,47 @@ void DoDFT8BitTurbo( float * outbins, float * frequencies, int bins, const float
 	}
 	last_place = place_in_data_buffer;
 
+	static int idiv;
+	idiv++;
 #if 1
 	for( i = 0; i < bins; i++ )
 	{
 		outbins[i] = 0;
 	}
-	for( i = 0; i < MAX_FREQS; i++ )
+	for( i = 0; i < bins; i++ )
 	{
-		int iss = 0;//cossindata[i*2+0]>>8;
-		int isc = 0;//cossindata[i*2+1]>>8;
+		int iss = cossindata[i*2+0]>>8;
+		int isc = cossindata[i*2+1]>>8;
+		int issdiv = 0;
+		int iscdiv = 0;
+		int FWDOFFSET = 19;//MAX_FREQS*3/2;
+		if( i < bins-FWDOFFSET )
+		{
+			issdiv = cossindata[(i+FWDOFFSET)*2+0]/256;
+			iscdiv = cossindata[(i+FWDOFFSET)*2+1]/256;
+		}
 		int mux = iss * iss + isc * isc;
-		if( mux == 0 ) mux = 1;
-		if( i == 0 )
-		//printf( "MUX: %d %d = %d\n", isc, iss, mux );
-		outbins[i+MAX_FREQS] = sqrt(mux);///200.0;
+		int muxdiv = issdiv * issdiv + iscdiv * iscdiv;
+
+		//if( (idiv % 100) > 50 ) { printf( "*" ); mux -= muxdiv; }
+		//mux -= muxdiv;
+
+		if( mux <= 0 ) 
+		{
+			outbins[i] = 0;
+		}
+		else
+		{
+			//if( i == 0 )
+			//printf( "MUX: %d %d = %d\n", isc, iss, mux );
+			outbins[i] = sqrt((float)mux/10.0)/50.0;
+
+			if( abs( cossindata[i*2+0] ) > 1000 || abs( cossindata[i*2+1] ) > 1000 )
+				printf( "%d/%d/%d/%f ", i, cossindata[i*2+0], cossindata[i*2+1],outbins[i] );
+			//outbins[i] = (cossindata[i*2+0]/10000.0);
+		}
 	} 
+	printf( "\n" );
 #endif
 }
 
