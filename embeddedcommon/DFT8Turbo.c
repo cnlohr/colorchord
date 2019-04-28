@@ -17,6 +17,18 @@
 #define FREQREBASE 8.0 
 #define TARGFREQ 8000.0
 
+/* Tradeoff guide:
+
+	* We will optimize for RAM size here.
+
+	* If you weight the bins in advance, you can:
+		+) potentially use shallower bit depth but
+		-) have to compute the multiply every time you update the bin.
+
+	*TODO: Investigate using all unsigned (to make multiply and/or 12-bit storage easier)
+
+*/
+
 /*
 	* The first thought was using an integration map and only operating when we need to, to pull the data out.
 	* Now we're doing the thing below this block comment
@@ -35,7 +47,7 @@
 //These live in RAM.
 int16_t running_integral;
 int16_t integral_at[MAX_FREQS*OCTAVES*2];	//THIS CAN BE COMPRESSED.
-int32_t cossindata[MAX_FREQS*OCTAVES*2]; //Contains COS and SIN data.  (32-bit for now, will be 16-bit)
+int32_t cossindata[MAX_FREQS*OCTAVES*2]; //Contains COS and SIN data.  (32-bit for now, will be 16-bit, potentially even 8.)
 uint8_t which_octave_for_op[MAX_FREQS]; //counts up, tells you which ocative you are operating on.  PUT IN RAM.
 
 #define NR_OF_OPS (4<<OCTAVES)
@@ -51,10 +63,21 @@ uint8_t actiontable[ACTIONTABLESIZE]; //PUT IN FLASH // If there are more than 8
 uint8_t actiontableplace;
 //Format is
 
+uint8_t mulmux[MAX_FREQS*OCTAVES];	//PUT IN FLASH
+
 static int Setup( float * frequencies, int bins )
 {
 	int i;
 	printf( "BINS: %d\n", bins );
+
+	float highestf = frequencies[bins-1];
+	for( i = 0; i < bins; i++ )
+	{
+		mulmux[i] = (uint8_t)( highestf / frequencies[i] * 255 + 0.5 );
+		printf( "MM: %d  %f / %f\n", mulmux[i], frequencies[i], highestf );
+	}
+	//exit(0);
+
 	for( i = bins-MAX_FREQS; i < bins; i++ )
 	{
 		int topbin = i - (bins-MAX_FREQS);
@@ -91,6 +114,7 @@ static int Setup( float * frequencies, int bins )
 	}
 
 	int phaseinop[OCTAVES] = { 0 };
+	int already_hit_octaveplace[OCTAVES*2] = { 0 };
 	for( i = 0; i < NR_OF_OPS; i++ )
 	{
 		int longestzeroes = 0;
@@ -103,14 +127,26 @@ static int Setup( float * frequencies, int bins )
 		if( longestzeroes == 255 )
 		{
 			//This is a nop.  Emit a nop.
-			optable[i] = longestzeroes;
+			optable[i] = 255;
 		}
 		else
 		{
 			longestzeroes = OCTAVES-1-longestzeroes;	//Actually do octave 0 least often.
 			int iop = phaseinop[longestzeroes]++;
-			optable[i] = (longestzeroes<<1) | (iop & 1);
-			if( iop & 2 ) optable[i] |= 1<<4;
+			int toop = (longestzeroes<<1) | (iop & 1);
+
+			//if it's the first time an octave happened this set, flag it. This may be used later in the process.
+			if( !already_hit_octaveplace[toop] )
+			{
+				already_hit_octaveplace[toop] = 1;
+				toop |= 1<<5;
+			}
+
+			//Handle add/subtract bit.
+			if( iop & 2 ) toop |= 1<<4;
+
+			optable[i] = toop;
+
 			//printf( "  %d %d %d\n", iop, val, longestzeroes );
 		}
 		//printf( "HBT: %d = %d\n", i, optable[i] );
@@ -142,7 +178,7 @@ uint32_t actiontable[ACTIONTABLESIZE]; //PUT IN FLASH
 
 void Turbo8BitRun( int8_t adcval )
 {
-	running_integral += adcval>>0;
+	running_integral += adcval>>2;
 
 #define dprintf( ... )
 
@@ -181,13 +217,31 @@ void Turbo8BitRun( int8_t adcval )
 					diff = running_integral - integral_at[idx];
 					dprintf( "%c", 'A' + octaveplace );
 				}
-				//diff = diff * (octaveplace+1);
+
 				if( diff > 256 || diff < -256 ) printf( "%d\n", diff );
 
 				integral_at[idx] = running_integral;
 				//if( n == 1 ) printf( "%d %d %d  %d\n", n, idx, diff, op & 0x10 );
 				//dprintf( "%d\n", idx );
-				cossindata[idx] = cossindata[idx] + diff - (cossindata[idx]>>3);
+
+#if 0
+		//Apply IIR operation 1; This is rough because the Q changes and goes higher as a function of frequency.  This is probably a bad move.
+				cossindata[idx] += diff>>4;
+				if( op & 0x20 )
+				{
+					cossindata[idx] = cossindata[idx] 
+						- (cossindata[idx]>>2);
+				}
+#else
+		//Apply IIR.
+				//printf( "%d: %d + %d * %d >> 8 - %d\n", idx, cossindata[idx], diff, mulmux[idx/2], cossindata[idx]>>4 );
+				cossindata[idx] = cossindata[idx] 
+					+ (((int32_t)diff * (int32_t)mulmux[idx/2])>>6)
+					- (cossindata[idx]>>4)
+					;
+			//	if( cossindata[idx] > 2047 ) cossindata[idx] = 2047;
+			//	if( cossindata[idx] < -2048 ) cossindata[idx] = -2048;
+#endif
 			//	if( cossindata[idx] > 1 ) cossindata[idx]--;
 			//	if( cossindata[idx] < -1 ) cossindata[idx]++;
 			//	if( cossindata[idx] > 16 ) cossindata[idx]-=8;
@@ -272,7 +326,7 @@ void DoDFT8BitTurbo( float * outbins, float * frequencies, int bins, const float
 		{
 			//if( i == 0 )
 			//printf( "MUX: %d %d = %d\n", isc, iss, mux );
-			outbins[i] = sqrt((float)mux/10.0)/50.0;
+			outbins[i] = sqrt((float)mux)/50.0;
 
 			if( abs( cossindata[i*2+0] ) > 1000 || abs( cossindata[i*2+1] ) > 1000 )
 				printf( "%d/%d/%d/%f ", i, cossindata[i*2+0], cossindata[i*2+1],outbins[i] );
