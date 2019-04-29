@@ -5,8 +5,9 @@
 
 #include <stdio.h>
 
-#define MAX_FREQS (8)
+#define MAX_FREQS (12)
 #define OCTAVES   (4)
+#define INITIAL_DECIMATE 1
 
 //Right now, we need 8*freqs*octaves bytes.
 //This is bad.
@@ -15,38 +16,43 @@
 //4x the hits (sin/cos and we need to do it once for each edge)
 //8x for selecting a higher octave.
 #define FREQREBASE 8.0 
-#define TARGFREQ 8000.0
+#define TARGFREQ 10000.0
 
 /* Tradeoff guide:
 
 	* We will optimize for RAM size here.
 
-	* If you weight the bins in advance, you can:
+
+	* INITIAL_DECIMATE; A larger decimation: {NOTE 1}
+		+) Reduces the bit depth needed for the integral map.
+			If you use "1" and a fully saturted map (highest note is every sample), it will not overflow a signed 12-bit number.
+		-) Increases noise.  
+			With full-scale: 0->1 minimal 1->2 minimal 2->3 significantly noticable, 3->4 major.
+			If sound is quieter, it matters more.  I recommend no less than 1.
+	Also, other things, like frequency of hits can manipulate the maximum bit depth needed for integral map.
+
+	* If you weight the bins in advance see "mulmux", you can:	{NOTE 2}
 		+) potentially use shallower bit depth but
 		-) have to compute the multiply every time you update the bin.
 
+	* You can use a modified-square-wave which only integrates for 1/2 of the duty cycle. {NOTE 3}
+		+) uses 1/2 the integral memory.
+		-) Not as pretty of an output.  See "integral_at"
+
 	*TODO: Investigate using all unsigned (to make multiply and/or 12-bit storage easier)
 
-*/
 
-/*
-	* The first thought was using an integration map and only operating when we need to, to pull the data out.
-	* Now we're doing the thing below this block comment
-		int16_t accumulated_total;							//2 bytes
-		int16_t last_accumulated_total_at_bin[MAX_FREQS*2];  //24 * 2 * sizeof(int16_t) = 96 bytes.
-		uint8_t current_time;								//1 byte
-		uint8_t placecode[MAX_FREQS];
-*/
-/* 
+
 	So, the idea here is we would keep a running total of the current ADC value, kept away in a int16_t.
 	It is constantly summing, so we can take an integral of it.  Or rather an integral range.
 
-	Over time, we perform operations like adding or subtracting from a current place.
+	Over time, we perform operations like adding or subtracting from a current place.  It basically is
+	a DFT where the kernel is computed using square waves (or modified square waves)
 */
 
 //These live in RAM.
-int16_t running_integral;
-int16_t integral_at[MAX_FREQS*OCTAVES*2];	//THIS CAN BE COMPRESSED.
+int16_t running_integral; //Realistically treat as 12-bits on ramjet8
+int16_t integral_at[MAX_FREQS*OCTAVES];	//For ramjet8, make 12-bits
 int32_t cossindata[MAX_FREQS*OCTAVES*2]; //Contains COS and SIN data.  (32-bit for now, will be 16-bit, potentially even 8.)
 uint8_t which_octave_for_op[MAX_FREQS]; //counts up, tells you which ocative you are operating on.  PUT IN RAM.
 
@@ -59,7 +65,7 @@ uint8_t  optable[NR_OF_OPS]; //PUT IN FLASH
 
 
 #define ACTIONTABLESIZE 256
-uint8_t actiontable[ACTIONTABLESIZE]; //PUT IN FLASH // If there are more than 8 freqbins, this must be a uint16_t, otherwise if more than 16, 32.
+uint16_t actiontable[ACTIONTABLESIZE]; //PUT IN FLASH // If there are more than 8 freqbins, this must be a uint16_t, otherwise if more than 16, 32.
 uint8_t actiontableplace;
 //Format is
 
@@ -76,7 +82,6 @@ static int Setup( float * frequencies, int bins )
 		mulmux[i] = (uint8_t)( highestf / frequencies[i] * 255 + 0.5 );
 		printf( "MM: %d  %f / %f\n", mulmux[i], frequencies[i], highestf );
 	}
-	//exit(0);
 
 	for( i = bins-MAX_FREQS; i < bins; i++ )
 	{
@@ -94,11 +99,12 @@ static int Setup( float * frequencies, int bins )
 		}
 
 		float advance_per_step = dhrpertable/(float)ACTIONTABLESIZE;
-		float fvadv = 0.0;
+		float fvadv = 0.5;
 		int j;
 		int countset = 0;
 
-		//XXX TODO Tricky: We need to start fadv off at such a place that there won't be a hicchup when going back around to 0.
+		//Tricky: We need to start fadv off at such a place that there won't be a hicchup when going back around to 0.
+		//	I believe this is done by setting fvadv to 0.5 initially.  Unsure.
 
 		for( j = 0; j < ACTIONTABLESIZE; j++ )
 		{
@@ -112,6 +118,8 @@ static int Setup( float * frequencies, int bins )
 		}
 		printf( "   countset: %d\n", countset );
 	}
+	//exit(1);
+
 
 	int phaseinop[OCTAVES] = { 0 };
 	int already_hit_octaveplace[OCTAVES*2] = { 0 };
@@ -178,7 +186,7 @@ uint32_t actiontable[ACTIONTABLESIZE]; //PUT IN FLASH
 
 void Turbo8BitRun( int8_t adcval )
 {
-	running_integral += adcval>>2;
+	running_integral += adcval>>INITIAL_DECIMATE;
 
 #define dprintf( ... )
 
@@ -202,25 +210,31 @@ void Turbo8BitRun( int8_t adcval )
 			else
 			{
 				int octaveplace = op & 0xf;
-				int idx = (octaveplace>>1) * MAX_FREQS * 2 + n * 2 + (octaveplace&1);
+
+				//Tricky: We share the integral with SIN and COS.
+				//We don't need to. It would produce a slightly cleaner signal. See: NOTE 3
+				int intindex = (octaveplace>>1) * MAX_FREQS + n;
 
 				//int invoct = OCTAVES-1-octaveplace;
 				int16_t diff;
 
 				if( op & 0x10 )	//ADD
 				{
-					diff = integral_at[idx] - running_integral;
+					diff = integral_at[intindex] - running_integral;
 					dprintf( "%c", 'a' + octaveplace );
 				}
 				else	//SUBTRACT
 				{
-					diff = running_integral - integral_at[idx];
+					diff = running_integral - integral_at[intindex];
 					dprintf( "%c", 'A' + octaveplace );
 				}
 
-				if( diff > 256 || diff < -256 ) printf( "%d\n", diff );
+				if( diff > 2000 || diff < -2000 ) printf( "!!!!!!!!!!!! %d !!!!!!!!!!!\n", diff );
 
-				integral_at[idx] = running_integral;
+				integral_at[intindex] = running_integral;
+
+				int idx = intindex * 2 + (octaveplace&1);
+
 				//if( n == 1 ) printf( "%d %d %d  %d\n", n, idx, diff, op & 0x10 );
 				//dprintf( "%d\n", idx );
 
@@ -328,7 +342,7 @@ void DoDFT8BitTurbo( float * outbins, float * frequencies, int bins, const float
 			//printf( "MUX: %d %d = %d\n", isc, iss, mux );
 			outbins[i] = sqrt((float)mux)/50.0;
 
-			if( abs( cossindata[i*2+0] ) > 1000 || abs( cossindata[i*2+1] ) > 1000 )
+			if( abs( cossindata[i*2+0] ) > 2000 || abs( cossindata[i*2+1] ) > 2000 )
 				printf( "%d/%d/%d/%f ", i, cossindata[i*2+0], cossindata[i*2+1],outbins[i] );
 			//outbins[i] = (cossindata[i*2+0]/10000.0);
 		}
