@@ -234,7 +234,8 @@ void Turbo8BitRun( int8_t adcval )
 		if( diff < 0 )		//[2CYC]
 		{
 			diff *= -1;		//[1CYC]
-			diff >>= (OCTAVES-1-octave); // ???TRICKY???
+			diff >>= (OCTAVES-1-octave); // ???TRICKY???  Should this be a multiply?
+
 			//if( diff > 250 ) printf( "!!!!!!!**** %d ****!!!!!!!\n", diff );
 
 			diff = ((uint16_t)diff * (uint16_t)mulmuxval)>>INTEGRATOR_DECIMATE; //[3CYC]
@@ -255,13 +256,16 @@ void Turbo8BitRun( int8_t adcval )
 #endif
 		//printf( "%d\n", diff );
 
-		cossindata[intindex] = cossindata[intindex] 
-			+ diff
-			- (cossindata[intindex]>>4)
+		int8_t tmp = 
+			cossindata[intindex] 	//[3CYC]
+			+ diff					//[1CYC]
+			- (cossindata[intindex]>>4)	//[2CYC]
 			;
 
-		if( cossindata[intindex] > 0 ) cossindata[intindex]--;
-		if( cossindata[intindex] < 0 ) cossindata[intindex]++;
+		if( tmp > 0 ) tmp--;	//2CYC
+		if( tmp < 0 ) tmp++;	//2CYC
+		cossindata[intindex] = tmp;	//2CYC
+		//60ish cycles :( :( :(
 	}
 }
 
