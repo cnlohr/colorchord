@@ -1,6 +1,6 @@
 #include <stdint.h>
 #include <stdlib.h>
-#include "DFT8Turbo.h"
+#include "DFT12Small.h"
 #include <math.h>
 
 #include <stdio.h>
@@ -191,7 +191,7 @@ static int Setup( float * frequencies, int bins )
 }
 
 
-void Turbo8BitRun( int8_t adcval )
+void Small12BitRun( int8_t adcval )
 {
 	int16_t adcv = adcval;
 	adcv *= FRONTEND_AMPLITUDE;
@@ -313,7 +313,7 @@ void Turbo8BitRun( int8_t adcval )
 }
 
 
-void DoDFT8BitTurbo( float * outbins, float * frequencies, int bins, const float * databuffer, int place_in_data_buffer, int size_of_data_buffer, float q, float speedup )
+void DoDFT12BitSmall( float * outbins, float * frequencies, int bins, const float * databuffer, int place_in_data_buffer, int size_of_data_buffer, float q, float speedup )
 {
 	static int is_setup;
 	if( !is_setup ) { is_setup = 1; Setup( frequencies, bins ); }
@@ -323,7 +323,7 @@ void DoDFT8BitTurbo( float * outbins, float * frequencies, int bins, const float
 	for( i = last_place; i != place_in_data_buffer; i = (i+1)%size_of_data_buffer )
 	{
 		int16_t ifr1 = (int16_t)( ((databuffer[i]) ) * 4095 );
-		Turbo8BitRun( ifr1>>5 ); //5 = Actually only feed algorithm numbers from -128 to 127.
+		Small12BitRun( ifr1>>5 ); //5 = Actually only feed algorithm numbers from -128 to 127.
 	}
 	last_place = place_in_data_buffer;
 
