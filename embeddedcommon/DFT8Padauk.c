@@ -89,7 +89,7 @@ static int Setup( float * frequencies, int bins )
 		{
 			if( fvadv >= 0.5 )
 			{
-				actiontable[j] |= 1<<topbin;
+				actiontable[j] |= 1<<(MAX_FREQS-1-topbin);	//XXX-DEPARTURE (reversing the table symbols)
 				fvadv -= 1.0;
 				countset++;
 			}
@@ -149,7 +149,17 @@ static int Setup( float * frequencies, int bins )
 }
 
 
-void Turbo8BitRun( int8_t adcval )
+static uint16_t action;
+static uint8_t note;
+static uint8_t * memptr;
+static uint16_t * romptr;
+static uint8_t op;
+static uint8_t octave;
+static uint8_t intindex;
+static int8_t diff;
+static uint8_t tmp;
+
+void Padauk8BitRun( int8_t adcval )
 {
 	int16_t adcv = adcval;
 	adcv *= FRONTEND_AMPLITUDE;
@@ -157,15 +167,18 @@ void Turbo8BitRun( int8_t adcval )
 	if( adcv < -128 ) adcv = -128;
 	running_integral += adcv>>INITIAL_DECIMATE;
 
-	uint16_t action = actiontable[actiontableplace++];
-	uint8_t n;
+	uint8_t acc;
+	uint8_t * accM;
+	uint8_t mul2;
+
+	action = actiontable[actiontableplace++];
 
 	//Counts are approximate counts for PMS133
 
-	for( n = 0; 			//1CYC
-		 n < MAX_FREQS; 	//2CYC
-		 n++, 				//1CYC
-			action>>=1 		//2CYC
+	for( note = MAX_FREQS; 	
+		 note; 				//1CYC/PAIRED
+		 note--, 			//1CYC/PAIRED (dzsn)
+			action>>=1 		//2CYC (slc x2)
 		)
 	{
 		//Everything inside this loop is executed ~3/4 * MAX_FREQS per audio sample. so.. ~9x.
@@ -174,86 +187,88 @@ void Turbo8BitRun( int8_t adcval )
 		//If no operation is scheduled, continue.
 		if( !( action & 1 ) ) continue;		//1CYC
 
-		uint8_t ao = which_octave_for_op[n];	//4CYC
-		ao++;									//1CYC
-		if( ao >= NR_OF_OPS ) ao = 0;			//2CYC
-		which_octave_for_op[n] = ao;			//2CYC (idxm)
+		accM = which_octave_for_op - 1;			//1CYC
+		accM = accM + note;						//1CYC
+		memptr = accM;							//1CYC
+		acc = *memptr;							//2CYC (idxm)
+		acc++;									//1CYC
+		if( acc == NR_OF_OPS )					//2CYC
+			acc = 0;
+		*memptr = acc;							//2CYC (idxm)
 
-		uint8_t op = optable[ao];				//"theoretically" 3CYC (if you align things right)
-												//1CYC (Put A into specific RAM location)
+		accM = (uint8_t*)optable + acc*2;		//1CYC
+		romptr = (uint16_t*)accM;				//1CYC
+		acc = *romptr;							//2CYC (ldtabl)
 
 		//If we are on the one thing we aren't supposed to operate within, cancel.
-		if( op == 255 )	continue;				//2CYC (if op is in A)
+		if( acc == 255 )	continue;			//2CYC
 
-		//Tricky: We share the integral with SIN and COS.
-		//We don't need to. It would produce a slightly cleaner signal. See: NOTE 3
-		uint8_t octave = op & 0xf;				//1CYC (if op is in A)
+		op = acc;								//1CYC									
 
+		//21 cycles so far.
 
-		uint8_t intindex = octave * MAX_FREQS //Load mulop with 12 [2CYC]; mul [1CYC]
-			 + n;								//Add [1CYC]
-												//[1CYC] more cycle to write A into RAM[(intindex)
-		//int invoct = OCTAVES-1-octaveplace;
-		int8_t diff;
+		acc = MAX_FREQS;						//1CYC
+		mul2 = acc;								//1CYC
+		acc = op;								//1CYC
+		acc = acc & 0xf;						//1CYC
+		octave = acc;							//1CYC
+		acc = acc * mul2;						//2CYC
+		acc = acc + note;						//1CYC
+		intindex = acc;							//1CYC
+		accM = (uint8_t*)integral_at-1 + acc;	//1CYC
+		memptr = accM;							//1CYC
 
-		if( op & 0x10 )	//ADD		//2CYC
+		if( op & 0x10 )	//ADD					//2CYC
 		{
-			diff = integral_at[intindex]		//Assume "IntIndex" is in A, add integral_at to A [1], move A to an index [1]. [2] to read into acc. [4CYC]
-				 - running_integral;			//1CYC to subtract.
-												//1CYC to write diff into a memory location.
+			acc = *memptr;						//2CYC
+			acc = acc - running_integral;		//1CYC
+			diff = acc;							//1CYC
 		}
 		else	//SUBTRACT
 		{
-			diff = running_integral - integral_at[intindex];
+			acc = *memptr;						//2CYC
+			tmp = acc;							//1CYC
+			acc = running_integral;				//1CYC
+			acc = acc - tmp;					//1CYC
+			diff = acc;							//1CYC
 		}
 
-		//30 cycles so far.
+		acc = running_integral;					//1CYC
+		*memptr = acc;							//2CYC
 
-		integral_at[intindex] = running_integral;	//[3CYC]
-
-		//if( diff > 124 || diff < -124 ) printf( "!!!!!!!!!!!! %d !!!!!!!!!!!\n", diff );
-		
-		//uint8_t idx = ( intindex << 1 );	//Overwrite intindex.
-		intindex <<= 1; //1CYC
-
-		if( op&(1<<6) )	//2CYC
+		//42 AVERAGE cycles so far.
+		//??? Something below here is wrong???  Or near here??? XXX TODO PICK UP HERE!!!
+		intindex <<= 1; 						//1CYC
+		if( op&(1<<6) )							//2CYC
 		{
-			intindex |= 1; //1CYC
+			intindex |= 1;						//1CYC
 		}
 
-		uint8_t mulmuxval = mulmux[n];	//[4CYC]
+		accM = (uint8_t*)(mulmux - 1);			//1CYC
+		accM = accM + note*2;					//1CYC
+		romptr = accM;							//1CYC
+		acc = *romptr;							//2CYC
+		mul2 = acc;								//1CYC
 
-
-		//Do you live on a super lame processor? {NOTE 4}
-		//If you do, you might not have good signed multiply operations. So, an alternative mechanism is found here.
-		//	+) Able to more cleanly crush to an 8-bit multiply.
-		//	+) Gets extra bit of precision back, i.e. the sign bit is now used as a data bit.
-		//	-) More than 1 line of C code.  Requires possible double invert.
-#if 1
-		//rough processor, i.e. PMS133
-		if( diff < 0 )		//[2CYC]
+		if( diff < 0 )							//[2CYC] (t0sn on MSB)
 		{
-			diff *= -1;		//[1CYC]
+			diff *= -1;							//[1CYC] (neg M)
 			diff >>= (OCTAVES-1-octave); // ???TRICKY???  Should this be a multiply?
 
 			//if( diff > 250 ) printf( "!!!!!!!**** %d ****!!!!!!!\n", diff );
 
-			diff = ((uint16_t)diff * (uint16_t)mulmuxval)>>INTEGRATOR_DECIMATE; //[3CYC]
+			diff = ((uint16_t)diff * (uint16_t)mul2)>>INTEGRATOR_DECIMATE; //[3CYC]
 			diff *= -1; //[1CYC]
 		}
 		else
 		{
 			diff >>= (OCTAVES-1-octave);
 			//if( diff > 250 ) printf( "!!!!!!!**** %d ****!!!!!!!\n", diff );
-			diff = ((uint16_t)diff * (uint16_t)mulmuxval)>>INTEGRATOR_DECIMATE;
+			diff = ((uint16_t)diff * (uint16_t)mul2)>>INTEGRATOR_DECIMATE;
 		}	
 
 		//@48 cycles :( :( :(
 
-#else
-		//Decent processor, i.e. ATTiny85.
-		diff = ((diff>>(OCTAVES-1-octave)) * mulmuxval ) >> 6;
-#endif
 		//printf( "%d\n", diff );
 
 		int8_t tmp = 
@@ -270,7 +285,7 @@ void Turbo8BitRun( int8_t adcval )
 }
 
 
-void DoDFT8BitTurbo( float * outbins, float * frequencies, int bins, const float * databuffer, int place_in_data_buffer, int size_of_data_buffer, float q, float speedup )
+void DoDFT8BitPadauk( float * outbins, float * frequencies, int bins, const float * databuffer, int place_in_data_buffer, int size_of_data_buffer, float q, float speedup )
 {
 	static int is_setup;
 	if( !is_setup ) { is_setup = 1; Setup( frequencies, bins ); }
@@ -280,7 +295,7 @@ void DoDFT8BitTurbo( float * outbins, float * frequencies, int bins, const float
 	for( i = last_place; i != place_in_data_buffer; i = (i+1)%size_of_data_buffer )
 	{
 		int16_t ifr1 = (int16_t)( ((databuffer[i]) ) * 4095 );
-		Turbo8BitRun( ifr1>>5 ); //5 = Actually only feed algorithm numbers from -128 to 127.
+		Padauk8BitRun( ifr1>>5 ); //5 = Actually only feed algorithm numbers from -128 to 127.
 	}
 	last_place = place_in_data_buffer;
 
