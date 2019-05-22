@@ -52,9 +52,16 @@ os_event_t    procTaskQueue[PROC_TASK_QUEUE_LEN] = {0};
 uint32_t samp_iir = 0;
 int samplesProcessed = 0;
 
+extern volatile uint8_t sounddata[HPABUFFSIZE];
+extern volatile uint16_t soundhead;
+uint16_t soundtail;
+
 /*============================================================================
  * Functions
  *==========================================================================*/
+
+void EnterCritical();
+void ExitCritical();
 
 /**
  * Called from procTask() when 128 sound samples, a colorchord frame,
@@ -86,7 +93,6 @@ static void NewFrame()
 }
 
 void fpm_wakup_cb_func1(void) { wifi_fpm_close(); }
-
 
 /**
  * The main process that runs all the time. Registered with system_os_task(),
