@@ -25,9 +25,9 @@ struct SaveLoad
 struct CCSettings CCS;
 
 typedef struct {
-	uint8_t defaultVal;
+	uint16_t defaultVal;
 	char * name;
-	uint8_t * val;
+	uint16_t * val;
 } configurable_t;
 
 configurable_t gConfigs[CONFIGURABLES] =

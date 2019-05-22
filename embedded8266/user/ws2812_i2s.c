@@ -552,11 +552,6 @@ void ws2812_push( uint8_t * buffer, uint16_t buffersize, int driver_mode )
 
 #elif defined(WS2812_FOUR_SAMPLE)
 
-	if( buffersize * 4 > WS_BLOCKSIZE )
-	{
-		return;
-	}
-
 	if( driver_mode )
 	{
 		uint16_t * bufferpl = (uint16_t*)&i2sBlock[0];
