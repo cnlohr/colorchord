@@ -56,7 +56,6 @@ struct CCSettings
 	uint16_t gUSE_NUM_LIN_LEDS;                  // = NUM_LIN_LEDS
 	uint16_t gCOLORCHORD_ACTIVE;
 	uint16_t gCOLORCHORD_OUTPUT_DRIVER;
-	uint16_t gLED_DRIVER_MODE;
 	uint16_t gINITIAL_AMP;
 	uint16_t gLED_DRIVER_MODE;
 };

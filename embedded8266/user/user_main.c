@@ -100,7 +100,8 @@ void fpm_wakup_cb_func1(void) { wifi_fpm_close(); }
  *
  * @param events OS signals, sent through system_os_post(). If sig an par
  *               are 0, call CSTick()
- */static void procTask(os_event_t *events)
+ */
+static void procTask(os_event_t *events)
 {
 	// TODO why this instead of a while(1) loop?
 	system_os_post(PROC_TASK_PRIO, 0, 0 );
