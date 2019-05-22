@@ -8,7 +8,7 @@ This project is based off of the I2S interface for the mp3 player found here:
 https://github.com/espressif/esp8266_mp3_decoder/
 
 If you want more information about the build environment, etc.  You should
-check out the regular WS2812 driver, found here: https://github.com/cnlohr/ws2812esp8266
+check out the regular WS2812 driver, found here: https://github.com/cnlohr/esp8266ws2812i2s
 
 WARNING: This subproject is very jankey!  It's about stable, but I don't think it's quite there yet.
 
@@ -17,6 +17,11 @@ WARNING: This subproject is very jankey!  It's about stable, but I don't think i
 Unfortunately the I2S Out (WS2812 in) pin is the same as RX1 (pin 25), which means if you are programming via the UART, it'll need to be unplugged any time you're testing.  The positive side of this is that it is a pin that is exposed on most ESP8266 breakout boards.
 
 The audio data is taken from TOUT, but must be kept between 0 and 1V.
+
+An option that has been thurroughly tested is for use with the 2019 MAGFest Swadge.  https://github.com/cnlohr/swadge2019
+
+Audio portion:
+![Audio portion of schematic](https://raw.githubusercontent.com/cnlohr/swadge2019/master/hardware/swadge2019_schematic_audio.png)
 
 ## Notes
 

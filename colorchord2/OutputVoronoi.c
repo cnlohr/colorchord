@@ -56,7 +56,7 @@ static void DPOUpdate(void * id, struct NoteFinder*nf)
 	for( i = 0; i < d->note_peaks; i++ )
 	{
 		struct LINote * l = &d->notes[i];
-		l->ledexp = pow( nf->note_amplitudes2[i], d->amppow ) - d->cutoff;
+		l->ledexp = powf( nf->note_amplitudes2[i], d->amppow ) - d->cutoff;
 		if( l->ledexp < 0 ) l->ledexp = 0;
 		totalexp += l->ledexp;
 		if( d->from_sides )

@@ -12,14 +12,14 @@ extern volatile uint8_t sounddata[];
 extern volatile uint16_t soundhead;
 
 
-#define CONFIGURABLES sizeof(struct CCSettings) //(plus1)
+#define CONFIGURABLES (sizeof(struct CCSettings) / sizeof(uint16_t)) //(plus1)
 
 #define SAVE_LOAD_KEY 0xAA
 
 struct SaveLoad
 {
-	uint8_t configs[CONFIGURABLES];
-	uint8_t SaveLoadKey; //Must be SAVE_LOAD_KEY to be valid.
+	uint16_t configs[CONFIGURABLES];
+	uint16_t SaveLoadKey; //Must be SAVE_LOAD_KEY to be valid.
 } settings;
 
 struct CCSettings CCS;
@@ -119,6 +119,11 @@ configurable_t gConfigs[CONFIGURABLES] =
 	},
 	{
 		.defaultVal = 0,
+		.name = "gLED_DRIVER_MODE",
+		.val = &CCS.gLED_DRIVER_MODE
+	},
+	{
+		.defaultVal = 0,
 		.name = 0,
 		.val = 0
 	}
@@ -131,7 +136,7 @@ configurable_t gConfigs[CONFIGURABLES] =
 void ICACHE_FLASH_ATTR CustomStart( )
 {
 	int i;
-	spi_flash_read( 0x3D000, (uint32*)&settings, sizeof( settings ) );
+	spi_flash_read( CCCONFIG_ADDRESS, (uint32*)&settings, sizeof( settings ) );
 	if( settings.SaveLoadKey == SAVE_LOAD_KEY )
 	{
 		for( i = 0; i < CONFIGURABLES; i++ )
@@ -308,8 +313,8 @@ int ICACHE_FLASH_ATTR CustomCommand(char * buffer, int retsize, char *pusrdata, 
 
 			EnterCritical();
 			ets_intr_lock();
-			spi_flash_erase_sector( 0x3D000/4096 );
-			spi_flash_write( 0x3D000, (uint32*)&settings, ((sizeof( settings )-1)&(~0xf))+0x10 );
+			spi_flash_erase_sector( CCCONFIG_ADDRESS/4096 );
+			spi_flash_write( CCCONFIG_ADDRESS, (uint32*)&settings, ((sizeof( settings )-1)&(~0xf))+0x10 );
 			ets_intr_unlock();
 			ExitCritical();
 

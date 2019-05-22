@@ -3,6 +3,7 @@
 
 void send_openocd_command(int command, void *message);
 void send_text( const char * text );
+void send_text_value( const char * text, uint32_t val );
 void _delay_us(uint32_t us);
 
 

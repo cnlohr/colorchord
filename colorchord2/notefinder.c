@@ -288,7 +288,6 @@ void RunNoteFinder( struct NoteFinder * nf, const float * audio_stream, int head
 				nf->note_founds[i] = 1;
 
 				nf->note_positions[i] = avgloop( nf->note_positions[i], (1.-nf->note_attach_freq_iir), nf->dists[j].mean, nf->note_attach_freq_iir, nf->freqbins);
-
 				//I guess you can't IIR this like normal.
 				////note_positions[i] * (1.-note_attach_freq_iir) + dists[j].mean * note_attach_freq_iir;
 

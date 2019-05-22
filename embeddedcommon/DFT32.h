@@ -20,6 +20,13 @@
 //made here should be backported there as well.
 
 //You can # define these to be other things elsewhere.
+
+// Will used simple approximation of norm rather than
+//   sum squares and approx sqrt
+#ifndef APPROXNORM
+#define APPROXNORM 1
+#endif
+
 #ifndef OCTAVES
 #define OCTAVES  5
 #endif
