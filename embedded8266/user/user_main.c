@@ -43,7 +43,7 @@
  *==========================================================================*/
 
 struct CCSettings CCS = {0};
-static volatile os_timer_t some_timer = {0};
+static os_timer_t some_timer = {0};
 static struct espconn *pUdpServer = NULL;
 
 static bool hpa_is_paused_for_wifi = false;
