@@ -32,7 +32,7 @@
 
 //We take the raw signal off of the 
 #ifndef FILTER_BLUR_PASSES
-#define FILTER_BLUR_PASSES 2
+#define FILTER_BLUR_PASSES 1
 #endif
 
 //Determines bit shifts for where notes lie.  We represent notes with an
