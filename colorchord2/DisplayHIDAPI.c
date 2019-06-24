@@ -27,6 +27,7 @@ struct HIDAPIOutDriver
 	int is_rgby;
 	int bank_size[4];
 	int bank_id[4];
+    int do_write_method;
 };
 
 
@@ -49,13 +50,74 @@ static void * LEDOutThread( void * v )
 			}
 			printf( "\n" );
 */
-			int r = hid_send_feature_report( led->devh, led->last_leds, total_bytes );
-			if( r < 0 )
+			if( led->do_write_method )
 			{
-				led->did_init = 0;
-				printf( "Fault sending LEDs.\n" );
+				static int rk;
+
+				int panel = 0;
+				for( panel = 0; panel < 9; panel++ )
+				{
+					uint8_t hidbuf[66];
+					memset( hidbuf, 0x00, 65 );
+					hidbuf[0] = panel;
+					int i;
+					int tled = panel;
+
+					if( led->do_write_method == 2 )
+					{
+						for( i = 0; i < 16; i++ )
+						{
+							int wled = i * 3;
+							tled = panel * 16 + i;
+							hidbuf[wled+2] = OutLEDs[tled*3+1];
+							hidbuf[wled+3] = OutLEDs[tled*3+0];
+							hidbuf[wled+4] = OutLEDs[tled*3+2];
+						}
+					}
+					else
+					{
+						for( i = 0; i < 16; i++ )
+						{
+							int wled = i * 3;
+							hidbuf[wled+2] = OutLEDs[tled*3+1];
+							hidbuf[wled+3] = OutLEDs[tled*3+0];
+							hidbuf[wled+4] = OutLEDs[tled*3+2];
+						}
+					}
+
+					rk += 0x80;
+					hidbuf[0] = 0;
+					hidbuf[1] = panel;
+
+					int r;
+#if 0
+					for( i = 0; i < 64; i++ )
+					{
+						printf( "%02x ", hidbuf[i] );
+					}
+					printf( "\n" ); fflush( stdout );
+#endif
+//					printf( "." ); fflush( stdout );
+					r = hid_write( led->devh, hidbuf, 64 );
+					//usleep(1000);
+					if( r < 0 )
+					{
+						led->did_init = 0;
+						printf( "Fault sending LEDs.\n" );
+					}
+				}
+			}
+			else
+			{
+				int r = hid_send_feature_report( led->devh, led->last_leds, total_bytes );
+				if( r < 0 )
+				{
+					led->did_init = 0;
+					printf( "Fault sending LEDs.\n" );
+				}
 			}
 			led->readyFlag = 0;
+			printf( "." ); fflush( stdout );
 		}
 		OGUSleep(100);
 	}
@@ -72,8 +134,17 @@ static void LEDUpdate(void * id, struct NoteFinder*nf)
 	{
 		led->did_init = 1;
 		hid_init();
-		
-		led->devh = hid_open( 0xabcd, 0xf104, 0 );
+
+		if( led->do_write_method )
+		{
+			//Impulse
+			led->devh = hid_open( 0x0483, 0x5750, 0 );
+		}
+		else
+		{
+			//My dingus.
+			led->devh = hid_open( 0xabcd, 0xf104, 0 );
+		}
 
 		if( !led->devh )
 		{
@@ -217,6 +288,7 @@ static void LEDParams(void * id )
 	led->bank_id[1] = 0;    RegisterValue(  "bank2_id", PAINT, &led->bank_id[1], sizeof( led->bank_id[1] ) );
 	led->bank_id[2] = 0;    RegisterValue(  "bank3_id", PAINT, &led->bank_id[2], sizeof( led->bank_id[2] ) );
 	led->bank_id[3] = 0;    RegisterValue(  "bank4_id", PAINT, &led->bank_id[3], sizeof( led->bank_id[3] ) );
+    led->do_write_method = 0; RegisterValue(  "do_write_method", PAINT, &led->do_write_method, sizeof( led->do_write_method ) );
 
 	led->did_init = 0;
 }
