@@ -24,9 +24,7 @@
 // Will used simple approximation of norm rather than
 //   sum squares and approx sqrt
 #ifndef APPROXNORM
-//XXX CNL: BBKiwi added this feature but it seems to break stuff.
-//For now, the correct behavior should be to default without approxnorm.
-//#define APPROXNORM 1
+#define APPROXNORM 1
 #endif
 
 #ifndef OCTAVES
