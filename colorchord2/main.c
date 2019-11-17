@@ -18,6 +18,36 @@
 #include "hook.h"
 #include "configs.h"
 
+#ifdef ANDROID
+#include <unistd.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+#include <android/log.h>
+#include <pthread.h>
+
+static int pfd[2];
+static pthread_t loggingThread;
+static const char *LOG_TAG = "colorchord";
+static void *loggingFunction(void*v) {
+    ssize_t readSize;
+    char buf[128];
+
+    while((readSize = read(pfd[0], buf, sizeof buf - 1)) > 0) {
+        if(buf[readSize - 1] == '\n') {
+            --readSize;
+        }
+
+        buf[readSize] = 0;  // add null-terminator
+
+        __android_log_write(ANDROID_LOG_DEBUG, LOG_TAG, buf); // Set any log level you want
+    }
+
+    return 0;
+}
+
+#endif
+ 
 struct SoundDriver * sd;
 
 #if defined(WIN32) || defined(USE_WINDOWS)
@@ -162,9 +192,40 @@ void SoundCB( float * out, float * in, int samplesr, int * samplesp, struct Soun
 	*samplesp = samplesr;
 }
 
+#ifdef ANDROID
+void HandleSuspend()
+{
+	//Unused.
+}
+
+void HandleResume()
+{
+	//Unused.
+}
+#endif
+
 int main(int argc, char ** argv)
 {
 	int i;
+
+#ifdef ANDROID
+    setvbuf(stdout, 0, _IOLBF, 0); // make stdout line-buffered
+    setvbuf(stderr, 0, _IONBF, 0); // make stderr unbuffered
+
+    /* create the pipe and redirect stdout and stderr */
+    pipe(pfd);
+    dup2(pfd[1], 1);
+    dup2(pfd[1], 2);
+
+    /* spawn the logging thread */
+    if(pthread_create(&loggingThread, 0, loggingFunction, 0) == -1) {
+        return -1;
+    }
+
+    pthread_detach(loggingThread);
+
+#endif
+
 #ifdef TCC
 	void ManuallyRegisterDevices();
 	ManuallyRegisterDevices();
@@ -181,6 +242,8 @@ int main(int argc, char ** argv)
     WSAStartup(0x202, &wsaData);
 
 	strcpy( sound_source, "WIN" );
+#elif defined( ANDROID )
+	strcpy( sound_source, "ANDROID" );
 #else
 	strcpy( sound_source, "PULSE" );
 #endif
@@ -263,6 +326,7 @@ int main(int argc, char ** argv)
 	double Last = Now;
 	while(1)
 	{
+		printf( ".\n" );
 		char stt[1024];
 		//Handle Rawdraw frame swappign
 
