@@ -1,20 +1,35 @@
-//Copyright 2019 <>< Charles Lohr under the ColorChord License.
-// NOTE: this does not actually work!!! This driver needs more work!!!  It is currently under work.
+//Copyright 2019-2020 <>< Charles Lohr under the ColorChord License.
+// This should be used with rawdrawandroid
 
 #include "sound.h"
 #include "os_generic.h"
-#include "parameters.h"
 #include <pthread.h> //Using android threads not os_generic threads.
 #include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
+#ifndef NO_SOUND_PARAMETERS
+#include "parameters.h"
+#else
+#define GetParameterI( x, y ) (y)
+#define GetParameterS( x, y ) (y)
+#endif
+
+
 //based on https://github.com/android/ndk-samples/blob/master/native-audio/app/src/main/cpp/native-audio-jni.c
 
 // for native audio
 #include <SLES/OpenSLES.h>
 #include <SLES/OpenSLES_Android.h>
+
+#include <android_native_app_glue.h>
+#include <android/log.h>
+#include <jni.h>
+#include <native_activity.h>
+
+#define LOGI(...)  ((void)__android_log_print(ANDROID_LOG_INFO, APPNAME, __VA_ARGS__))
+#define printf( x...) LOGI( x )
 
 #define RECORDER_FRAMES 1024
 
@@ -44,20 +59,19 @@ struct SoundDriverAndroid
 void bqRecorderCallback(SLAndroidSimpleBufferQueueItf bq, void *context)
 {
 	struct SoundDriverAndroid * r = (struct SoundDriverAndroid*)context;
-    // for streaming recording, here we would call Enqueue to give recorder the next buffer to fill
-    // but instead, this is a one-time buffer so we stop recording
-    SLresult result;
-    result = (*r->recorderRecord)->SetRecordState(r->recorderRecord, SL_RECORDSTATE_STOPPED);
-    if (SL_RESULT_SUCCESS == result) {
-        r->recorderSize = 128 * sizeof(short);
-    }
-    pthread_mutex_unlock(&audioEngineLock);
+	int samplesp = 0;
+	float buffout[RECORDER_FRAMES];
+	int i;
+	short * rb = r->recorderBuffer;
+	for( i = 0; i < RECORDER_FRAMES; i++ )	buffout[i] = (rb[i]+0.5)/32767.5;
+	r->callback( 0, buffout, RECORDER_FRAMES, &samplesp, r );
+	(*r->recorderBufferQueue)->Enqueue(r->recorderBufferQueue, r->recorderBuffer, sizeof(r->recorderBuffer));
 }
 
 static struct SoundDriverAndroid* InitAndroidSound( struct SoundDriverAndroid * r )
 {
     SLresult result;
-
+	LOGI( "Starting InitAndroidSound\n" );
     // create engine
     result = slCreateEngine(&r->engineObject, 0, NULL, 0, NULL, NULL);
     assert(SL_RESULT_SUCCESS == result);
@@ -84,9 +98,17 @@ static struct SoundDriverAndroid* InitAndroidSound( struct SoundDriverAndroid * 
 
     // configure audio sink
     SLDataLocator_AndroidSimpleBufferQueue loc_bq = {SL_DATALOCATOR_ANDROIDSIMPLEBUFFERQUEUE, 2};
-    SLDataFormat_PCM format_pcm = {SL_DATAFORMAT_PCM, 1, SL_SAMPLINGRATE_16,
-        SL_PCMSAMPLEFORMAT_FIXED_16, SL_PCMSAMPLEFORMAT_FIXED_16,
-        SL_SPEAKER_FRONT_CENTER, SL_BYTEORDER_LITTLEENDIAN};
+
+	SLDataFormat_PCM format_pcm ={
+		SL_DATAFORMAT_PCM,
+		1, 
+		SL_SAMPLINGRATE_16,
+		SL_PCMSAMPLEFORMAT_FIXED_16,
+		SL_PCMSAMPLEFORMAT_FIXED_16,
+		SL_SPEAKER_FRONT_CENTER,
+		SL_BYTEORDER_LITTLEENDIAN,
+	};
+
     SLDataSink audioSnk = {&loc_bq, &format_pcm};
 
     // create audio recorder
@@ -96,14 +118,14 @@ static struct SoundDriverAndroid* InitAndroidSound( struct SoundDriverAndroid * 
     result = (*r->engineEngine)->CreateAudioRecorder(r->engineEngine, &r->recorderObject, &audioSrc,
             &audioSnk, 1, id, req);
     if (SL_RESULT_SUCCESS != result) {
-		printf( "CreateAudioRecorder failed\n" );
+		LOGI( "CreateAudioRecorder failed\n" );
         return JNI_FALSE;
     }
 
     // realize the audio recorder
     result = (*r->recorderObject)->Realize(r->recorderObject, SL_BOOLEAN_FALSE);
     if (SL_RESULT_SUCCESS != result) {
-		printf( "AudioRecorder Realize failed\n" );
+		LOGI( "AudioRecorder Realize failed: %d\n", result );
         return JNI_FALSE;
     }
 
@@ -119,8 +141,7 @@ static struct SoundDriverAndroid* InitAndroidSound( struct SoundDriverAndroid * 
     (void)result;
 
     // register callback on the buffer queue
-    result = (*r->recorderBufferQueue)->RegisterCallback(r->recorderBufferQueue, bqRecorderCallback,
-            NULL);
+    result = (*r->recorderBufferQueue)->RegisterCallback(r->recorderBufferQueue, bqRecorderCallback, r);
     assert(SL_RESULT_SUCCESS == result);
     (void)result;
 
@@ -139,8 +160,7 @@ static struct SoundDriverAndroid* InitAndroidSound( struct SoundDriverAndroid * 
 
     // enqueue an empty buffer to be filled by the recorder
     // (for streaming recording, we would enqueue at least 2 empty buffers to start things off)
-    result = (*r->recorderBufferQueue)->Enqueue(r->recorderBufferQueue, r->recorderBuffer,
-            RECORDER_FRAMES * sizeof(short));
+    result = (*r->recorderBufferQueue)->Enqueue(r->recorderBufferQueue, r->recorderBuffer, sizeof(r->recorderBuffer));
     // the most likely other result is SL_RESULT_BUFFER_INSUFFICIENT,
     // which for this code example would indicate a programming error
     assert(SL_RESULT_SUCCESS == result);
@@ -151,8 +171,8 @@ static struct SoundDriverAndroid* InitAndroidSound( struct SoundDriverAndroid * 
     assert(SL_RESULT_SUCCESS == result);
     (void)result;
 
-	printf( "Complete Init Sound Android\n" );
-	return 0;
+	LOGI( "Complete Init Sound Android\n" );
+	return r;
 }
 
 void CloseSoundAndroid( struct SoundDriverAndroid * r );
@@ -182,9 +202,19 @@ void CloseSoundAndroid( struct SoundDriverAndroid * r )
 
 }
 
+
+int AndroidHasPermissions(const char* perm_name);
+void AndroidRequestAppPermissions(const char * perm);
+
+
 void * InitSoundAndroid( SoundCBType cb )
 {
-	printf( "InitSoundAndroid\n" );
+	int hasperm = AndroidHasPermissions( "RECORD_AUDIO" );
+	if( !hasperm )
+	{
+		AndroidRequestAppPermissions( "RECORD_AUDIO" );
+	}
+
 	struct SoundDriverAndroid * r = (struct SoundDriverAndroid *)malloc( sizeof( struct SoundDriverAndroid ) );
 	memset( r, 0, sizeof( *r) );
 	r->CloseFn = CloseSoundAndroid;
@@ -207,6 +237,8 @@ void * InitSoundAndroid( SoundCBType cb )
 */
 	return InitAndroidSound(r);
 }
+
+//Tricky: On Android, this can't actually run before main.  Have to manually execute it.
 
 REGISTER_SOUND( AndroidSound, 10, "ANDROID", InitSoundAndroid );
 
