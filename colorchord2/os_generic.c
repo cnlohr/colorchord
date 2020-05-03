@@ -228,7 +228,12 @@ void OGCancelThread( og_thread_t ot )
 	{
 		return;
 	}
+#ifdef ANDROID
+	void * fakeret;
+	pthread_join( *(pthread_t*)ot, &fakeret );
+#else
 	pthread_cancel( *(pthread_t*)ot );
+#endif
 	free( ot );
 }
 

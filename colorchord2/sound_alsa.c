@@ -4,6 +4,7 @@
 #include "os_generic.h"
 #include "parameters.h"
 #include <alsa/asoundlib.h>
+#include <string.h>
 
 #define BUFFERSETS 4
 

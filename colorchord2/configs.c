@@ -62,7 +62,50 @@ void SetEnvValues( int force )
 	if( !hits && !force ) return;
 
 	//Otherwise, something changed.
+#ifdef ANDROID
+	SetParametersFromString( "cpu_autolimit=1" );
+	SetParametersFromString( "set_screenx=720" );
+	SetParametersFromString( "set_screeny=480" );
+	SetParametersFromString( "buffer=384" );
+	SetParametersFromString( "play=0" );
+	SetParametersFromString( "rec=1" );
+	SetParametersFromString( "channels=2" );
+	SetParametersFromString( "samplerate=44100" );
+	SetParametersFromString( "sourcename=default" );
+	SetParametersFromString( "amplify=2.0" );
+	SetParametersFromString( "base_hz=55" );
 
+	SetParametersFromString( "dft_iir=0.6" );
+	SetParametersFromString( "dft_q=20.0000" );
+	SetParametersFromString( "dft_speedup=1000.0000" );
+	SetParametersFromString( "octaves=5" );
+
+	SetParametersFromString( "do_progressive_dft=4" );
+
+	SetParametersFromString( "filter_iter=2" );
+	SetParametersFromString( "filter_strength=.5" );
+	SetParametersFromString( "freqbins = 24" );
+	SetParametersFromString( "do_progressive_dft=4" );
+	SetParametersFromString( "note_attach_amp_iir=0.3500" );
+	SetParametersFromString( "note_attach_amp_iir2=0.250" );
+
+	SetParametersFromString( "note_combine_distance=0.5000" );
+	SetParametersFromString( "note_jumpability=1.8000" );
+	SetParametersFromString( "note_minimum_new_distribution_value=0.0200" );
+	SetParametersFromString( "note_out_chop=0.05000" );
+	SetParametersFromString( "outdrivers=OutputVoronoi,DisplayArray" );
+	SetParametersFromString( "note_attach_amp_iir2=0.250" );
+
+	SetParametersFromString( "lightx=64" );
+	SetParametersFromString( "lighty=32" );
+	SetParametersFromString( "fromsides=1" );
+	SetParametersFromString( "shape_cutoff=0.03" );
+
+	SetParametersFromString( "satamp=5.000" );
+	SetParametersFromString( "amppow=2.510" );
+	SetParametersFromString( "distpow=1.500" );
+
+#else
 	LoadFile( InitialFile[0] );
 
 	for( i = 1; i < gargc; i++ )
@@ -78,6 +121,7 @@ void SetEnvValues( int force )
 			LoadFile( gargv[i] );
 		}
 	}
+#endif
 }
 
 void ProcessArgs()
