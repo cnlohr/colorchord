@@ -117,7 +117,7 @@ static void * LEDOutThread( void * v )
 				}
 			}
 			led->readyFlag = 0;
-			printf( "." ); fflush( stdout );
+			//printf( "." ); fflush( stdout );
 		}
 		OGUSleep(100);
 	}

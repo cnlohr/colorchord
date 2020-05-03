@@ -326,7 +326,6 @@ int main(int argc, char ** argv)
 	double Last = Now;
 	while(1)
 	{
-		printf( ".\n" );
 		char stt[1024];
 		//Handle Rawdraw frame swappign
 
