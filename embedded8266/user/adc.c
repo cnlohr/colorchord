@@ -1,4 +1,4 @@
-//I did not write this file, but I don't know where it came from.
+//From ESP8266 SDK driver code (https://github.com/esp8266/esp8266-wiki/tree/master/sdk) (examples\IoT_Demo\driver\adc.c)
 //It was also heavily modified by me, Charles Lohr.  I personally
 //renounce any copyright over this file, so all of my modifications
 //are hereby placed into the public domain.
