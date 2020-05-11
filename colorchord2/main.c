@@ -1,12 +1,15 @@
 //Copyright 2015 <>< Charles Lohr under the ColorChord License.
 
+#if defined(WIN32) || defined(USE_WINDOWS)
+#include <winsock2.h>
+#include <windows.h>
+#endif
+
 #include <ctype.h>
 #include "color.h"
 #include <math.h>
 #include <stdio.h>
-#include "sound.h"
 #include "os_generic.h"
-#include "DrawFunctions.h"
 #include "dft.h"
 #include "filter.h"
 #include "decompose.h"
@@ -18,6 +21,19 @@
 #include "hook.h"
 #include "configs.h"
 
+
+#define CNFG_IMPLEMENTATION
+#include "CNFG.h"
+
+#define CNFA_IMPLEMENTATION
+#include "CNFA.h"
+
+
+
+//Sound driver.
+struct CNFADriver * sd;
+
+
 #ifdef ANDROID
 #include <unistd.h>
 #include <sys/types.h>
@@ -25,7 +41,6 @@
 #include <fcntl.h>
 #include <android/log.h>
 #include <pthread.h>
-
 static int pfd[2];
 static pthread_t loggingThread;
 static const char *LOG_TAG = "colorchord";
@@ -45,27 +60,27 @@ static void *loggingFunction(void*v) {
 
     return 0;
 }
-
 #endif
- 
-struct SoundDriver * sd;
+
+
 
 #if defined(WIN32) || defined(USE_WINDOWS)
-#include <winsock2.h>
-#include <windows.h>
 
 #define ESCAPE_KEY 0x1B
 
-void WindowsTerm()
+void HandleDestroy()
 {
-	CloseSound( sd );
+	CNFAClose( sd );
 }
+
 
 #else
 
 #define ESCAPE_KEY 65307
 
 #endif
+
+
 
 float DeltaFrameTime = 0;
 double Now = 0;
@@ -124,10 +139,10 @@ void HandleMotion( int x, int y, int mask )
 {
 }
 
-void SoundCB( float * out, float * in, int samplesr, int * samplesp, struct SoundDriver * sd )
+void SoundCB( struct CNFADriver * sd, short * in, short * out, int samplesr, int samplesp )
 {
 	int channelin = sd->channelsRec;
-//	int channelout = sd->channelsPlay;
+	int channelout = sd->channelsPlay;
 	//*samplesp = 0;
 //	int process_channels = (MAX_CHANNELS < channelin)?MAX_CHANNELS:channelin;
 
@@ -136,60 +151,61 @@ void SoundCB( float * out, float * in, int samplesr, int * samplesp, struct Soun
 	int i;
 	int j;
 
-	for( i = 0; i < samplesr; i++ )
+	if( in )
 	{
-		if( out )
+		for( i = 0; i < samplesr; i++ )
 		{
-			for( j = 0; j < channelin; j++ )
+			if( sample_channel < 0 )
 			{
-				out[i*channelin+j] = 0;
-			}
-		}
+				float fo = 0;
+				for( j = 0; j < channelin; j++ )
+				{
+					float f = in[i*channelin+j] / 32767.;
+					if( f >= -1 && f <= 1 )
+					{
+						fo += f;
+					}
+					else
+					{
+						fo += (f>0)?1:-1;
+	//					printf( "Sound fault A %d/%d %d/%d %f\n", j, channelin, i, samplesr, f );
+					}
+				}
 
-		if( sample_channel < 0 )
-		{
-			float fo = 0;
-			for( j = 0; j < channelin; j++ )
+				fo /= channelin;
+				sound[soundhead] = fo*in_amplitude;
+				soundhead = (soundhead+1)%SOUNDCBSIZE;
+			}
+			else
 			{
-				float f = in[i*channelin+j];
-				if( f >= -1 && f <= 1 )
-				{
-					fo += f;
+				float f = in[i*channelin+sample_channel] / 32767.;
+
+				if( f > 1 || f < -1 )
+				{ 	
+					f = (f>0)?1:-1;
 				}
-				else
-				{
-					fo += (f>0)?1:-1;
-//					printf( "Sound fault A %d/%d %d/%d %f\n", j, channelin, i, samplesr, f );
-				}
+
+
+				//printf( "Sound fault B %d/%d\n", i, samplesr );
+				sound[soundhead] = f*in_amplitude;
+				soundhead = (soundhead+1)%SOUNDCBSIZE;
+
 			}
-
-			fo /= channelin;
-			sound[soundhead] = fo*in_amplitude;
-			soundhead = (soundhead+1)%SOUNDCBSIZE;
 		}
-		else
-		{
-			float f = in[i*channelin+sample_channel];
-
-			if( f > 1 || f < -1 )
-			{ 	
-				f = (f>0)?1:-1;
-			}
-
-
-			//printf( "Sound fault B %d/%d\n", i, samplesr );
-			sound[soundhead] = f*in_amplitude;
-			soundhead = (soundhead+1)%SOUNDCBSIZE;
-
-		}
+		SoundEventHappened( samplesr, in, 0, channelin );
 	}
 
-	SoundEventHappened( samplesr, in, 0, channelin );
+
 	if( out )
 	{
+		for( j = 0; j < samplesp * channelout; j++ )
+		{
+			out[j] = 0;
+		}
 		SoundEventHappened( samplesr, out, 1, sd->channelsPlay );
 	}
-	*samplesp = samplesr;
+
+
 }
 
 #ifdef ANDROID
@@ -309,7 +325,9 @@ int main(int argc, char ** argv)
 
 
 	//Initialize Sound
-	sd = InitSound( sound_source, &SoundCB );
+	sd = CNFAInit( sound_source, "colorchord", &SoundCB, GetParameterI( "samplerate", 44100 ),
+		GetParameterI( "channels", 2 ), GetParameterI( "channels", 2 ), GetParameterI( "buffer", 1024 ),
+		GetParameterS( "devrecord", 0 ), GetParameterS( "devplay", 0 ) );
 
 	if( !sd )
 	{
@@ -317,7 +335,7 @@ int main(int argc, char ** argv)
 		return -1;
 	}
 
-	nf = CreateNoteFinder( sd->spsRec );
+	nf = CreateNoteFinder( sd->sps );
 
 	//Once everything was reinitialized, re-read the ini files.
 	SetEnvValues( 1 );

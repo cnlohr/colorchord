@@ -4,3 +4,6 @@
 [submodule "colorchord2/rawdraw"]
 	path = colorchord2/rawdraw
 	url = https://github.com/cntools/rawdraw
+[submodule "colorchord2/cnfa"]
+	path = colorchord2/cnfa
+	url = https://github.com/cnlohr/cnfa

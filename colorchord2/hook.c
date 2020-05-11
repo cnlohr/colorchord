@@ -54,14 +54,14 @@ void UnhookKeyEvent( void (*KeyE)( void * v, int key, int down ), void * v )
 
 struct SoundEvent
 {
-	void (*SoundE)( void * v, int samples, float * samps, int channel_ct );
+	void (*SoundE)( void * v, int samples, short * samps, int channel_ct );
 	void * v;
 };
 
 struct SoundEvent SoundEvents[2][MAX_SOUND_EVENTS];
 
 
-void SoundEventHappened( int samples, float * samps, int is_out, int channel_ct )
+void SoundEventHappened( int samples, short * samps, int is_out, int channel_ct )
 {
 	int i;
 	for( i = 0; i < MAX_SOUND_EVENTS; i++ )
@@ -73,7 +73,7 @@ void SoundEventHappened( int samples, float * samps, int is_out, int channel_ct 
 	}
 }
 
-void HookSoundInEvent( void (*SoundE)( void * v, int samples, float * samps, int channel_ct ), void * v, int is_out )
+void HookSoundInEvent( void (*SoundE)( void * v, int samples, short * samps, int channel_ct ), void * v, int is_out )
 {
 	int i;
 	for( i = 0; i < MAX_SOUND_EVENTS; i++ )
@@ -87,7 +87,7 @@ void HookSoundInEvent( void (*SoundE)( void * v, int samples, float * samps, int
 	}
 }
 
-void UnhookSoundInEvent( void (*SoundE)( void * v, int samples, float * samps, int channel_ct ), void * v, int is_out )
+void UnhookSoundInEvent( void (*SoundE)( void * v, int samples, short * samps, int channel_ct ), void * v, int is_out )
 {
 	int i;
 	for( i = 0; i < MAX_SOUND_EVENTS; i++ )

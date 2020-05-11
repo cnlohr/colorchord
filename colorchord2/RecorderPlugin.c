@@ -107,7 +107,7 @@ void StartRecording( struct RecorderPlugin * rp )
 }
 
 
-static void RecordEvent(void * v, int samples, float * samps, int channel_ct)
+static void RecordEvent(void * v, int samples, short * samps, int channel_ct)
 {
 	struct RecorderPlugin * rp = (struct RecorderPlugin*)v;
 
@@ -115,7 +115,7 @@ static void RecordEvent(void * v, int samples, float * samps, int channel_ct)
 
 	if( rp->DunBoop || !rp->fPlay )
 	{
-		int r = fwrite( samps, channel_ct * sizeof( float ), samples, rp->fRec );
+		int r = fwrite( samps, channel_ct * sizeof( short ), samples, rp->fRec );
 		if( r != samples )
 		{
 			StopRecording( rp );
@@ -123,12 +123,12 @@ static void RecordEvent(void * v, int samples, float * samps, int channel_ct)
 	}
 }
 
-static void PlaybackEvent(void * v, int samples, float * samps, int channel_ct)
+static void PlaybackEvent(void * v, int samples, short * samps, int channel_ct)
 {
 	struct RecorderPlugin * rp = (struct RecorderPlugin*)v;
 	if( !rp->fPlay ) return;
 
-	int r = fread( samps, channel_ct * sizeof( float ), samples, rp->fPlay );
+	int r = fread( samps, channel_ct * sizeof( short ), samples, rp->fPlay );
 	if( r != samples )
 	{
 		StopRecording( rp );
@@ -143,7 +143,7 @@ static void PlaybackEvent(void * v, int samples, float * samps, int channel_ct)
 		else
 			force_white = 0;
 
-		int r = fwrite( samps, channel_ct * sizeof( float ), samples, rp->fRec );
+		int r = fwrite( samps, channel_ct * sizeof( short ), samples, rp->fRec );
 		if( r != samples )
 		{
 			StopRecording( rp );
