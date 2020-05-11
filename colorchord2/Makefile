@@ -14,13 +14,13 @@ LDLIBS:=-lpthread -lasound -lm -lpulse-simple -lpulse -ludev -lrt
 CFLAGS:=-g -O1 -flto -Wall -ffast-math -I../embeddedcommon -I.  -Icnfa -Irawdraw -DICACHE_FLASH_ATTR=
 EXTRALIBS:=-lusb-1.0
 
-OBJS:=os_generic.o main.o  dft.o decompose.o filter.o color.o notefinder.o util.o outdrivers.o $(OUTS) parameters.o chash.o hook.o ../embeddedcommon/DFT32.o configs.o
+OBJS:=main.o  dft.o decompose.o filter.o color.o notefinder.o util.o outdrivers.o $(OUTS) parameters.o chash.o hook.o ../embeddedcommon/DFT32.o configs.o
 
 colorchord : $(OBJS)
 	gcc -o $@ $^ $(CFLAGS) $(LDLIBS) $(EXTRALIBS) $(RAWDRAWLIBS)
 
 
-colorchord.exe : os_generic.c main.c  dft.c decompose.c filter.c color.c notefinder.c util.c outdrivers.c parameters.c chash.c OutputVoronoi.c OutputProminent.c DisplayArray.c OutputLinear.c DisplayPie.c DisplayNetwork.c hook.c RecorderPlugin.c ../embeddedcommon/DFT32.c OutputCells.c configs.c hidapi.c DisplayHIDAPI.c
+colorchord.exe : main.c  dft.c decompose.c filter.c color.c notefinder.c util.c outdrivers.c parameters.c chash.c OutputVoronoi.c OutputProminent.c DisplayArray.c OutputLinear.c DisplayPie.c DisplayNetwork.c hook.c RecorderPlugin.c ../embeddedcommon/DFT32.c OutputCells.c configs.c hidapi.c DisplayHIDAPI.c
 	$(WINGCC) $(WINGCCFLAGS) -o $@ $^ $(WINLDFLAGS)
 
 

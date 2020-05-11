@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!-- This file seems to do NOTHING AT ALL!  If you have any idea how to use the device filters file, please let me know! -->
+<resources>
+  <!-- <usb-device vendor-id="abcd" product-id="f410"  /> -->  <!-- class="3" subclass="255" protocol="255" -->
+  <usb-device vendor-id="43981" product-id="62480"  />
+</resources>
+

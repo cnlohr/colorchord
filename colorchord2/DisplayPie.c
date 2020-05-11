@@ -31,7 +31,7 @@ static void DPOUpdate(void * id, struct NoteFinder*nf)
 	int i;
 	float cw = ((float)(screenx)) / 2.0;
 	float ch = ((float)(screeny)) / 2.0;
-	RDPoint pts[4];
+	RDPoint pts[6];
 	float sizeA = sqrtf( screenx * screenx + screeny * screeny ) * d->pie_min;
 	float sizeB = sqrtf( screenx * screenx + screeny * screeny ) * d->pie_max;
 	for( i = 0; i < d->leds; i++ )
@@ -44,11 +44,16 @@ static void DPOUpdate(void * id, struct NoteFinder*nf)
 		pts[1].y = ch + sin(angA) * sizeB;
 		pts[2].x = cw + cos(angB) * sizeB;
 		pts[2].y = ch + sin(angB) * sizeB;
-		pts[3].x = cw + cos(angB) * sizeA;
-		pts[3].y = ch + sin(angB) * sizeA;
+
+		pts[3].x = cw + cos(angA) * sizeA;
+		pts[3].y = ch + sin(angA) * sizeA;
+		pts[4].x = cw + cos(angB) * sizeB;
+		pts[4].y = ch + sin(angB) * sizeB;
+		pts[5].x = cw + cos(angB) * sizeA;
+		pts[5].y = ch + sin(angB) * sizeA;
 
 		CNFGColor(  OutLEDs[i*3+0] | (OutLEDs[i*3+1] <<8)|(OutLEDs[i*3+2] <<16) );
-		CNFGTackPoly( pts, 4 );
+		CNFGTackPoly( pts, 6 );
 	}
 
 

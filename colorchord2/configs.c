@@ -96,8 +96,8 @@ void SetEnvValues( int force )
 	SetParametersFromString( "outdrivers=OutputVoronoi,DisplayArray" );
 	SetParametersFromString( "note_attach_amp_iir2=0.250" );
 
-	SetParametersFromString( "lightx=64" );
-	SetParametersFromString( "lighty=32" );
+	SetParametersFromString( "lightx=32" );
+	SetParametersFromString( "lighty=60" );
 	SetParametersFromString( "fromsides=1" );
 	SetParametersFromString( "shape_cutoff=0.03" );
 
@@ -105,7 +105,9 @@ void SetEnvValues( int force )
 	SetParametersFromString( "amppow=2.510" );
 	SetParametersFromString( "distpow=1.500" );
 
-#else
+	printf( "On Android, looking for configuration file in: %s\n", InitialFile[0] );
+#endif
+
 	LoadFile( InitialFile[0] );
 
 	for( i = 1; i < gargc; i++ )
@@ -121,7 +123,6 @@ void SetEnvValues( int force )
 			LoadFile( gargv[i] );
 		}
 	}
-#endif
 }
 
 void ProcessArgs()
@@ -145,9 +146,11 @@ void ProcessArgs()
 
 void SetupConfigs()
 {
-
+#ifdef ANDROID
+	InitialFile[0] = "/sdcard/colorchord-android.conf";
+#else
 	InitialFile[0] = "default.conf";
+#endif
 
 	ProcessArgs();
-
 }

@@ -41,14 +41,23 @@ struct CNFADriver * sd;
 #include <fcntl.h>
 #include <android/log.h>
 #include <pthread.h>
+
 static int pfd[2];
 static pthread_t loggingThread;
 static const char *LOG_TAG = "colorchord";
+
+char genlog[16384] = "log";
+char * genlogptr;
+
 static void *loggingFunction(void*v) {
     ssize_t readSize;
-    char buf[128];
+    char buf[1024];
+	static og_mutex_t m;
+	if( !m ) m = OGCreateMutex();
+
 
     while((readSize = read(pfd[0], buf, sizeof buf - 1)) > 0) {
+		OGLockMutex( m );
         if(buf[readSize - 1] == '\n') {
             --readSize;
         }
@@ -56,6 +65,45 @@ static void *loggingFunction(void*v) {
         buf[readSize] = 0;  // add null-terminator
 
         __android_log_write(ANDROID_LOG_DEBUG, LOG_TAG, buf); // Set any log level you want
+		if( genlogptr == 0 ) genlogptr = genlog;
+		int genlogbuffer = genlogptr - genlog;
+		if( genlogbuffer + readSize + 1 < sizeof( genlog ) )
+		{
+			memcpy( genlogptr, buf, readSize );
+			genlogptr += readSize;
+			*genlogptr = '\n';
+			genlogptr++;
+			*genlogptr = 0;
+		}
+
+		//Scroll lines.
+
+		#define KEEPLINES 80
+		int lineplaces[KEEPLINES];
+		int newlinect = 0;
+		genlogbuffer = genlogptr - genlog;
+		int i;
+		for( i = 0; i < genlogbuffer; i++ )
+		{
+			if( genlog[i] == '\n' )
+			{
+				lineplaces[newlinect%KEEPLINES] = i;
+				newlinect++;
+			}
+		}
+
+
+		if( newlinect >= KEEPLINES )
+		{
+			int placemark = lineplaces[(newlinect+1)%KEEPLINES];
+			for( i = placemark; i <= genlogbuffer; i++ )
+			{
+				genlog[i-placemark] = genlog[i];
+			}
+			genlogptr -= placemark;
+		}
+
+		OGUnlockMutex( m );
     }
 
     return 0;
@@ -97,8 +145,14 @@ char sound_source[16]; 	REGISTER_PARAM( sound_source, PABUFFER );
 int cpu_autolimit = 1; 	REGISTER_PARAM( cpu_autolimit, PAINT );
 float cpu_autolimit_interval = 0.016; 	REGISTER_PARAM( cpu_autolimit_interval, PAFLOAT );
 int sample_channel = -1;REGISTER_PARAM( sample_channel, PAINT );
-int showfps = 0;        REGISTER_PARAM( showfps, PAINT );
-float in_amplitude = 1; REGISTER_PARAM( in_amplitude, PAFLOAT );
+int showfps = 1;        REGISTER_PARAM( showfps, PAINT );
+
+#if defined(ANDROID) || defined( __android__ )
+float in_amplitude = 2;
+#else
+float in_amplitude = 1;
+#endif
+REGISTER_PARAM( in_amplitude, PAFLOAT );
 
 struct NoteFinder * nf;
 
@@ -115,14 +169,19 @@ int show_debug_basic = 1;
 int gKey = 0;
 extern int force_white;
 
+void RecalcBaseHz()
+{
+	nf->base_hz = 55 * pow( 2, gKey / 12.0 ); ChangeNFParameters( nf );
+}
+
 void HandleKey( int keycode, int bDown )
 {
 	char c = toupper( keycode );
 	if( c == 'D' && bDown ) show_debug = !show_debug;
 	if( c == 'W' ) force_white = bDown;
-	if( c == '9' && bDown ) { gKey--; 		nf->base_hz = 55 * pow( 2, gKey / 12.0 ); ChangeNFParameters( nf ); }
-	if( c == '-' && bDown ) { gKey++; 		nf->base_hz = 55 * pow( 2, gKey / 12.0 ); ChangeNFParameters( nf ); }
-	if( c == '0' && bDown ) { gKey = 0;		nf->base_hz = 55 * pow( 2, gKey / 12.0 ); ChangeNFParameters( nf ); }
+	if( c == '9' && bDown ) { gKey--; 		RecalcBaseHz(); }
+	if( c == '-' && bDown ) { gKey++; 		RecalcBaseHz(); }
+	if( c == '0' && bDown ) { gKey = 0;		RecalcBaseHz(); }
 	if( c == 'E' && bDown ) show_debug_basic = !show_debug_basic;
 	if( c == 'K' && bDown ) DumpParameters();
 	if( keycode == ESCAPE_KEY ) exit( 0 );
@@ -133,6 +192,26 @@ void HandleKey( int keycode, int bDown )
 void HandleButton( int x, int y, int button, int bDown )
 {
 	printf( "Button: %d,%d (%d) -> %d\n", x, y, button, bDown );
+	if( bDown )
+	{
+		if( y < 800 )
+		{
+			if( x < screenx/3 )
+			{
+				gKey --;
+			}
+			else if( x < (screenx*2/3) )
+			{
+				gKey = 0;
+			}
+			else
+			{
+				gKey++;
+			}
+			printf( "KEY: %d\n", gKey );
+			RecalcBaseHz();
+		}
+	}
 }
 
 void HandleMotion( int x, int y, int mask )
@@ -202,7 +281,7 @@ void SoundCB( struct CNFADriver * sd, short * in, short * out, int samplesr, int
 		{
 			out[j] = 0;
 		}
-		SoundEventHappened( samplesr, out, 1, sd->channelsPlay );
+		SoundEventHappened( samplesp, out, 1, channelout );
 	}
 
 
@@ -224,6 +303,7 @@ int main(int argc, char ** argv)
 {
 	int i;
 
+
 #ifdef ANDROID
     setvbuf(stdout, 0, _IOLBF, 0); // make stdout line-buffered
     setvbuf(stderr, 0, _IONBF, 0); // make stderr unbuffered
@@ -232,6 +312,9 @@ int main(int argc, char ** argv)
     pipe(pfd);
     dup2(pfd[1], 1);
     dup2(pfd[1], 2);
+
+	genlogptr = genlog;
+	*genlogptr = 0;
 
     /* spawn the logging thread */
     if(pthread_create(&loggingThread, 0, loggingFunction, 0) == -1) {
@@ -260,6 +343,14 @@ int main(int argc, char ** argv)
 	strcpy( sound_source, "WIN" );
 #elif defined( ANDROID )
 	strcpy( sound_source, "ANDROID" );
+
+	int hasperm = AndroidHasPermissions( "READ_EXTERNAL_STORAGE" );
+	if( !hasperm )
+	{
+		AndroidRequestAppPermissions( "READ_EXTERNAL_STORAGE" );
+	}
+	
+
 #else
 	strcpy( sound_source, "PULSE" );
 #endif
@@ -324,21 +415,30 @@ int main(int argc, char ** argv)
 	free(OutDriverNames);
 
 
-	//Initialize Sound
-	sd = CNFAInit( sound_source, "colorchord", &SoundCB, GetParameterI( "samplerate", 44100 ),
-		GetParameterI( "channels", 2 ), GetParameterI( "channels", 2 ), GetParameterI( "buffer", 1024 ),
-		GetParameterS( "devrecord", 0 ), GetParameterS( "devplay", 0 ) );
-
-	if( !sd )
+	do
 	{
-		fprintf( stderr, "ERROR: Failed to initialize sound output device\n" );
-		return -1;
-	}
+		//Initialize Sound
+		sd = CNFAInit( sound_source, "colorchord", &SoundCB, GetParameterI( "samplerate", 44100 ),
+			GetParameterI( "channels", 2 ), GetParameterI( "channels", 2 ), GetParameterI( "buffer", 1024 ),
+			GetParameterS( "devrecord", 0 ), GetParameterS( "devplay", 0 ) );
+
+		if( sd ) break;
+			
+		CNFGColor( 0xffffff );
+		CNFGPenX = 10; CNFGPenY = 100;
+		CNFGHandleInput();
+		CNFGClearFrame();
+		CNFGDrawText( "Colorchord must be used with sound.  Sound not available.", 10 );
+		CNFGSwapBuffers();
+		sleep(1);
+	} while( 1 );
 
 	nf = CreateNoteFinder( sd->sps );
 
 	//Once everything was reinitialized, re-read the ini files.
 	SetEnvValues( 1 );
+
+	printf( "================================================= Set Up\n" );
 
 	Now = OGGetAbsoluteTime();
 	double Last = Now;
@@ -500,6 +600,13 @@ int main(int argc, char ** argv)
 			CNFGPenX = 440; CNFGPenY = screeny-10;
 			sprintf( stt, "FPS: %d", lastfps );
 			CNFGDrawText( stt, 2 );
+
+#ifdef ANDROID
+			CNFGColor( 0xffffff );
+			CNFGPenX = 10; CNFGPenY = 600;
+			CNFGDrawText( genlog, 3 );
+#endif
+
 			CNFGSwapBuffers();
 		}
 
@@ -509,7 +616,9 @@ int main(int argc, char ** argv)
 		ThisTime = OGGetAbsoluteTime();
 		if( ThisTime > LastFPSTime + 1 && showfps )
 		{
+#ifndef ANDROID
 			printf( "FPS: %d\n", frames );
+#endif
 			lastfps = frames;
 			frames = 0;
 			LastFPSTime+=1;
@@ -529,4 +638,6 @@ int main(int argc, char ** argv)
 	}
 
 }
+
+
 
