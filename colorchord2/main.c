@@ -177,6 +177,14 @@ void RecalcBaseHz()
 void HandleKey( int keycode, int bDown )
 {
 	char c = toupper( keycode );
+#ifdef ANDROID
+	if( keycode == 4 && bDown )
+	{
+		//Back button.
+		printf( "Back button pressed\n" );
+		return;
+	}
+#endif
 	if( c == 'D' && bDown ) show_debug = !show_debug;
 	if( c == 'W' ) force_white = bDown;
 	if( c == '9' && bDown ) { gKey--; 		RecalcBaseHz(); }
@@ -635,7 +643,9 @@ int main(int argc, char ** argv)
 				OGUSleep( (int)( SecToWait * 1000000 ) );
 		}
 
-		SetEnvValues( 0 );
+		if( !is_suspended )
+			SetEnvValues( 0 );
+
 		Last = Now;
 	}
 
