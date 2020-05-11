@@ -128,7 +128,7 @@ void HandleDestroy()
 
 #endif
 
-
+int is_suspended = 0;
 
 float DeltaFrameTime = 0;
 double Now = 0;
@@ -290,12 +290,12 @@ void SoundCB( struct CNFADriver * sd, short * in, short * out, int samplesr, int
 #ifdef ANDROID
 void HandleSuspend()
 {
-	//Unused.
+	is_suspended = 1;
 }
 
 void HandleResume()
 {
-	//Unused.
+	is_suspended = 0;
 }
 #endif
 
@@ -488,7 +488,7 @@ int main(int argc, char ** argv)
 			//int maxdists = freqbins/2;
 
 			//Do a bunch of debugging.
-			if( show_debug_basic )
+			if( show_debug_basic && !is_suspended )
 			{
 				//char sttdebug[1024];
 				//char * sttend = sttdebug;
@@ -544,7 +544,7 @@ int main(int argc, char ** argv)
 			}
 
 			//Extra debugging?
-			if( show_debug )
+			if( show_debug && !is_suspended )
 			{
 				//Draw the histogram
 				float lasthistval;
@@ -583,31 +583,33 @@ int main(int argc, char ** argv)
 				CNFGDrawText( stdebug, 2 );
 			}
 
-			CNFGColor( show_debug?0xffffff:0x000000 );
-			CNFGPenX = 0; CNFGPenY = screeny-10;
-			CNFGDrawText( "Extra Debug (D)", 2 );
+			if( !is_suspended )
+			{
+				CNFGColor( show_debug?0xffffff:0x000000 );
+				CNFGPenX = 0; CNFGPenY = screeny-10;
+				CNFGDrawText( "Extra Debug (D)", 2 );
 
-			CNFGColor( show_debug_basic?0xffffff:0x000000 );
-			CNFGPenX = 120; CNFGPenY = screeny-10;
-			CNFGDrawText( "Basic Debug (E)", 2 );
+				CNFGColor( show_debug_basic?0xffffff:0x000000 );
+				CNFGPenX = 120; CNFGPenY = screeny-10;
+				CNFGDrawText( "Basic Debug (E)", 2 );
 
-			CNFGColor( show_debug_basic?0xffffff:0x000000 );
-			CNFGPenX = 240; CNFGPenY = screeny-10;
-			sprintf( stt, "[9] Key: %d [0] (%3.1f) [-]", gKey, nf->base_hz );
-			CNFGDrawText( stt, 2 );
+				CNFGColor( show_debug_basic?0xffffff:0x000000 );
+				CNFGPenX = 240; CNFGPenY = screeny-10;
+				sprintf( stt, "[9] Key: %d [0] (%3.1f) [-]", gKey, nf->base_hz );
+				CNFGDrawText( stt, 2 );
 
-			CNFGColor( 0xffffff );
-			CNFGPenX = 440; CNFGPenY = screeny-10;
-			sprintf( stt, "FPS: %d", lastfps );
-			CNFGDrawText( stt, 2 );
+				CNFGColor( 0xffffff );
+				CNFGPenX = 440; CNFGPenY = screeny-10;
+				sprintf( stt, "FPS: %d", lastfps );
+				CNFGDrawText( stt, 2 );
 
 #ifdef ANDROID
-			CNFGColor( 0xffffff );
-			CNFGPenX = 10; CNFGPenY = 600;
-			CNFGDrawText( genlog, 3 );
+				CNFGColor( 0xffffff );
+				CNFGPenX = 10; CNFGPenY = 600;
+				CNFGDrawText( genlog, 3 );
 #endif
-
-			CNFGSwapBuffers();
+				CNFGSwapBuffers();
+			}
 		}
 
 		//Finish Rawdraw with FPS counter, and a nice delay loop.

@@ -13,6 +13,7 @@
 #include <linux/usbdevice_fs.h>
 #include <asm/byteorder.h>
 
+extern int is_suspended;
 
 #define MAX_LEDS_PER_NOTE 512
 
@@ -43,10 +44,13 @@ static void DTAUpdate(void * id, struct NoteFinder*nf)
 		RequestPermissionOrGetConnectionFD( TensigralDebugStatus, 0xabcd, 0xf410 );
 	}
 
-	CNFGPenX = 800;
-	CNFGPenY = 800;
-	CNFGColor( 0xffffff );
-	CNFGDrawText( TensigralDebugStatus, 2 );
+	if( !is_suspended )
+	{
+		CNFGPenX = 800;
+		CNFGPenY = 800;
+		CNFGColor( 0xffffff );
+		CNFGDrawText( TensigralDebugStatus, 2 );
+	}
 
 	if( !deviceConnectionFD ) return;
 
