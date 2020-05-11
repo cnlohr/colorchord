@@ -19,6 +19,7 @@ void LoadFile( const char * filename )
 	char * buffer;
 	int r;
 
+	printf( "Loading file: %s\n", filename );
 	FILE * f = fopen( filename, "rb" );
 	if( !f )
 	{
@@ -108,9 +109,11 @@ void SetEnvValues( int force )
 	printf( "On Android, looking for configuration file in: %s\n", InitialFile[0] );
 #endif
 
-	LoadFile( InitialFile[0] );
-
-	for( i = 1; i < gargc; i++ )
+	for( i = 0; i < InitialFileCount; i++ )
+	{
+		LoadFile( InitialFile[i] );
+	}
+	for( ; i < gargc; i++ )
 	{
 		if( strchr( gargv[i], '=' ) != 0 )
 		{
@@ -147,7 +150,9 @@ void ProcessArgs()
 void SetupConfigs()
 {
 #ifdef ANDROID
-	InitialFile[0] = "/sdcard/colorchord-android.conf";
+	InitialFile[0] = "/sdcard/colorchord-android.txt";
+	InitialFile[1] = "/sdcard/colorchord-android-overlay.txt";
+	InitialFileCount = 2;
 #else
 	InitialFile[0] = "default.conf";
 #endif
