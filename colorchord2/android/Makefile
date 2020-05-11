@@ -11,6 +11,10 @@ CC_C:=  ../main.c  ../dft.c ../decompose.c ../filter.c ../color.c ../notefinder.
 
 SRC:=rawdrawandroid/android_usb_devices.c DisplayTensigralAndroid.c $(CC_C)
 
+#Uncomment to make all targets.
+#TARGETS:=makecapk/lib/arm64-v8a/lib$(APPNAME).so makecapk/lib/armeabi-v7a/lib$(APPNAME).so makecapk/lib/x86/lib$(APPNAME).so makecapk/lib/x86_64/lib$(APPNAME).so
+
+
 include rawdrawandroid/Makefile
 
 
