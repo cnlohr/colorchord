@@ -42,73 +42,73 @@ struct CNFADriver * sd;
 #include <android/log.h>
 #include <pthread.h>
 
-static int pfd[2];
-static pthread_t loggingThread;
-static const char *LOG_TAG = "colorchord";
+int bQuitColorChord = 0;
 
-char genlog[16384] = "log";
-char * genlogptr;
-
-static void *loggingFunction(void*v) {
-    ssize_t readSize;
-    char buf[1024];
-	static og_mutex_t m;
-	if( !m ) m = OGCreateMutex();
-
-
-    while((readSize = read(pfd[0], buf, sizeof buf - 1)) > 0) {
-		OGLockMutex( m );
-        if(buf[readSize - 1] == '\n') {
-            --readSize;
-        }
-
-        buf[readSize] = 0;  // add null-terminator
-
-        __android_log_write(ANDROID_LOG_DEBUG, LOG_TAG, buf); // Set any log level you want
-		if( genlogptr == 0 ) genlogptr = genlog;
-		int genlogbuffer = genlogptr - genlog;
-		if( genlogbuffer + readSize + 1 < sizeof( genlog ) )
-		{
-			memcpy( genlogptr, buf, readSize );
-			genlogptr += readSize;
-			*genlogptr = '\n';
-			genlogptr++;
-			*genlogptr = 0;
-		}
-
-		//Scroll lines.
-
-		#define KEEPLINES 80
-		int lineplaces[KEEPLINES];
-		int newlinect = 0;
-		genlogbuffer = genlogptr - genlog;
-		int i;
-		for( i = 0; i < genlogbuffer; i++ )
-		{
-			if( genlog[i] == '\n' )
-			{
-				lineplaces[newlinect%KEEPLINES] = i;
-				newlinect++;
-			}
-		}
-
-
-		if( newlinect >= KEEPLINES )
-		{
-			int placemark = lineplaces[(newlinect+1)%KEEPLINES];
-			for( i = placemark; i <= genlogbuffer; i++ )
-			{
-				genlog[i-placemark] = genlog[i];
-			}
-			genlogptr -= placemark;
-		}
-
-		OGUnlockMutex( m );
-    }
-
-    return 0;
+void HandleDestroy()
+{
+	bQuitColorChord = 1;
+	CNFAClose( sd );
 }
+
+
 #endif
+
+
+#define GENLINEWIDTH 89
+#define GENLINES 67
+
+int genlinelen = 0;
+char genlog[(GENLINEWIDTH+1)*(GENLINES+1)+2] = "log";
+int genloglen;
+int genloglines;
+int firstnewline = -1;
+
+void example_log_function( int readSize, char * buf )
+{
+	static og_mutex_t * mt;
+	if( !mt ) mt = OGCreateMutex();
+	OGLockMutex( mt );
+	int i;
+	for( i = 0; (readSize>=0)?(i <= readSize):buf[i]; i++ )
+	{
+		char c = buf[i];
+		if( c == '\0' ) c = '\n';
+		if( ( c != '\n' && genlinelen >= GENLINEWIDTH ) || c == '\n' )
+		{
+			int k;
+			genloglines++;
+			if( genloglines >= GENLINES )
+			{
+				genloglen -= firstnewline+1;
+				int offset = firstnewline;
+				firstnewline = -1;
+
+				for( k = 0; k < genloglen; k++ )
+				{
+					if( ( genlog[k] = genlog[k+offset+1] ) == '\n' && firstnewline < 0)
+					{
+						firstnewline = k;
+					}
+				}
+				genlog[k] = 0;
+				genloglines--;
+			}
+			genlinelen = 0;
+			if( c != '\n' )
+			{
+				genlog[genloglen+1] = 0;
+				genlog[genloglen++] = '\n';
+			}
+			if( firstnewline < 0 ) firstnewline = genloglen;
+		}
+		genlog[genloglen+1] = 0;
+		genlog[genloglen++] = c;
+		if( c != '\n' ) genlinelen++;
+	}
+
+	OGUnlockMutex( mt );
+}
+
 
 
 
@@ -182,6 +182,7 @@ void HandleKey( int keycode, int bDown )
 	{
 		//Back button.
 		printf( "Back button pressed\n" );
+		AndroidSendToBack( 0 );
 		return;
 	}
 #endif
@@ -311,28 +312,6 @@ int main(int argc, char ** argv)
 {
 	int i;
 
-
-#ifdef ANDROID
-    setvbuf(stdout, 0, _IOLBF, 0); // make stdout line-buffered
-    setvbuf(stderr, 0, _IONBF, 0); // make stderr unbuffered
-
-    /* create the pipe and redirect stdout and stderr */
-    pipe(pfd);
-    dup2(pfd[1], 1);
-    dup2(pfd[1], 2);
-
-	genlogptr = genlog;
-	*genlogptr = 0;
-
-    /* spawn the logging thread */
-    if(pthread_create(&loggingThread, 0, loggingFunction, 0) == -1) {
-        return -1;
-    }
-
-    pthread_detach(loggingThread);
-
-#endif
-
 #ifdef TCC
 	void ManuallyRegisterDevices();
 	ManuallyRegisterDevices();
@@ -450,7 +429,7 @@ int main(int argc, char ** argv)
 
 	Now = OGGetAbsoluteTime();
 	double Last = Now;
-	while(1)
+	while( !bQuitColorChord )
 	{
 		char stt[1024];
 		//Handle Rawdraw frame swappign
