@@ -5,7 +5,6 @@
 #include <stdio.h>
 #include "parameters.h"
 #include <stdlib.h>
-#include <unistd.h>
 #include <math.h>
 #include <string.h>
 #include "color.h"
@@ -18,6 +17,7 @@
 #endif
 #define MSG_NOSIGNAL 0
 #else
+#include <unistd.h>
 #define closesocket( x ) close( x )
 #include <sys/socket.h>
 #include <netinet/in.h>
