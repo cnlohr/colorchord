@@ -33,6 +33,8 @@
 //Sound driver.
 struct CNFADriver * sd;
 
+int bQuitColorChord = 0;
+
 
 #ifdef ANDROID
 #include <unistd.h>
@@ -41,8 +43,6 @@ struct CNFADriver * sd;
 #include <fcntl.h>
 #include <android/log.h>
 #include <pthread.h>
-
-int bQuitColorChord = 0;
 
 void HandleDestroy()
 {
