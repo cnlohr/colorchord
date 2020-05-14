@@ -429,7 +429,7 @@ int main(int argc, char ** argv)
 
 	Now = OGGetAbsoluteTime();
 	double Last = Now;
-	while( !bQuitColorChord )
+	while( !headless )
 	{
 		char stt[1024];
 		//Handle Rawdraw frame swappign
