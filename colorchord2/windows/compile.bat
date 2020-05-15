@@ -4,7 +4,7 @@ echo Don't worry.  It includes the i386 compiler in the win64 build.
 
 set CFLAGS= -v -DHIDAPI -DWINDOWS -DWIN32 -DTCC -DRUNTIME_SYMNUM -Os -Itccinc -DINCLUDING_EMBEDDED -rdynamic -g
 set INCLUDES=-I../rawdraw -I../cnfa -I.. -I. -I../../embeddedcommon 
-set LDFLAGS=-lkernel32 -lgdi32 -luser32 -lsetupapi -ldbghelp -lws2_32
+set LDFLAGS=-lkernel32 -lOle32 -lgdi32 -luser32 -lsetupapi -ldbghelp -lws2_32
 
 rem lots of source files
 set SOURCES=..\main.c ..\chash.c ..\color.c ..\configs.c ..\decompose.c ..\dft.c ..\filter.c ^
