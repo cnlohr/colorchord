@@ -73,7 +73,7 @@ Will: (so ultimately, the exact values of the bins don't really matter, but it's
 
 CaiB: Sorry, I meant one peak in frequency content at `108hz` would mean bins `90hz` and `120hz` see lower numbers than an input with content at `100hz` and `110hz`, where `90hz` and `120hz` would see larger numbers.
 
-Editorial Note from Charles: The section below is an extremely powerful concept.  It's what ultimately took ColorChord from needing a GPU to being able to run on microcontrollers.
+Editorial Note from Charles: The section below is an extremely powerful concept.  It provides a significant speedup from needing a GPU to being able to run on a CPU. That and realizing we could progressively update.
 
 Will: Yeah, the spread of the distribution is important. And if you added more bins, you'd be able to see the distinction between `100hz+110hz` and `108hz` alone the expensive part of adding more resolution is adding more bins within a single octave, but there's a clever thing we can do to get all the octaves we can hear for only 2x the cost of doing a single octave.  Effectively all of our base frequency bins are in the highest octave we care about. then by doing the 2x averaging i mentioned earlier, we get one octave lower. And by repeatedly averaging samples, we get additional octaves lower basically, think of it like this: 
 * Every sample we calculate octave 8.
@@ -171,7 +171,9 @@ Will: PS: the audio file above is generated using the method you mentioned above
 
 CaiB: Not quite, your square wave is -1 to 1, but I get the point.
 
-Will: yeah, I agree that school can be a backwards way of approaching subjects if you can become interested in the subject first, and then learn the formality behind it, it can be a great way of figuring out how to apply things, but if you have to slog through the formality with no idea where you're going it's not exactly gonna instill a love of the subject. Yup, so it is, change the definition of `c` to be all that stuff `+1` and it'll be what you were talking about. Doesn't sound much different though.  (see chop2.wav / chop2.png)
+Will: yeah, I agree that school can be a backwards way of approaching subjects if you can become interested in the subject first, and then learn the formality behind it, it can be a great way of figuring out how to apply things, but if you have to slog through the formality with no idea where you're going it's not exactly gonna instill a love of the subject. Yup, so it is, change the definition of `c` to be all that stuff `+1` and it'll be what you were talking about. Doesn't sound much different though.  (see chop2.wav)
+
+![chopfast.png](https://raw.githubusercontent.com/cnlohr/colorchord/master/docs/TheoryOfCCDFT/chopfast.png)
 
 CaiB: It's more just that the methods taught are often so abstract it feels pointless. An entire class I took was just doing RLC-type circuit analysis using various methods like Laplace transforms. When in the real world, you just plug it into a calculator and will never use that unless you are the 0.1% of people who develop those calculators or other weird applications... 40 and 200 were a bad choice, speeding it up by 4x, you can definitely hear both tones.  (See chopfast.wav)
 
@@ -181,7 +183,7 @@ CaiB: Yeah, good enough.
 
 Will: Not "this is 40hz, now nothing, now 40hz, now nothing..."
 
-CaiB: I mean, by the time it shows up, 200Hz changes would be completely smoothed to oblivion anyways. It's just steady this. (See cc-screenshot3.png)
+CaiB: I mean, by the time it shows up, 200Hz changes would be completely smoothed to oblivion anyways. It's just steady this. ![cc-screenshot3.png](https://raw.githubusercontent.com/cnlohr/colorchord/master/docs/TheoryOfCCDFT/cc-screenshot3.png)
 
 Will: Yeah, what's happening in colorchord is that it squashes all the octaves together.
 
