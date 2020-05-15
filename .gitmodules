@@ -6,7 +6,7 @@
 	url = https://github.com/cntools/rawdraw
 [submodule "colorchord2/cnfa"]
 	path = colorchord2/cnfa
-	url = https://github.com/CaiB/cnfa
+	url = git@github.com:sellicott/cnfa.git
 [submodule "colorchord2/android/rawdrawandroid"]
 	path = colorchord2/android/rawdrawandroid
 	url = https://github.com/cnlohr/rawdrawandroid
