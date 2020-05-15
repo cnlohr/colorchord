@@ -1,6 +1,6 @@
 //Copyright 2015 <>< Charles Lohr under the ColorChord License.
 
-#if defined(WIN32) || defined(USE_WINDOWS)
+#if defined(WIN32) || defined(USE_WINDOWS)  
 #include <winsock2.h>
 #include <windows.h>
 #endif
@@ -417,7 +417,7 @@ int main(int argc, char ** argv)
 		CNFGClearFrame();
 		CNFGDrawText( "Colorchord must be used with sound.  Sound not available.", 10 );
 		CNFGSwapBuffers();
-		sleep(1);
+		OGSleep(1);
 	} while( 1 );
 
 	nf = CreateNoteFinder( sd->sps );
