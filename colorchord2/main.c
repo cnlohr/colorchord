@@ -3,6 +3,7 @@
 #if defined(WIN32) || defined(USE_WINDOWS)  
 #include <winsock2.h>
 #include <windows.h>
+#define strdup _strdup
 #endif
 
 #include <ctype.h>
