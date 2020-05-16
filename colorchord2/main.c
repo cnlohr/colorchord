@@ -312,6 +312,24 @@ void HandleResume()
 int main(int argc, char ** argv)
 {
 	int i;
+#if defined(__TINYC__)
+	// zero out the drivers list
+	for ( int ii = 0; i< MAX_OUT_DRIVERS; ++i) {
+		ODList[i].Name = NULL;
+		ODList[i].Init = NULL;
+	}
+
+	
+	REGISTERheadless();
+	REGISTERset_screenx();
+	REGISTERset_screeny();
+ 	REGISTERsound_source();
+ 	REGISTERcpu_autolimit();
+ 	REGISTERcpu_autolimit_interval();
+	REGISTERsample_channel();
+    REGISTERshowfps();
+#endif
+
 
 #ifdef TCC
 	void ManuallyRegisterDevices();
@@ -328,7 +346,8 @@ int main(int argc, char ** argv)
 
     WSAStartup(0x202, &wsaData);
 
-	strcpy( sound_source, "WIN" );
+	REGISTERcnfa_wasapi();
+	strcpy( sound_source, "WASAPI" );
 #elif defined( ANDROID )
 	strcpy( sound_source, "ANDROID" );
 
