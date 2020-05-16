@@ -137,6 +137,7 @@ static int SetParameter( struct Param * p, const char * str )
 
 void RegisterValue( const char * name, enum ParamType t, void * ptr, int size )
 {
+	printf("[SDE] Registering parameter %s\n", name);
 	Init();
 
 	struct Param * p = (struct Param*)HashGetEntry( parameters, name );
