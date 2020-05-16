@@ -8,4 +8,4 @@ set SOURCES=../main.c  ../dft.c ../decompose.c ../filter.c ../color.c ../notefin
 ../../embeddedcommon/DFT32.c ../OutputCells.c ../configs.c ../hidapi.c ../DisplayHIDAPI.c
 
 @echo on
-%CC% %CCFLAGS% %CCIFLAGS% -o colorchord.exe %SOURCES% %CCLFLAGS%
+%CC% %CCFLAGS% %CCIFLAGS% -o ../colorchord.exe %SOURCES% %CCLFLAGS%
