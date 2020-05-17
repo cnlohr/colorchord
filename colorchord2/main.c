@@ -533,7 +533,8 @@ int main(int argc, char ** argv)
 				{
 					//printf( "%f %f /", note_positions[i], note_amplitudes[i] );
 					if( nf->note_amplitudes_out[i] < 0 ) continue;
-					CNFGDialogColor = CCtoHEX( (nf->note_positions[i] / freqbins), 1.0, 1.0 );
+					float note = (float) nf->note_positions[i] / freqbins;
+					CNFGDialogColor = CCtoHEX( note, 1.0, 1.0 );
 					CNFGDrawBox( ((float)i / note_peaks) * screenx, 480 - nf->note_amplitudes_out[i] * 100, ((float)(i+1) / note_peaks) * screenx, 480 );
 					CNFGPenX = ((float)(i+.4) / note_peaks) * screenx;
 					CNFGPenY = screeny - 30;
