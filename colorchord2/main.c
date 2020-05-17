@@ -1,8 +1,9 @@
 //Copyright 2015 <>< Charles Lohr under the ColorChord License.
 
-#if defined(WIN32) || defined(USE_WINDOWS)
+#if defined(WIN32) || defined(USE_WINDOWS)  
 #include <winsock2.h>
 #include <windows.h>
+#define strdup _strdup
 #endif
 
 #include <ctype.h>
@@ -311,6 +312,24 @@ void HandleResume()
 int main(int argc, char ** argv)
 {
 	int i;
+#if defined(__TINYC__)
+	// zero out the drivers list
+	for ( int ii = 0; i< MAX_OUT_DRIVERS; ++i) {
+		ODList[i].Name = NULL;
+		ODList[i].Init = NULL;
+	}
+
+	
+	REGISTERheadless();
+	REGISTERset_screenx();
+	REGISTERset_screeny();
+ 	REGISTERsound_source();
+ 	REGISTERcpu_autolimit();
+ 	REGISTERcpu_autolimit_interval();
+	REGISTERsample_channel();
+    REGISTERshowfps();
+#endif
+
 
 #ifdef TCC
 	void ManuallyRegisterDevices();
@@ -327,7 +346,8 @@ int main(int argc, char ** argv)
 
     WSAStartup(0x202, &wsaData);
 
-	strcpy( sound_source, "WIN" );
+	REGISTERcnfa_wasapi();
+	strcpy( sound_source, "WASAPI" );
 #elif defined( ANDROID )
 	strcpy( sound_source, "ANDROID" );
 
@@ -417,7 +437,7 @@ int main(int argc, char ** argv)
 		CNFGClearFrame();
 		CNFGDrawText( "Colorchord must be used with sound.  Sound not available.", 10 );
 		CNFGSwapBuffers();
-		sleep(1);
+		OGSleep(1);
 	} while( 1 );
 
 	nf = CreateNoteFinder( sd->sps );
@@ -429,7 +449,7 @@ int main(int argc, char ** argv)
 
 	Now = OGGetAbsoluteTime();
 	double Last = Now;
-	while( !bQuitColorChord )
+	while( !headless )
 	{
 		char stt[1024];
 		//Handle Rawdraw frame swappign

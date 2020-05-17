@@ -37,7 +37,7 @@ extern struct OutDriverListElem ODList[MAX_OUT_DRIVERS];
 extern const char OutDriverParameters[MAX_OUT_DRIVER_STRING];
 
 //Pass setup "name=[driver]"
-struct DriverInstances * SetupOutDriver( );
+struct DriverInstances * SetupOutDriver( const char * drivername );
 void RegOutDriver( const char * ron, struct DriverInstances * (*Init)( ) );
 
 #define REGISTER_OUT_DRIVER( name ) \
