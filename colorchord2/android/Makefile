@@ -7,7 +7,7 @@ CFLAGS:=-I. -I.. -Irawdrawandroid/rawdraw -I../cnfa -I../../embeddedcommon \
 	-ffunction-sections -Os -s -DPRINTF_NO_OVERRIDDE -fvisibility=hidden  \
 	-DRDALOGFNCB=example_log_function
 
-#ANDROIDVERSION=24
+ANDROIDVERSION=28
 
 LDFLAGS:=-s -lOpenSLES
 
