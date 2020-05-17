@@ -3,7 +3,6 @@
 #if defined(WIN32) || defined(USE_WINDOWS)  
 #include <winsock2.h>
 #include <windows.h>
-#define strdup _strdup
 #endif
 
 #include <ctype.h>
@@ -346,8 +345,12 @@ int main(int argc, char ** argv)
 
     WSAStartup(0x202, &wsaData);
 
+	#ifdef TCC
+	REGISTERWinCNFA();
 	REGISTERcnfa_wasapi();
-	strcpy( sound_source, "WASAPI" );
+	#endif
+	
+	strcpy( sound_source, "WASAPI" ); // Use either "sound_source=WASAPI" or "sound_source=WIN" in config file.
 #elif defined( ANDROID )
 	strcpy( sound_source, "ANDROID" );
 
@@ -449,7 +452,11 @@ int main(int argc, char ** argv)
 
 	Now = OGGetAbsoluteTime();
 	double Last = Now;
-	while( !headless )
+	#ifdef ANDROID
+	while(!bQuitColorChord)
+	#else
+	while(!headless)
+	#endif
 	{
 		char stt[1024];
 		//Handle Rawdraw frame swappign
