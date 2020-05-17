@@ -143,9 +143,9 @@ int set_screenx = 640;	REGISTER_PARAM( set_screenx, PAINT );
 int set_screeny = 480;	REGISTER_PARAM( set_screeny, PAINT );
 char sound_source[16]; 	REGISTER_PARAM( sound_source, PABUFFER );
 int cpu_autolimit = 1; 	REGISTER_PARAM( cpu_autolimit, PAINT );
-float cpu_autolimit_interval = 0.016; 	REGISTER_PARAM( cpu_autolimit_interval, PAFLOAT );
-int sample_channel = -1;REGISTER_PARAM( sample_channel, PAINT );
-int showfps = 1;        REGISTER_PARAM( showfps, PAINT );
+float cpu_autolimit_interval = 0.016; REGISTER_PARAM( cpu_autolimit_interval, PAFLOAT );
+int sample_channel = -1;			  REGISTER_PARAM( sample_channel, PAINT );
+int showfps = 1;        			  REGISTER_PARAM( showfps, PAINT );
 
 #if defined(ANDROID) || defined( __android__ )
 float in_amplitude = 2;
@@ -308,17 +308,11 @@ void HandleResume()
 }
 #endif
 
-int main(int argc, char ** argv)
-{
-	int i;
-#if defined(__TINYC__)
-	// zero out the drivers list
-	for ( int ii = 0; i< MAX_OUT_DRIVERS; ++i) {
-		ODList[i].Name = NULL;
-		ODList[i].Init = NULL;
-	}
+// function for calling initilization functions if we are using TCC
+#ifdef TCC
+void RegisterConstructorFunctions(){
 
-	
+	// Basic Window stuff
 	REGISTERheadless();
 	REGISTERset_screenx();
 	REGISTERset_screeny();
@@ -327,12 +321,43 @@ int main(int argc, char ** argv)
  	REGISTERcpu_autolimit_interval();
 	REGISTERsample_channel();
     REGISTERshowfps();
+	REGISTERin_amplitude();
+
+	// Audio stuff
+	REGISTERNullCNFA();
+	REGISTERWinCNFA();
+	REGISTERcnfa_wasapi();
+
+	// Video Stuff
+	REGISTERnull();
+	REGISTERDisplayArray();
+	//REGISTERDisplayDMX();
+	//REGISTERDisplayFileWrite();
+	REGISTERDisplayHIDAPI();
+	REGISTERDisplayNetwork();
+	REGISTERDisplayOutDriver();
+	REGISTERDisplayPie();
+	//REGISTERDisplaySHM();
+
+	// Output stuff
+	//REGISTERDisplayUSB2812();
+	REGISTEROutputCells();
+	REGISTEROutputLinear();
+	REGISTEROutputProminent();
+	REGISTEROutputVoronoi();
+	//REGISTERRecorderPlugin();
+
+	//void ManuallyRegisterDevices();
+	//ManuallyRegisterDevices();
+}
 #endif
 
+int main(int argc, char ** argv)
+{
+	int i;
 
 #ifdef TCC
-	void ManuallyRegisterDevices();
-	ManuallyRegisterDevices();
+	RegisterConstructorFunctions();
 #endif
 	
 	printf( "Output Drivers:\n" );
@@ -345,10 +370,6 @@ int main(int argc, char ** argv)
 
     WSAStartup(0x202, &wsaData);
 
-	#ifdef TCC
-	REGISTERWinCNFA();
-	REGISTERcnfa_wasapi();
-	#endif
 	
 	strcpy( sound_source, "WASAPI" ); // Use either "sound_source=WASAPI" or "sound_source=WIN" in config file.
 #elif defined( ANDROID )
@@ -657,6 +678,3 @@ int main(int argc, char ** argv)
 	}
 
 }
-
-
-
