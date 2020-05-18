@@ -48,16 +48,19 @@ void LoadFile( const char * filename )
 
 void SetEnvValues( int force )
 {
-	int i;
+	static int ifcheck;
 	int hits = 0;
-	for( i = 0; i < InitialFileCount; i++ )
+
+	if( InitialFileCount )
 	{
-		double ft = OGGetFileTime( InitialFile[i] );
-		if( FileTimes[i] != ft )
+		//Only check one location per frame.
+		double ft = OGGetFileTime( InitialFile[ifcheck] );
+		if( FileTimes[ifcheck] != ft )
 		{
-			FileTimes[i] = ft;
+			FileTimes[ifcheck] = ft;
 			hits++;
 		}
+		ifcheck = ( ifcheck + 1 ) % InitialFileCount;
 	}
 
 	if( !hits && !force ) return;
@@ -109,6 +112,7 @@ void SetEnvValues( int force )
 	printf( "On Android, looking for configuration file in: %s\n", InitialFile[0] );
 #endif
 
+	int i;
 	for( i = 0; i < InitialFileCount; i++ )
 	{
 		LoadFile( InitialFile[i] );
@@ -151,8 +155,10 @@ void SetupConfigs()
 {
 #ifdef ANDROID
 	InitialFile[0] = "/sdcard/colorchord-android.txt";
-	InitialFile[1] = "/sdcard/colorchord-android-overlay.txt";
-	InitialFileCount = 2;
+	InitialFile[1] = "/storage/emulated/0/colorchord-android.txt";
+	InitialFile[2] = "/sdcard/colorchord-android-overlay.txt";
+	InitialFile[3] = "/storage/emulated/0/colorchord-android-overlay.txt";
+	InitialFileCount = 4;
 #else
 	InitialFile[0] = "default.conf";
 #endif
