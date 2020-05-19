@@ -227,7 +227,7 @@ void HandleMotion( int x, int y, int mask )
 {
 }
 
-void SoundCB( struct CNFADriver * sd, short * in, short * out, int samplesr, int samplesp )
+void SoundCB( struct CNFADriver * sd, short * in, short * out, int framesr, int framesp )
 {
 	int channelin = sd->channelsRec;
 	int channelout = sd->channelsPlay;
@@ -241,7 +241,7 @@ void SoundCB( struct CNFADriver * sd, short * in, short * out, int samplesr, int
 
 	if( in )
 	{
-		for( i = 0; i < samplesr; i++ )
+		for( i = 0; i < framesr; i++ )
 		{
 			if( sample_channel < 0 )
 			{
@@ -280,17 +280,17 @@ void SoundCB( struct CNFADriver * sd, short * in, short * out, int samplesr, int
 
 			}
 		}
-		SoundEventHappened( samplesr, in, 0, channelin );
+		SoundEventHappened( framesr, in, 0, channelin );
 	}
 
 
 	if( out )
 	{
-		for( j = 0; j < samplesp * channelout; j++ )
+		for( j = 0; j < framesp * channelout; j++ )
 		{
 			out[j] = 0;
 		}
-		SoundEventHappened( samplesp, out, 1, channelout );
+		SoundEventHappened( framesp, out, 1, channelout );
 	}
 
 
@@ -430,7 +430,7 @@ int main(int argc, char ** argv)
 		//Initialize Sound
 		sd = CNFAInit( sound_source, "colorchord", &SoundCB, GetParameterI( "samplerate", 44100 ),
 			GetParameterI( "channels", 2 ), GetParameterI( "channels", 2 ), GetParameterI( "buffer", 1024 ),
-			GetParameterS( "devrecord", 0 ), GetParameterS( "devplay", 0 ) );
+			GetParameterS( "devrecord", 0 ), GetParameterS( "devplay", 0 ), 0 );
 
 		if( sd ) break;
 			
