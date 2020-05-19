@@ -1,3 +1,4 @@
+@echo off
 set CC="C:\Program Files\LLVM\bin\clang.exe"
 set CCFLAGS=-g -D_CRT_SECURE_NO_WARNINGS -Wno-deprecated-declarations -DICACHE_FLASH_ATTR= -Dstrdup=_strdup
 set CCIFLAGS=-I../../embeddedcommon -I../cnfa -I../rawdraw -I../ -O1
