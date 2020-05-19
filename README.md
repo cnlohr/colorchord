@@ -58,6 +58,8 @@ make
 Building with Windows
 -------------------
 
+There are 3 options available for building on Windows, MSYS2, clang, or TCC.
+### MSYS2
 With either 64bit or 32bit [MSYS2](https://msys2.github.io/) installed, run the _MSYS2 MSYS_ launcher and use `pacman` to set up a MinGW32 toolchain, if you don't have one already:
 ```
 pacman -S mingw-w64-i686-toolchain
@@ -70,6 +72,26 @@ To make colorchord, navigate to your working copy and type:
 ```
 mingw32-make colorchord.exe
 ```
+
+### clang
+Start by [downloading](https://clang.llvm.org/) the clang compiler, and installing it.
+
+Edit the batch script at `colorchord2/windows/compile-clang.bat`:
+- Verify that the executable location is correct, on line 1 (`CC`).
+
+If you have the Windows SDK installed, you should not need to do any additional work.  
+If you do not, you'll want to either [install it](https://developer.microsoft.com/en-US/windows/downloads/windows-10-sdk/) to get the official headers, or use the unofficial headers instead by adding `-DNO_WIN_HEADERS` to the `CCFLAGS` line in the batch file above.
+
+Run the batch script, and it should output to `colorchord2/colorchord.exe`.
+
+### TCC
+Start by [downloading TCC](http://savannah.nongnu.org/projects/tinycc/), and extracting it to a location of your choice.
+
+Edit the batch script at `colorchord2/windows/compile.bat`:
+- Edit line 17 (`CC`) to be the location where you put TCC. If there are spaces in the path, wrap the entire path in quotes.
+
+Note that TCC is not able to use the Windows SDK, and as such using the unofficial headers is required, and automatically enabled when compiling with TCC. If you encounter issues, try the clang method above instead.
+
 
 Using
 -----
