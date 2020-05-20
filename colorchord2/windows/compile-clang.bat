@@ -1,3 +1,4 @@
+@echo off
 set CC="C:\Program Files\LLVM\bin\clang.exe"
 rem To enable OpenGL rendering use the -DCNFGOGL option
 set CCFLAGS=-g -D_CRT_SECURE_NO_WARNINGS 

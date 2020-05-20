@@ -232,7 +232,7 @@ void HandleMotion( int x, int y, int mask )
 {
 }
 
-void SoundCB( struct CNFADriver * sd, short * in, short * out, int samplesr, int samplesp )
+void SoundCB( struct CNFADriver * sd, short * in, short * out, int framesr, int framesp )
 {
 	int channelin = sd->channelsRec;
 	int channelout = sd->channelsPlay;
@@ -246,7 +246,7 @@ void SoundCB( struct CNFADriver * sd, short * in, short * out, int samplesr, int
 
 	if( in )
 	{
-		for( i = 0; i < samplesr; i++ )
+		for( i = 0; i < framesr; i++ )
 		{
 			if( sample_channel < 0 )
 			{
@@ -285,17 +285,17 @@ void SoundCB( struct CNFADriver * sd, short * in, short * out, int samplesr, int
 
 			}
 		}
-		SoundEventHappened( samplesr, in, 0, channelin );
+		SoundEventHappened( framesr, in, 0, channelin );
 	}
 
 
 	if( out )
 	{
-		for( j = 0; j < samplesp * channelout; j++ )
+		for( j = 0; j < framesp * channelout; j++ )
 		{
 			out[j] = 0;
 		}
-		SoundEventHappened( samplesp, out, 1, channelout );
+		SoundEventHappened( framesp, out, 1, channelout );
 	}
 
 
