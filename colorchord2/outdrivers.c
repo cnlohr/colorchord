@@ -7,6 +7,13 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#if defined(WINDOWS) || defined(WIN32)  || defined(WIN64) \
+                     || defined(_WIN32) || defined(_WIN64)
+#ifndef strdup
+#define strdup _strdup
+#endif
+#endif
+
 int force_white = 0;
 unsigned char	OutLEDs[MAX_LEDS*3];
 int				UsedLEDs;

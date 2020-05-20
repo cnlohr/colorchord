@@ -1,9 +1,14 @@
 //Copyright 2015 <>< Charles Lohr under the ColorChord License.
 
-#if defined(WIN32) || defined(USE_WINDOWS)  
+#if defined(WINDOWS) || defined(USE_WINDOWS)\
+ || defined(WIN32)   || defined(WIN64)      \
+ || defined(_WIN32)  || defined(_WIN64)
 #include <winsock2.h>
 #include <windows.h>
+#ifndef strdup
+#define strdup _strdup
 #endif
+#endif 
 
 #include <ctype.h>
 #include "color.h"

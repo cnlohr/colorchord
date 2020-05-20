@@ -10,6 +10,13 @@
 #include <stdio.h>
 #include <malloc.h>
 
+#if defined(WINDOWS) || defined(WIN32)  || defined(WIN64) \
+                     || defined(_WIN32) || defined(_WIN64)
+#ifndef strdup
+#define strdup _strdup
+#endif
+#endif 
+
 #define I_AM_LITTLE (((union { unsigned x; unsigned char c; }){1}).c)
 
 static unsigned long GetStrHash( const char * c )
@@ -126,7 +133,7 @@ void ** HashTableInsert( struct chash * hash, const char * key, int dontDupKey )
 	}
 	else
 	{
-		thisEntry->key = strdup( key );
+		thisEntry->key = _strdup( key );
 	}
 	thisEntry->hash = thisHash;
 
