@@ -456,7 +456,7 @@ int main(int argc, char ** argv)
 		//Initialize Sound
 		sd = CNFAInit( sound_source, "colorchord", &SoundCB, GetParameterI( "samplerate", 44100 ),
 			GetParameterI( "channels", 2 ), GetParameterI( "channels", 2 ), GetParameterI( "buffer", 1024 ),
-			GetParameterS( "devrecord", 0 ), GetParameterS( "devplay", 0 ) );
+			GetParameterS( "devrecord", 0 ), GetParameterS( "devplay", 0 ), NULL );
 
 		if( sd ) break;
 			
@@ -464,7 +464,7 @@ int main(int argc, char ** argv)
 		CNFGPenX = 10; CNFGPenY = 100;
 		CNFGHandleInput();
 		CNFGClearFrame();
-		CNFGDrawText( "Colorchord must be used with sound.  Sound not available.", 10 );
+		CNFGDrawText( "Colorchord must be used with sound. Sound not available.", 10 );
 		CNFGSwapBuffers();
 		OGSleep(1);
 	} while( 1 );
