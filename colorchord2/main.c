@@ -385,6 +385,11 @@ int main(int argc, char ** argv)
 	{
 		AndroidRequestAppPermissions( "READ_EXTERNAL_STORAGE" );
 	}
+	int haspermInternet = AndroidHasPermissions( "INTERNET" );
+	if( !haspermInternet )
+	{
+		AndroidRequestAppPermissions( "INTERNET" );
+	}
 	
 
 #else
