@@ -1,6 +1,7 @@
 set CC="C:\Program Files\LLVM\bin\clang.exe"
-set CCFLAGS=-g -D_CRT_SECURE_NO_WARNINGS -Wno-deprecated-declarations -DICACHE_FLASH_ATTR= -Dstrdup=_strdup -DNO_WIN_HEADERS
-set CCIFLAGS=-I../../embeddedcommon -I../cnfa -I../rawdraw -I../ -O1
+rem To enable OpenGL rendering use the -DCNFGOGL option
+set CCFLAGS=-g -D_CRT_SECURE_NO_WARNINGS 
+set CCIFLAGS=-I../../embeddedcommon -I../cnfa -I../rawdraw -I../ -O2
 set CCLFLAGS=-lwinmm -lgdi32 -lws2_32 -lsetupapi -lkernel32 -luser32 -ldbghelp -lole32 -lmmdevapi -lAvrt
 set SOURCES=../main.c  ../dft.c ../decompose.c ../filter.c ../color.c ../notefinder.c ../util.c ../outdrivers.c ^
 ../parameters.c ../chash.c ../OutputVoronoi.c ../OutputProminent.c ../DisplayArray.c ^
