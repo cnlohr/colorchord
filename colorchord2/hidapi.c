@@ -58,6 +58,13 @@ typedef LONG NTSTATUS;
 
 /*#define HIDAPI_USE_DDK*/
 
+#if defined(WINDOWS) || defined(WIN32)  || defined(WIN64) \
+                     || defined(_WIN32) || defined(_WIN64)
+#ifndef strdup
+#define strdup _strdup
+#endif
+#endif 
+
 #ifdef __cplusplus
 extern "C" {
 #endif

@@ -6,6 +6,13 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#if defined(WINDOWS) || defined(WIN32)  || defined(WIN64) \
+                     || defined(_WIN32) || defined(_WIN64)
+#ifndef strdup
+#define strdup _strdup
+#endif
+#endif
+
 static struct chash * parameters;
 
 //XXX TODO: Make this thread safe.
@@ -137,7 +144,6 @@ static int SetParameter( struct Param * p, const char * str )
 
 void RegisterValue( const char * name, enum ParamType t, void * ptr, int size )
 {
-	printf("[SDE] Registering parameter %s\n", name);
 	Init();
 
 	struct Param * p = (struct Param*)HashGetEntry( parameters, name );
