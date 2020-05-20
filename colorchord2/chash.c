@@ -133,7 +133,7 @@ void ** HashTableInsert( struct chash * hash, const char * key, int dontDupKey )
 	}
 	else
 	{
-		thisEntry->key = _strdup( key );
+		thisEntry->key = strdup( key );
 	}
 	thisEntry->hash = thisHash;
 
