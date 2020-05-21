@@ -459,8 +459,10 @@ int main(int argc, char ** argv)
 	do
 	{
 		//Initialize Sound
-		sd = CNFAInit( sound_source, "colorchord", &SoundCB, GetParameterI( "samplerate", 44100 ),
-			GetParameterI( "channels", 2 ), GetParameterI( "channels", 2 ), GetParameterI( "buffer", 1024 ),
+		sd = CNFAInit( sound_source, "colorchord", &SoundCB, 
+			GetParameterI( "samplerate", 44100 ), GetParameterI( "samplerate", 44100 ),
+			GetParameterI( "channels", 2 ), GetParameterI( "channels", 2 ), 
+			GetParameterI( "buffer", 1024 ),
 			GetParameterS( "devrecord", 0 ), GetParameterS( "devplay", 0 ), NULL );
 
 		if( sd ) break;
@@ -474,7 +476,7 @@ int main(int argc, char ** argv)
 		OGSleep(1);
 	} while( 1 );
 
-	nf = CreateNoteFinder( sd->sps );
+	nf = CreateNoteFinder( sd->spsRec );
 
 	//Once everything was reinitialized, re-read the ini files.
 	SetEnvValues( 1 );
