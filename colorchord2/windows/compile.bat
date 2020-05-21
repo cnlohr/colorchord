@@ -2,9 +2,9 @@
 echo Unzip http://download.savannah.gnu.org/releases/tinycc/tcc-0.9.27-win64-bin.zip to C:\tcc
 echo Don't worry.  It includes the i386 compiler in the win64 build.
 
-set CFLAGS= -v -DHIDAPI -DWINDOWS -DWIN32 -DTCC -DRUNTIME_SYMNUM -O2 -Itccinc -DINCLUDING_EMBEDDED -rdynamic -g
+set CFLAGS= -v -DHIDAPI -DWINDOWS -DWIN32 -DTCC -DRUNTIME_SYMNUM -O2 -Itccinc -DINCLUDING_EMBEDDED -rdynamic -g -DCNFGOGL
 set INCLUDES=-I../rawdraw -I../cnfa -I.. -I. -I../../embeddedcommon 
-set LDFLAGS=-lkernel32 -lole32 -lgdi32 -luser32 -lsetupapi -ldbghelp -lws2_32 -lAvrt
+set LDFLAGS=-lkernel32 -lole32 -lgdi32 -luser32 -lsetupapi -ldbghelp -lws2_32 -lAvrt -lopengl32
 
 rem lots of source files
 set SOURCES=..\main.c ..\chash.c ..\color.c ..\configs.c ..\decompose.c ..\dft.c ..\filter.c ^
