@@ -31,12 +31,12 @@ void LoadFile( const char * filename )
 		int size = ftell( f );
 		fseek( f, 0, SEEK_SET );
 		buffer = malloc( size + 1 );
-		r = fread( buffer, size, 1, f );
+		r = fread( buffer, 1, size, f);
 		fclose( f );
 		buffer[size] = 0;
-		if( r != 1 )
+		if( r != size )
 		{
-			fprintf( stderr, "Warning: %d bytes read.  Expected: %d from file %s\n", r, size, filename );
+			fprintf( stderr, "Warning: %d bytes read. Expected: %d from file %s\n", r, size, filename );
 		}
 		else
 		{

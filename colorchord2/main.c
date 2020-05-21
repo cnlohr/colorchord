@@ -1,9 +1,14 @@
 //Copyright 2015 <>< Charles Lohr under the ColorChord License.
 
-#if defined(WIN32) || defined(USE_WINDOWS)
+#if defined(WINDOWS) || defined(USE_WINDOWS)\
+ || defined(WIN32)   || defined(WIN64)      \
+ || defined(_WIN32)  || defined(_WIN64)
 #include <winsock2.h>
 #include <windows.h>
+#ifndef strdup
+#define strdup _strdup
 #endif
+#endif 
 
 #include <ctype.h>
 #include "color.h"
@@ -143,9 +148,9 @@ int set_screenx = 640;	REGISTER_PARAM( set_screenx, PAINT );
 int set_screeny = 480;	REGISTER_PARAM( set_screeny, PAINT );
 char sound_source[16]; 	REGISTER_PARAM( sound_source, PABUFFER );
 int cpu_autolimit = 1; 	REGISTER_PARAM( cpu_autolimit, PAINT );
-float cpu_autolimit_interval = 0.016; 	REGISTER_PARAM( cpu_autolimit_interval, PAFLOAT );
-int sample_channel = -1;REGISTER_PARAM( sample_channel, PAINT );
-int showfps = 1;        REGISTER_PARAM( showfps, PAINT );
+float cpu_autolimit_interval = 0.016; REGISTER_PARAM( cpu_autolimit_interval, PAFLOAT );
+int sample_channel = -1;			  REGISTER_PARAM( sample_channel, PAINT );
+int showfps = 1;        			  REGISTER_PARAM( showfps, PAINT );
 
 #if defined(ANDROID) || defined( __android__ )
 float in_amplitude = 2;
@@ -308,13 +313,56 @@ void HandleResume()
 }
 #endif
 
+// function for calling initilization functions if we are using TCC
+#ifdef TCC
+void RegisterConstructorFunctions(){
+
+	// Basic Window stuff
+	REGISTERheadless();
+	REGISTERset_screenx();
+	REGISTERset_screeny();
+ 	REGISTERsound_source();
+ 	REGISTERcpu_autolimit();
+ 	REGISTERcpu_autolimit_interval();
+	REGISTERsample_channel();
+    REGISTERshowfps();
+	REGISTERin_amplitude();
+
+	// Audio stuff
+	REGISTERNullCNFA();
+	REGISTERWinCNFA();
+	REGISTERcnfa_wasapi();
+
+	// Video Stuff
+	REGISTERnull();
+	REGISTERDisplayArray();
+	//REGISTERDisplayDMX();
+	//REGISTERDisplayFileWrite();
+	REGISTERDisplayHIDAPI();
+	REGISTERDisplayNetwork();
+	REGISTERDisplayOutDriver();
+	REGISTERDisplayPie();
+	//REGISTERDisplaySHM();
+
+	// Output stuff
+	//REGISTERDisplayUSB2812();
+	REGISTEROutputCells();
+	REGISTEROutputLinear();
+	REGISTEROutputProminent();
+	REGISTEROutputVoronoi();
+	//REGISTERRecorderPlugin();
+
+	//void ManuallyRegisterDevices();
+	//ManuallyRegisterDevices();
+}
+#endif
+
 int main(int argc, char ** argv)
 {
 	int i;
 
 #ifdef TCC
-	void ManuallyRegisterDevices();
-	ManuallyRegisterDevices();
+	RegisterConstructorFunctions();
 #endif
 	
 	printf( "Output Drivers:\n" );
@@ -327,7 +375,8 @@ int main(int argc, char ** argv)
 
     WSAStartup(0x202, &wsaData);
 
-	strcpy( sound_source, "WIN" );
+	
+	strcpy( sound_source, "WASAPI" ); // Use either "sound_source=WASAPI" or "sound_source=WIN" in config file.
 #elif defined( ANDROID )
 	strcpy( sound_source, "ANDROID" );
 
@@ -335,6 +384,11 @@ int main(int argc, char ** argv)
 	if( !hasperm )
 	{
 		AndroidRequestAppPermissions( "READ_EXTERNAL_STORAGE" );
+	}
+	int haspermInternet = AndroidHasPermissions( "INTERNET" );
+	if( !haspermInternet )
+	{
+		AndroidRequestAppPermissions( "INTERNET" );
 	}
 	
 
@@ -405,9 +459,11 @@ int main(int argc, char ** argv)
 	do
 	{
 		//Initialize Sound
-		sd = CNFAInit( sound_source, "colorchord", &SoundCB, GetParameterI( "samplerate", 44100 ),
-			GetParameterI( "channels", 2 ), GetParameterI( "channels", 2 ), GetParameterI( "buffer", 1024 ),
-			GetParameterS( "devrecord", 0 ), GetParameterS( "devplay", 0 ), 0 );
+		sd = CNFAInit( sound_source, "colorchord", &SoundCB, 
+			GetParameterI( "samplerate", 44100 ), GetParameterI( "samplerate", 44100 ),
+			GetParameterI( "channels", 2 ), GetParameterI( "channels", 2 ), 
+			GetParameterI( "buffer", 1024 ),
+			GetParameterS( "devrecord", 0 ), GetParameterS( "devplay", 0 ), NULL );
 
 		if( sd ) break;
 			
@@ -415,12 +471,12 @@ int main(int argc, char ** argv)
 		CNFGPenX = 10; CNFGPenY = 100;
 		CNFGHandleInput();
 		CNFGClearFrame();
-		CNFGDrawText( "Colorchord must be used with sound.  Sound not available.", 10 );
+		CNFGDrawText( "Colorchord must be used with sound. Sound not available.", 10 );
 		CNFGSwapBuffers();
-		sleep(1);
+		OGSleep(1);
 	} while( 1 );
 
-	nf = CreateNoteFinder( sd->sps );
+	nf = CreateNoteFinder( sd->spsRec );
 
 	//Once everything was reinitialized, re-read the ini files.
 	SetEnvValues( 1 );
@@ -429,7 +485,11 @@ int main(int argc, char ** argv)
 
 	Now = OGGetAbsoluteTime();
 	double Last = Now;
-	while( !bQuitColorChord )
+	#ifdef ANDROID
+	while(!bQuitColorChord)
+	#else
+	while(!headless)
+	#endif
 	{
 		char stt[1024];
 		//Handle Rawdraw frame swappign
@@ -506,7 +566,8 @@ int main(int argc, char ** argv)
 				{
 					//printf( "%f %f /", note_positions[i], note_amplitudes[i] );
 					if( nf->note_amplitudes_out[i] < 0 ) continue;
-					CNFGDialogColor = CCtoHEX( (nf->note_positions[i] / freqbins), 1.0, 1.0 );
+					float note = (float) nf->note_positions[i] / freqbins;
+					CNFGDialogColor = CCtoHEX( note, 1.0, 1.0 );
 					CNFGDrawBox( ((float)i / note_peaks) * screenx, 480 - nf->note_amplitudes_out[i] * 100, ((float)(i+1) / note_peaks) * screenx, 480 );
 					CNFGPenX = ((float)(i+.4) / note_peaks) * screenx;
 					CNFGPenY = screeny - 30;
@@ -629,6 +690,3 @@ int main(int argc, char ** argv)
 	}
 
 }
-
-
-

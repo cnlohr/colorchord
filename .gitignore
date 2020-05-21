@@ -1,3 +1,7 @@
 colorchord2/windows/colorchord.def
 colorchord2/colorchord.def
 *.o
+**/*.exp
+**/*.ilk
+**/*.pdb
+colorchord2/colorchord.lib

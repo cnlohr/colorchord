@@ -126,7 +126,8 @@ static void DPOUpdate(void * id, struct NoteFinder*nf)
 		{
 			float sat = nf->note_amplitudes_out[bestmatch] * d->satamp;
 			if( sat > 1.0 ) sat = 1.0;
-			color = CCtoHEX( nf->note_positions[bestmatch] / nf->freqbins, 1.0, sat );
+			float note_color = nf->note_positions[bestmatch] / nf->freqbins;
+			color = CCtoHEX( note_color, 1.0, sat );
 		}
 
 		OutLEDs[led*3+0] = color & 0xff;

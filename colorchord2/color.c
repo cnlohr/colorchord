@@ -9,23 +9,23 @@ uint32_t CCtoHEX( float note, float sat, float value )
 {
 	float hue = 0.0;
 	note = fmodf( note, 1.0 );
-	note *= 12;
-	if( note < 4 )
+	note *= 12.0;
+	if( note < 4.0 )
 	{
 		//Needs to be YELLOW->RED
-		hue = (4 - note) / 24.0;
+		hue = (4.0 - note) / 24.0;
 	}
-	else if( note < 8 )
+	else if( note < 8.0 )
 	{
 		//            [4]  [8]
 		//Needs to be RED->BLUE
-		hue = ( 4 - note ) / 12.0;
+		hue = ( 4.0 - note ) / 12.0;
 	}
 	else
 	{
 		//             [8] [12]
 		//Needs to be BLUE->YELLOW
-		hue = ( 12 - note ) / 8.0 + 1./6.;
+		hue = ( 12.0 - note ) / 8.0 + 1.0/6.0;
 	}
 	return HSVtoHEX( hue, sat, value );
 }
@@ -41,44 +41,44 @@ uint32_t CCtoHEX( float note, float sat, float value )
 uint32_t HSVtoHEX( float hue, float sat, float value )
 {
 
-	float pr = 0;
-	float pg = 0;
-	float pb = 0;
+	float pr = 0.0;
+	float pg = 0.0;
+	float pb = 0.0;
 
-	short ora = 0;
-	short og = 0;
-	short ob = 0;
+	short ora = 0.0;
+	short og = 0.0;
+	short ob = 0.0;
 
-	float ro = fmod( hue * 6, 6. );
+	float ro = fmod( hue * 6.0, 6.0 );
 
-	float avg = 0;
+	float avg = 0.0;
 
-	ro = fmod( ro + 6 + 1, 6 ); //Hue was 60* off...
+	ro = fmod( ro + 6.0 + 1.0, 6.0 ); //Hue was 60* off...
 
-	if( ro < 1 ) //yellow->red
+	if( ro < 1.0 ) //yellow->red
 	{
-		pr = 1;
-		pg = 1. - ro;
-	} else if( ro < 2 )
+		pr = 1.0;
+		pg = 1.0 - ro;
+	} else if( ro < 2.0 )
 	{
-		pr = 1;
-		pb = ro - 1.;
-	} else if( ro < 3 )
+		pr = 1.0;
+		pb = ro - 1.0;
+	} else if( ro < 3.0 )
 	{
-		pr = 3. - ro;
-		pb = 1;
-	} else if( ro < 4 )
+		pr = 3.0 - ro;
+		pb = 1.0;
+	} else if( ro < 4.0 )
 	{
-		pb = 1;
-		pg = ro - 3;
-	} else if( ro < 5 )
+		pb = 1.0;
+		pg = ro - 3.0;
+	} else if( ro < 5.0 )
 	{
-		pb = 5 - ro;
-		pg = 1;
+		pb = 5.0 - ro;
+		pg = 1.0;
 	} else
 	{
-		pg = 1;
-		pr = ro - 5;
+		pg = 1.0;
+		pr = ro - 5.0;
 	}
 
 	//Actually, above math is backwards, oops!
@@ -90,9 +90,9 @@ uint32_t HSVtoHEX( float hue, float sat, float value )
 	avg += pg;
 	avg += pb;
 
-	pr = pr * sat + avg * (1.-sat);
-	pg = pg * sat + avg * (1.-sat);
-	pb = pb * sat + avg * (1.-sat);
+	pr = pr * sat + avg * (1.0-sat);
+	pg = pg * sat + avg * (1.0-sat);
+	pb = pb * sat + avg * (1.0-sat);
 
 	ora = pr * 255;
 	og = pb * 255;
