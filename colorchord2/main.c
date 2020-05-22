@@ -459,7 +459,7 @@ int main(int argc, char ** argv)
 			GetParameterI( "samplerate", 44100 ), GetParameterI( "samplerate", 44100 ),
 			GetParameterI( "channels", 2 ), GetParameterI( "channels", 2 ), 
 			GetParameterI( "buffer", 1024 ),
-			GetParameterS( "devrecord", 0 ), GetParameterS( "devplay", 0 ), NULL );
+			GetParameterS( "devplay", 0 ), GetParameterS( "devrecord", 0 ), NULL );
 
 		if( sd ) break;
 			
