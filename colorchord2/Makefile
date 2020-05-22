@@ -17,7 +17,7 @@ EXTRALIBS:=-lusb-1.0
 OBJS:=main.o  dft.o decompose.o filter.o color.o notefinder.o util.o outdrivers.o $(OUTS) parameters.o chash.o hook.o ../embeddedcommon/DFT32.o configs.o
 
 colorchord : $(OBJS)
-	cc -o $@ $^ $(CFLAGS) $(LDLIBS) $(EXTRALIBS) $(RAWDRAWLIBS)
+	$(CC) -o $@ $^ $(CFLAGS) $(LDLIBS) $(EXTRALIBS) $(RAWDRAWLIBS)
 
 
 colorchord.exe : main.c  dft.c decompose.c filter.c color.c notefinder.c util.c outdrivers.c parameters.c chash.c OutputVoronoi.c OutputProminent.c DisplayArray.c OutputLinear.c DisplayPie.c DisplayNetwork.c hook.c RecorderPlugin.c ../embeddedcommon/DFT32.c OutputCells.c configs.c hidapi.c DisplayHIDAPI.c
