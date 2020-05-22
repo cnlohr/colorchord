@@ -1,4 +1,4 @@
-//Copyright 2015 <>< Charles Lohr under the ColorChord License.
+//Copyright 2015-2020 <>< Charles Lohr under the ColorChord License.
 
 #if defined(WINDOWS) || defined(USE_WINDOWS)\
  || defined(WIN32)   || defined(WIN64)      \
@@ -203,6 +203,7 @@ void HandleKey( int keycode, int bDown )
 	KeyHappened( keycode, bDown );
 }
 
+//On Android we want a really basic GUI
 void HandleButton( int x, int y, int button, int bDown )
 {
 	printf( "Button: %d,%d (%d) -> %d\n", x, y, button, bDown );
@@ -364,22 +365,19 @@ int main(int argc, char ** argv)
 #ifdef TCC
 	RegisterConstructorFunctions();
 #endif
-	
+
+
 	printf( "Output Drivers:\n" );
 	for( i = 0; i < MAX_OUT_DRIVERS; i++ )
 	{
 		if( ODList[i].Name ) printf( "\t%s\n", ODList[i].Name );
 	}
+
 #if defined(WIN32) || defined(USE_WINDOWS)
+	//In case something needs network access.
     WSADATA wsaData;
-
     WSAStartup(0x202, &wsaData);
-
-	
-	strcpy( sound_source, "WASAPI" ); // Use either "sound_source=WASAPI" or "sound_source=WIN" in config file.
 #elif defined( ANDROID )
-	strcpy( sound_source, "ANDROID" );
-
 	int hasperm = AndroidHasPermissions( "READ_EXTERNAL_STORAGE" );
 	if( !hasperm )
 	{
@@ -390,10 +388,8 @@ int main(int argc, char ** argv)
 	{
 		AndroidRequestAppPermissions( "INTERNET" );
 	}
-	
-
 #else
-	strcpy( sound_source, "PULSE" );
+	//Linux
 #endif
 
 	gargc = argc;

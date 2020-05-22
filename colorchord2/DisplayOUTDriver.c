@@ -11,7 +11,7 @@
 #include <math.h>
 #include <string.h>
 #include "color.h"
-#include "DrawFunctions.h"
+#include "CNFG.h"
 
 //Uses: note_amplitudes2[note] for how many lights to use.
 //Uses: note_amplitudes_out[note] for how bright it should be.
