@@ -8,7 +8,6 @@
 #include <math.h>
 #include <string.h>
 #include "color.h"
-#include "DrawFunctions.h"
 
 #if defined(WIN32) || defined(WINDOWS)
 #include <windows.h>
