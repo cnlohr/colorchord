@@ -199,7 +199,7 @@ static void LEDParams(void * id )
 
 	led->satamp = 2;		RegisterValue( "satamp", PAFLOAT, &led->satamp, sizeof( led->satamp ) );
 	led->total_leds = 300;	RegisterValue( "leds", PAINT, &led->total_leds, sizeof( led->total_leds ) );
-	led->steady_bright = 1;	RegisterValue( "seady_bright", PAINT, &led->steady_bright, sizeof( led->steady_bright ) );
+	led->steady_bright = 1;	RegisterValue( "steady_bright", PAINT, &led->steady_bright, sizeof( led->steady_bright ) );
 	led->led_floor = .1;	RegisterValue( "led_floor", PAFLOAT, &led->led_floor, sizeof( led->led_floor ) );
 	led->light_siding = 1.9;RegisterValue( "light_siding", PAFLOAT, &led->light_siding, sizeof( led->light_siding ) );
 	led->qtyamp = 20;		RegisterValue( "qtyamp", PAFLOAT, &led->qtyamp, sizeof( led->qtyamp ) );
