@@ -233,7 +233,7 @@ void HandleMotion( int x, int y, int mask )
 {
 }
 
-void SoundCB( struct CNFADriver * sd, short * in, short * out, int framesr, int framesp )
+void SoundCB( struct CNFADriver * sd, short * out, short * in, int framesp, int framesr )
 {
 	int channelin = sd->channelsRec;
 	int channelout = sd->channelsPlay;
@@ -265,7 +265,6 @@ void SoundCB( struct CNFADriver * sd, short * in, short * out, int framesr, int 
 	//					printf( "Sound fault A %d/%d %d/%d %f\n", j, channelin, i, samplesr, f );
 					}
 				}
-
 				fo /= channelin;
 				sound[soundhead] = fo*in_amplitude;
 				soundhead = (soundhead+1)%SOUNDCBSIZE;
