@@ -483,7 +483,7 @@ int main(int argc, char ** argv)
 	#ifdef ANDROID
 	while(!bQuitColorChord)
 	#else
-	while(!headless)
+	while(!bQuitColorChord)
 	#endif
 	{
 		char stt[1024];
