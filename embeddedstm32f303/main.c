@@ -25,7 +25,11 @@ volatile int samples;
 
 void ADCCallback( uint16_t adcval )
 {
+#ifdef TQFP32
+	sampbuff[last_samp_pos] = adcval*2.0;
+#else
 	sampbuff[last_samp_pos] = adcval;
+#endif
 	last_samp_pos = ((last_samp_pos+1)%CIRCBUFSIZE);
 	samples++;
 }
@@ -47,14 +51,18 @@ int main(void)
 {  
 	uint32_t i = 0;
 
+	send_text( "TEST1\n" );
+
 	RCC_GetClocksFreq( &RCC_Clocks );
 
-	ConfigureLED(); LED_OFF;
 
 	GPIO_InitTypeDef  GPIO_InitStructure;
 
 	//Turn B10 (TX) on, so we can have something positive to bias the ADC with.
+#ifndef TQFP32
+	ConfigureLED(); LED_OFF;
 	ConfigureGPIO( GetGPIOFromString( "PB10" ), INOUT_OUT | DEFAULT_ON );
+#endif
 
 	/* SysTick end of count event each 10ms */
 	SysTick_Config( RCC_Clocks.HCLK_Frequency/100 ); /// 100);
@@ -63,23 +71,30 @@ int main(void)
 
 	InitSPI2812();
 	InitADC();
-	Init(); //Colorchord
+	InitColorChord(); //Colorchord
 
 //	printf( "Operating at %.3fMHz\n", fv );
 
+
+#ifndef TQFP32
 	freepin = GetGPIOFromString( "PB11" );
 	ConfigureGPIO( freepin, INOUT_OUT | DEFAULT_ON );
+#endif
 
 	int this_samp = 0;
 	int wf = 0;
 
+#ifndef TQFP32
 	LED_ON;
+#endif
 
 	while(1)
 	{
 		if( this_samp != last_samp_pos )
 		{
+#ifndef TQFP32
 			GPIOOn( freepin );
+#endif
 			PushSample32( sampbuff[this_samp] ); //Can't put in full volume.
 
 			this_samp = (this_samp+1)%CIRCBUFSIZE;
@@ -87,18 +102,25 @@ int main(void)
 			wf++;
 			if( wf == 128 )
 			{
+				//uint8_t rdat[20] = { 0xff, 0xff, 0xff, 0x00, 0x00, 0x00, 0x00, 0xff };
+				//static int countup;
+				//rdat[5] = sampbuff[last_samp_pos] ;//countup++;
+				//SendSPI2812( rdat, 4 );
 				NewFrame();
 				wf = 0; 
 			}
-
+#ifndef TQFP32
 			GPIOOff( freepin );
+#endif
 		}
 	}
 }
 
 void TimingDelay_Decrement()
 {
+#ifndef TQFP32
 	LED_TOGGLE;
+#endif
 }
 
 

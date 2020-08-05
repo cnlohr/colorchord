@@ -14,7 +14,7 @@ OBJCOPYFLAGS = -O binary
 
 BIN=$(CP) -O ihex 
 
-DEFS =  -DSTM32F30X  -DHSE_VALUE=25000000
+DEFS =  -DSTM32F30X 
 STARTUP = lib/startup_stm32f30x.s
 
 MCU = cortex-m4
@@ -29,8 +29,14 @@ CFLAGS	= $(MCFLAGS)  $(OPTIMIZE)  $(DEFS) \
 	$(STM32_INCLUDES) \
 	-I../embeddedcommon \
 	 -Wl,-T,lib/stm32f303.ld
+
 CFLAGS+=-DDEBUG
-CFLAGS+=-I.
+
+#If you use a TQFP STM32F303.
+CFLAGS+=-I. -DTQFP32  -DHSE_VALUE=8000000
+
+#From the nucleos(sp?)
+#CFLAGS+=-I. -DHSE_VALUE=25000000
 
 AFLAGS	= $(MCFLAGS) 
 

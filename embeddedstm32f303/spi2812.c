@@ -30,6 +30,30 @@ uint8_t MyBuffer[SPI2812_BUFFSIZE+ZERO_BUFFER];
 	//Currently, the 30X version does not have configurable ports.
 
 
+#ifdef TQFP32
+
+
+
+#define SPI_PORT                  SPI1
+#define SPI_PORT_CLOCK            RCC_APB2Periph_SPI1
+#define SPI_PORT_CLOCK_INIT       RCC_APB2PeriphClockCmd
+#define SPI_MOSI_PIN             GPIO_Pin_7
+#define SPI_MOSI_GPIO_PORT       GPIOA
+#define SPI_MOSI_GPIO_CLK			RCC_AHBPeriph_GPIOA
+#define SPI_MOSI_SOURCE          GPIO_PinSource7
+#define SPI_MOSI_AF 			GPIO_AF_5
+#define SPI_PORT_DR_ADDRESS                SPI_PORT->DR
+#define SPI_PORT_DMA                       DMA1
+#define SPI_PORT_DMAx_CLK                  RCC_AHBPeriph_DMA1
+#define SPI_PORT_TX_DMA_CHANNEL            DMA1_Channel3
+#define SPI_PORT_DMA_TX_IRQn               DMA1_Channel3_IRQn
+
+#define DMA_HANDLER_IRQFN							DMA1_Channel3_IRQHandler
+#define DMA_FLAG_C					DMA1_FLAG_TC3	//XXX May be wrong.
+#define DMA_FLAG_E					DMA1_FLAG_TE3	//XXX May be wrong
+
+#else
+
 #define SPI_PORT                  SPI2
 #define SPI_PORT_CLOCK            RCC_APB1Periph_SPI2
 #define SPI_PORT_CLOCK_INIT       RCC_APB1PeriphClockCmd
@@ -57,6 +81,8 @@ uint8_t MyBuffer[SPI2812_BUFFSIZE+ZERO_BUFFER];
 #define SPI_PORT_DMA_TX_IRQn               DMA1_Stream4_IRQn
 #define SPI_PORT_DMA_TX_IRQHandler         DMA1_Stream4_IRQHandler
 */
+
+#endif
 
 #elif defined( STM32F40_41xxx )
 
@@ -135,6 +161,73 @@ void InitSPI2812()
 
 #ifdef STM32F30X
 
+#ifdef TQFP32
+
+	//On SPI1, PORT A.7
+
+	RCC_AHBPeriphClockCmd(SPI_MOSI_GPIO_CLK, ENABLE);
+	RCC_AHBPeriphClockCmd(SPI_PORT_DMAx_CLK, ENABLE);
+	SPI_PORT_CLOCK_INIT(SPI_PORT_CLOCK, ENABLE);
+	SPI_I2S_DeInit(SPI_PORT);
+
+	/* Configure the GPIO_LED pin */
+	GPIO_InitStructure.GPIO_Pin = SPI_MOSI_PIN;
+	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AF;
+	GPIO_InitStructure.GPIO_OType = GPIO_OType_PP;
+	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_10MHz;
+	GPIO_Init(SPI_MOSI_GPIO_PORT, &GPIO_InitStructure);
+
+	GPIO_PinAFConfig(SPI_MOSI_GPIO_PORT, SPI_MOSI_SOURCE, SPI_MOSI_AF); //MOSI  //GPIO_AF_5??? GPIO_AF_6??? TODO 
+
+	/* SPI Config */
+	SPI_InitStructure.SPI_Direction = SPI_Direction_1Line_Tx;
+	SPI_InitStructure.SPI_Mode = SPI_Mode_Master;
+	SPI_InitStructure.SPI_DataSize = SPI_DataSize_8b;
+	SPI_InitStructure.SPI_CPOL = SPI_CPOL_Low;
+	SPI_InitStructure.SPI_CPHA = SPI_CPHA_1Edge;
+	SPI_InitStructure.SPI_NSS = SPI_NSS_Soft;
+	SPI_InitStructure.SPI_BaudRatePrescaler = SPI_BaudRatePrescaler_16;
+	SPI_InitStructure.SPI_FirstBit = SPI_FirstBit_MSB;
+	SPI_InitStructure.SPI_CRCPolynomial = 7;  //TODO: Remove this???
+
+	SPI_CalculateCRC(SPI_PORT, DISABLE);
+	SPI_Init(SPI_PORT, &SPI_InitStructure);
+    RCC_I2SCLKConfig( RCC_I2S2CLKSource_SYSCLK);
+	SPI_Cmd(SPI_PORT, ENABLE);
+
+	//We're on DMA1, channel 5.
+
+	memset( MyBuffer, 0xAA, 128 );
+
+    DMA_DeInit(SPI_PORT_TX_DMA_CHANNEL);
+    DMA_StructInit(&dma_init_struct);
+    dma_init_struct.DMA_PeripheralBaseAddr = (uint32_t) &SPI_PORT->DR;
+    dma_init_struct.DMA_MemoryBaseAddr = (uint32_t)MyBuffer;  //REmove this? somehow?
+    dma_init_struct.DMA_DIR = DMA_DIR_PeripheralDST;
+    dma_init_struct.DMA_BufferSize = 128;
+    dma_init_struct.DMA_PeripheralInc = DMA_PeripheralInc_Disable;
+    dma_init_struct.DMA_MemoryInc = DMA_MemoryInc_Enable;
+    dma_init_struct.DMA_PeripheralDataSize = DMA_PeripheralDataSize_Byte;
+    dma_init_struct.DMA_MemoryDataSize = DMA_PeripheralDataSize_Byte;
+    dma_init_struct.DMA_Mode = DMA_Mode_Normal;
+	dma_init_struct.DMA_Priority = DMA_Priority_VeryHigh;
+	dma_init_struct.DMA_M2M = DMA_M2M_Disable;
+	DMA_Init(SPI_PORT_TX_DMA_CHANNEL, &dma_init_struct);
+
+	/* Configure the Priority Group */
+	NVIC_PriorityGroupConfig(NVIC_PriorityGroup_1);
+
+	/* Initialize NVIC Struct for DMA */
+	nvic_init_struct.NVIC_IRQChannel = SPI_PORT_DMA_TX_IRQn;
+	nvic_init_struct.NVIC_IRQChannelPreemptionPriority = 1;
+	nvic_init_struct.NVIC_IRQChannelSubPriority = 0;
+	nvic_init_struct.NVIC_IRQChannelCmd = ENABLE;
+	NVIC_Init(&nvic_init_struct);
+
+	SPI_I2S_DMACmd(SPI_PORT, SPI_I2S_DMAReq_Tx, ENABLE);
+
+#else
+
 	//On SPI2, PORT B.15
 
 	RCC_AHBPeriphClockCmd(SPI_MOSI_GPIO_CLK, ENABLE);
@@ -197,6 +290,8 @@ void InitSPI2812()
 	NVIC_Init(&nvic_init_struct);
 
 	SPI_I2S_DMACmd(SPI_PORT, SPI_I2S_DMAReq_Tx, ENABLE);
+
+#endif
 
 #elif defined( STM32F40_41xxx )
 

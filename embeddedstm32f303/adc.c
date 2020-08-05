@@ -11,6 +11,24 @@
 static int calibration_value;
 extern RCC_ClocksTypeDef RCC_Clocks;
 
+#ifdef TQFP32
+#define GPIOADCPORT GPIOA
+#define GPIOADCNUM  GPIO_Pin_0
+#define ADCPLLCLK   RCC_ADC12PLLCLK_Div2
+#define ADCPERIPHEN RCC_AHBPeriph_ADC12
+#define ADCPORTAHB  RCC_AHBPeriph_GPIOA
+#define ADCNUM		ADC1
+#define ADCCHAN ADC_Channel_1
+#else
+#define GPIOADCPORT GPIOB
+#define GPIOADCNUM  GPIO_Pin_12
+#define ADCPLLCLK   RCC_ADC34PLLCLK_Div2
+#define ADCPERIPHEN RCC_AHBPeriph_ADC34
+#define ADCPORTAHB  RCC_AHBPeriph_GPIOB
+#define ADCNUM		ADC4
+#define ADCCHAN ADC_Channel_3
+#endif
+
 void InitADC()
 {
 	ADC_InitTypeDef       ADC_InitStructure;
@@ -19,25 +37,25 @@ void InitADC()
 	TIM_TimeBaseInitTypeDef TIM_TimeBaseStructure;
 
 	/* Configure the ADC clock */
-	RCC_ADCCLKConfig( RCC_ADC34PLLCLK_Div2 );
+	RCC_ADCCLKConfig( ADCPLLCLK );
 
 	/* Enable ADC1 clock */
-	RCC_AHBPeriphClockCmd( RCC_AHBPeriph_ADC34, ENABLE );
+	RCC_AHBPeriphClockCmd( ADCPERIPHEN, ENABLE );
 
 	/* ADC Channel configuration */
 	/* GPIOC Periph clock enable */
-	RCC_AHBPeriphClockCmd( RCC_AHBPeriph_GPIOB, ENABLE );
+	RCC_AHBPeriphClockCmd( ADCPORTAHB, ENABLE );
 
 	/* Configure ADC Channel7 as analog input */
-	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_12;
+	GPIO_InitStructure.GPIO_Pin = GPIOADCNUM;
 	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AN;
 	GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_NOPULL ;
-	GPIO_Init( GPIOB, &GPIO_InitStructure );
+	GPIO_Init( GPIOADCPORT, &GPIO_InitStructure );
 
 	ADC_StructInit( &ADC_InitStructure );
 
 	/* Calibration procedure */
-	ADC_VoltageRegulatorCmd( ADC4, ENABLE );
+	ADC_VoltageRegulatorCmd( ADCNUM, ENABLE );
 
 	/* Insert delay equal to 10 µs */
 	_delay_us( 10 );
@@ -47,7 +65,7 @@ void InitADC()
 	ADC_CommonInitStructure.ADC_DMAAccessMode = ADC_DMAAccessMode_Disabled;
 	ADC_CommonInitStructure.ADC_DMAMode = ADC_DMAMode_OneShot;
 	ADC_CommonInitStructure.ADC_TwoSamplingDelay = 0;
-	ADC_CommonInit( ADC4, &ADC_CommonInitStructure );
+	ADC_CommonInit( ADCNUM, &ADC_CommonInitStructure );
 
 	ADC_InitStructure.ADC_ContinuousConvMode = ADC_ContinuousConvMode_Enable;
 	ADC_InitStructure.ADC_Resolution = ADC_Resolution_12b;
@@ -57,16 +75,16 @@ void InitADC()
 	ADC_InitStructure.ADC_OverrunMode = ADC_OverrunMode_Disable;
 	ADC_InitStructure.ADC_AutoInjMode = ADC_AutoInjec_Disable;
 	ADC_InitStructure.ADC_NbrOfRegChannel = 1;
-	ADC_Init( ADC4, &ADC_InitStructure );
+	ADC_Init( ADCNUM, &ADC_InitStructure );
 
 	/* ADC4 regular channel3 configuration */
-	ADC_RegularChannelConfig( ADC4, ADC_Channel_3, 1, ADC_SampleTime_181Cycles5 );
+	ADC_RegularChannelConfig( ADCNUM, ADCCHAN, 1, ADC_SampleTime_181Cycles5 );
 
 	/* Enable ADC4 */
-	ADC_Cmd( ADC4, ENABLE );
+	ADC_Cmd( ADCNUM, ENABLE );
 
 	/* wait for ADRDY */
-	while( !ADC_GetFlagStatus( ADC4, ADC_FLAG_RDY ) );
+	while( !ADC_GetFlagStatus( ADCNUM, ADC_FLAG_RDY ) );
 
 
 	NVIC_InitTypeDef NVIC_InitStructure;
@@ -92,7 +110,7 @@ void InitADC()
 	TIM_Cmd (TIM2, ENABLE);
 
 	/* Start ADC4 Software Conversion */
-	ADC_StartConversion( ADC4 );
+	ADC_StartConversion( ADCNUM );
 }
 
 
@@ -104,8 +122,8 @@ void TIM2_IRQHandler (void)
 
 	if (TIM_GetITStatus (TIM2, TIM_IT_Update) != RESET) {
 		TIM_ClearITPendingBit (TIM2, TIM_IT_Update);
-		int16_t value = ADC_GetConversionValue(ADC4);
-		ADC_StartConversion( ADC4 );
+		int16_t value = ADC_GetConversionValue(ADCNUM);
+		ADC_StartConversion( ADCNUM );
 
 		oversampout += value;
 		oversamp++;
