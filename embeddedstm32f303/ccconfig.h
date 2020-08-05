@@ -3,15 +3,14 @@
 
 #define CCEMBEDDED
 
-#ifdef TQFP32
-#define NUM_LIN_LEDS 20
-#define USE_NUM_LIN_LEDS 20
-#define DFREQ 12500 //XXX Incorrect.
-#else
-#define NUM_LIN_LEDS 24
-#define USE_NUM_LIN_LEDS 24
-#define DFREQ 12500
-#endif
+#include <stdint.h>
+
+extern uint8_t RootNoteOffset; //From embeddedout.c
+extern int UseNumLinLeds;
+
+#define NUM_LIN_LEDS 100
+#define USE_NUM_LIN_LEDS UseNumLinLeds
+#define DFREQ 12500 //Unsure.
 
 #endif
 

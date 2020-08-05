@@ -32,10 +32,10 @@ CFLAGS	= $(MCFLAGS)  $(OPTIMIZE)  $(DEFS) \
 
 CFLAGS+=-DDEBUG
 
-#If you use a TQFP STM32F303.
+#If you use a TQFP STM32F303. (x6, x8)
 CFLAGS+=-I. -DTQFP32  -DHSE_VALUE=8000000
 
-#From the nucleos(sp?)
+#From the nucleos(sp?)  (STM32F303xB/xC)
 #CFLAGS+=-I. -DHSE_VALUE=25000000
 
 AFLAGS	= $(MCFLAGS) 

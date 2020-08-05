@@ -8,7 +8,8 @@
 #include <DFT32.h>
 #include <embeddednf.h>
 #include <embeddedout.h>
-
+#include "spi2812.h"
+#include "adc.h"
 
 gpio freepin;
 
@@ -23,10 +24,15 @@ int16_t sampbuff[CIRCBUFSIZE];
 volatile int samples;
 
 
-void ADCCallback( uint16_t adcval )
+
+
+int UseNumLinLeds = 20;
+int Gain = 10;
+
+void ADCCallback( int16_t adcval )
 {
 #ifdef TQFP32
-	sampbuff[last_samp_pos] = adcval*2.0;
+	sampbuff[last_samp_pos] = adcval*Gain;
 #else
 	sampbuff[last_samp_pos] = adcval;
 #endif
@@ -102,10 +108,6 @@ int main(void)
 			wf++;
 			if( wf == 128 )
 			{
-				//uint8_t rdat[20] = { 0xff, 0xff, 0xff, 0x00, 0x00, 0x00, 0x00, 0xff };
-				//static int countup;
-				//rdat[5] = sampbuff[last_samp_pos] ;//countup++;
-				//SendSPI2812( rdat, 4 );
 				NewFrame();
 				wf = 0; 
 			}
