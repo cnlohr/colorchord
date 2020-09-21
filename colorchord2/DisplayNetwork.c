@@ -31,6 +31,7 @@ struct DPODriver
 	int leds;
 	int skipfirst;
 	int fliprg;
+	int flipgb;
 	int firstval;
 	int port;
 	int is_rgby;
@@ -148,6 +149,15 @@ static void DPOUpdate(void * id, struct NoteFinder*nf)
 					lbuff[i++] = OutLEDs[j*3+2]; //BLUE
 				}
 			}
+			else if( d->flipgb )
+			{
+				for( j = 0; j < d->leds; j++ )
+				{
+					lbuff[i++] = OutLEDs[j*3+0]; //RED
+					lbuff[i++] = OutLEDs[j*3+1]; //GREEN
+					lbuff[i++] = OutLEDs[j*3+2]; //BLUE
+				}
+			}
 			else
 			{
 				for( j = 0; j < d->leds; j++ )
@@ -210,6 +220,7 @@ static void DPOParams(void * id )
 	d->firstval = 0;	RegisterValue(  "firstval", PAINT, &d->firstval, sizeof( d->firstval ) );
 						RegisterValue(  "address", PABUFFER, d->address, sizeof( d->address ) );
 	d->fliprg = 0;		RegisterValue(  "fliprg", PAINT, &d->fliprg, sizeof( d->fliprg ) );
+	d->flipgb = 0;		RegisterValue(  "flipgb", PAINT, &d->flipgb, sizeof( d->flipgb ) );
 	d->is_rgby = 0;		RegisterValue(  "rgby", PAINT, &d->is_rgby, sizeof( d->is_rgby ) );
 	d->skittlequantity=0;RegisterValue(  "skittlequantity", PAINT, &d->skittlequantity, sizeof( d->skittlequantity ) );
 	d->socket = -1;
