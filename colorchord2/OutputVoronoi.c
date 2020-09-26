@@ -25,6 +25,7 @@ struct DPODriver
 {
 	int xn;
 	int yn;
+	float outgamma;
 	float cutoff;
 	float satamp;
 	float amppow;  //For amplitudes
@@ -127,7 +128,7 @@ static void DPOUpdate(void * id, struct NoteFinder*nf)
 			float sat = nf->note_amplitudes_out[bestmatch] * d->satamp;
 			if( sat > 1.0 ) sat = 1.0;
 			float note_color = nf->note_positions[bestmatch] / nf->freqbins;
-			color = CCtoHEX( note_color, 1.0, sat );
+			color = CCtoHEX( note_color, 1.0, pow( sat, d->outgamma ) );
 		}
 
 		OutLEDs[led*3+0] = color & 0xff;
@@ -146,7 +147,7 @@ static void DPOParams(void * id )
 	d->yn = 90;			RegisterValue( "lighty", PAINT, &d->yn, sizeof( d->yn ) );
 	d->cutoff = .01; 	RegisterValue( "Voronoi_cutoff", PAFLOAT, &d->cutoff, sizeof( d->cutoff ) );
 	d->satamp = 5;		RegisterValue( "satamp", PAFLOAT, &d->satamp, sizeof( d->satamp ) );
-
+	d->outgamma = 1.0;  RegisterValue( "outgamma", PAFLOAT, &d->outgamma, sizeof( d->outgamma ) );
 	d->amppow = 2.51;	RegisterValue( "amppow", PAFLOAT, &d->amppow, sizeof( d->amppow ) );
 	d->distpow = 1.5;	RegisterValue( "distpow", PAFLOAT, &d->distpow, sizeof( d->distpow ) );
 

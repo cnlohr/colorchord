@@ -30,6 +30,7 @@ struct CellsOutDriver
 	float light_siding;
 	float satamp;
 	float qtyamp;
+	float outgamma;
 	int steady_bright;
 	int timebased; //Useful for pies, turn off for linear systems.
 	int snakey; //Advance head for where to get LEDs around.
@@ -184,7 +185,7 @@ static void LEDUpdate(void * id, struct NoteFinder*nf)
 		if( satQ > 1 ) satQ = 1;
 		float sendsat = (led->steady_bright?sat:satQ);
 		if( sendsat > 1 ) sendsat = 1;
-		int r = CCtoHEX( binpos[ia], 1.0, sendsat );
+		int r = CCtoHEX( binpos[ia], 1.0, pow( sendsat, led->outgamma ) );
 
 		OutLEDs[i*3+0] = r & 0xff;
 		OutLEDs[i*3+1] = (r>>8) & 0xff;
@@ -204,6 +205,7 @@ static void LEDParams(void * id )
 	led->light_siding = 1.9;RegisterValue( "light_siding", PAFLOAT, &led->light_siding, sizeof( led->light_siding ) );
 	led->qtyamp = 20;		RegisterValue( "qtyamp", PAFLOAT, &led->qtyamp, sizeof( led->qtyamp ) );
 	led->timebased = 1;		RegisterValue( "timebased", PAINT, &led->timebased, sizeof( led->timebased ) );
+	led->outgamma = 1.0;    RegisterValue( "outgamma", PAFLOAT, &led->outgamma, sizeof( led->outgamma ) );
 
 	led->snakey = 0;		RegisterValue( "snakey", PAINT, &led->snakey, sizeof( led->snakey ) );
 

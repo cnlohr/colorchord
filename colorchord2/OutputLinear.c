@@ -24,6 +24,7 @@ struct LEDOutDriver
 	float last_led_amp[MAX_LEDS];
 	int steady_bright;
 	float led_floor;
+	float outgamma;
 	float led_limit; //Maximum brightness
 	float satamp;
 	int lastadvance;
@@ -177,13 +178,12 @@ static void LEDUpdate(void * id, struct NoteFinder*nf)
 
 		if( sendsat > led->led_limit ) sendsat = led->led_limit;
 
-		int r = CCtoHEX( led->last_led_pos[i], 1.0, sendsat );
+		int r = CCtoHEX( led->last_led_pos[i], 1.0, pow( sendsat, led->outgamma ) );
 
 		OutLEDs[i*3+0] = r & 0xff;
 		OutLEDs[i*3+1] = (r>>8) & 0xff;
 		OutLEDs[i*3+2] = (r>>16) & 0xff;
 	}
-
 
 	if( led->is_loop )
 	{
@@ -206,6 +206,7 @@ static void LEDParams(void * id )
 	led->is_loop = 0;		RegisterValue( "is_loop", PAINT, &led->is_loop, sizeof( led->is_loop ) );
 	led->steady_bright = 1;	RegisterValue( "steady_bright", PAINT, &led->steady_bright, sizeof( led->steady_bright ) );
 	led->led_limit = 1;     RegisterValue( "led_limit", PAFLOAT, &led->led_limit, sizeof( led->led_limit ) );
+	led->outgamma = 1.0;    RegisterValue( "outgamma", PAFLOAT, &led->outgamma, sizeof( led->outgamma ) );
 
 	printf( "Found LEDs for output.  leds=%d\n", led->total_leds );
 
