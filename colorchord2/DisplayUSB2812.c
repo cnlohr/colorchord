@@ -6,7 +6,7 @@
 #include <string.h>
 #include "parameters.h"
 #include <stdlib.h>
-#include <libusb-1.0/libusb.h>
+#include <libusb.h>
 #include "color.h"
 #include <math.h>
 #include <unistd.h>
