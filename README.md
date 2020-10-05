@@ -47,7 +47,7 @@ Building with Linux
 -----------------
 Use `apt-get` to install the following packages for Debian/Ubuntu/Mint:
 ```
-apt-get install libpulse-dev libasound2-dev libx11-dev libxext-dev libxinerama-dev libusb-1.0-0-dev libudev-dev
+apt-get install build-essential libpulse-dev libasound2-dev libx11-dev libxext-dev libxinerama-dev libusb-1.0-0-dev libudev-dev
 ```
 
 To get colorchord, type:
