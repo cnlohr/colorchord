@@ -420,9 +420,12 @@ uint16_t Sdatspace[FIXBINS*4];  //(advances,places,isses,icses)
 static uint8_t Sdo_this_octave[BINCYCLE];
 static int16_t Saccum_octavebins[OCTAVES];
 static uint8_t Swhichoctaveplace;
-#ifndef INCLUDING_EMBEDDED
-uint16_t embeddedbins[FIXBINS]; //This is updated every time the DFT hits the octavecount, or 1/32 updates.
-#endif
+
+//multiple definition of `embeddedbins'; dft.o (symbol from plugin):(.text+0x0): first defined here
+//Had this issue when trying to build, commenting this lines out made the build successful
+//#ifndef INCLUDING_EMBEDDED
+//uint16_t embeddedbins[FIXBINS]; //This is updated every time the DFT hits the octavecount, or 1/32 updates.
+//#endif
 
 //From: http://stackoverflow.com/questions/1100090/looking-for-an-efficient-integer-square-root-algorithm-for-arm-thumb2
 /**
