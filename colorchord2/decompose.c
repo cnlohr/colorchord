@@ -24,7 +24,7 @@ int DecomposeHistogram( float * histogram, int bins, struct NoteDists * out_dist
 		float this = histogram[i];
 		float next = histogram[(i+1)%bins];
 
-		if( prev > this || next > this ) continue;
+		if( prev >= this || next > this ) continue;
 		if( prev == this && next == this ) continue;
 
 		//i is at a peak... 
