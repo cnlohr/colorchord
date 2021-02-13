@@ -1,6 +1,25 @@
 ColorChord
 ==========
 
+Table of Contents
+-----------------
+
+- [ColorChord](#colorchord)
+  - [Table of Contents](#table-of-contents)
+  - [What is ColorChord?](#what-is-colorchord)
+  - [Background](#background)
+  - [Current State of Affairs](#current-state-of-affairs)
+  - [ColorChord: Embedded](#colorchord-embedded)
+- [Build Instructions](#build-instructions)
+  - [Building ColorChord Embedded](#building-colorchord-embedded)
+  - [Building with Linux](#building-with-linux)
+  - [Building with Windows](#building-with-windows)
+    - [MSYS2](#msys2)
+    - [clang](#clang)
+    - [TCC](#tcc)
+  - [Using](#using)
+  - [Additional Videos](#additional-videos)
+
 What is ColorChord?
 -------------------
 
@@ -42,10 +61,21 @@ ColorChord: Embedded
 
 There is work on an embedded version of ColorChord, which avoids floating point operations anywhere in the output pipeline.  Though I have made efforts to port it to AVRs, it doesn't seem feasable to operate on AVRs without some shifty tricks which I'd like to avoid, so I have retargeted my efforts to 32-bit systems, such as the STM32F303, STM32F407, and (somehow) the ESP8266.  ColorChord Embedded uses a different codebase, located in the [embeddedcommon](/embeddedcommon) and distributed among the various embedded* folders.
 
+Build Instructions
+==================
+
+Building ColorChord Embedded
+----------------------------
+
+The embedded version of Colorchord has a different build system than the desktop versions of Colorchord. See the build instructions for each of the supported embedded architectures in their respective folders
+
+- [esp8266](embedded8266/README.md#build-instructions)
+- [stm32f303](embeddedstm32f303/README.md)
+- [stm32f407](embeddedstm32f407/) - TODO Add readme
 
 Building with Linux
 -----------------
-Use `apt-get` to install the following packages for Debian/Ubuntu/Mint:
+From the linux terminal use `apt-get` to install the following packages for Debian/Ubuntu/Mint:
 ```
 apt-get install build-essential libpulse-dev libasound2-dev libx11-dev libxext-dev libxinerama-dev libusb-1.0-0-dev libudev-dev
 ```
@@ -55,7 +85,12 @@ To get colorchord, type:
 ```
 git clone --recurse-submodules https://github.com/cnlohr/colorchord
 ```
+This will download the colorchord source code into the colorchord directory
 
+You really want to be using colorchord2, so we need to move to it's build directory to compile the source code.
+```
+cd colorchord/colorchord2
+```
 To make colorchord, type:
 
 ```
@@ -110,6 +145,7 @@ To run colorchord, use the following syntax:
 
 If you edit default.conf while the program is running and resave it, it will use the settings in the newly saved file.
 
+Note that the colorchord executable file is located in the colorchord2 directory in the colorchord repository. 
 
 Additional Videos
 -----------------
