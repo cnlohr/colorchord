@@ -20,7 +20,7 @@ SpacesInContainerLiterals: 'true'
 SpacesInParentheses: 'true'
 SpacesInSquareBrackets: 'true'
 TabWidth: '4'
-UseTab: Always
+UseTab: AlignWithSpaces 
 FixNamespaceComments: 'true'
 IndentCaseLabels: 'true'
 
