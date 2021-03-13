@@ -500,10 +500,10 @@ int main( int argc, char **argv )
 					const int y2	= 480;
 					CNFGDrawBox( x1, y1, x2, y2 );
 
-					CNFGPenX = ( ( float )( i + .4 ) / note_peaks ) * screenx;
+					CNFGPenX = ( ( float )( peak + .4 ) / note_peaks ) * screenx;
 					CNFGPenY = screeny - 30;
-					sprintf( stt, "%d\n%0.0f", nf->enduring_note_id[ i ],
-						nf->note_amplitudes2[ i ] * 1000.0 );
+					sprintf( stt, "%d\n%0.0f", nf->enduring_note_id[ peak ],
+						nf->note_amplitudes2[ peak ] * 1000.0 );
 					CNFGDrawText( stt, 2 );
 				}
 
@@ -546,7 +546,7 @@ int main( int argc, char **argv )
 				CNFGColor( 0xffffff );
 
 				// Draw the bins
-				for ( int bin = 0; bin < freqs; i++ )
+				for ( int bin = 0; bin < freqs; bin++ )
 				{
 					float x0 = bin / ( float )freqs * ( float )screenx;
 					float x1 = ( bin + 1 ) / ( float )freqs * ( float )screenx;
