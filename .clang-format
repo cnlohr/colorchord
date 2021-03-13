@@ -1,3 +1,4 @@
+# Basic style rules by Charles Lohr
 BasedOnStyle: Microsoft
 AccessModifierOffset: -4
 AlwaysBreakTemplateDeclarations: 'Yes'
@@ -22,3 +23,15 @@ TabWidth: '4'
 UseTab: Always
 FixNamespaceComments: 'true'
 IndentCaseLabels: 'true'
+
+# Additions by Sam Ellicott
+ColumnLimit: 100
+AlignConsecutiveAssignments: true 
+AlignConsecutiveMacros: true 
+AlignTrailingComments: true
+AlignEscapedNewlines: Left
+AlignOperands: AlignAfterOperator
+AllowShortBlocksOnASingleLine: Always
+AllowShortIfStatementsOnASingleLine: WithoutElse 
+AllowShortCaseLabelsOnASingleLine: true
+AllowShortLoopsOnASingleLine: true
