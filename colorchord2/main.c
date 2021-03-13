@@ -129,14 +129,14 @@ int lastfps;
 short screenx, screeny;
 
 struct DriverInstances *outdriver[ MAX_OUT_DRIVERS ];
-int headless    = 0;				  REGISTER_PARAM( headless, PAINT );
-int set_screenx = 640;				  REGISTER_PARAM( set_screenx, PAINT );
-int set_screeny = 480;				  REGISTER_PARAM( set_screeny, PAINT );
-char sound_source[ 16 ];			  REGISTER_PARAM( sound_source, PABUFFER );
-int cpu_autolimit = 1; 				  REGISTER_PARAM( cpu_autolimit, PAINT );
-float cpu_autolimit_interval = 0.016; REGISTER_PARAM( cpu_autolimit_interval, PAFLOAT );
-int sample_channel = -1;			  REGISTER_PARAM( sample_channel, PAINT );
-int showfps = 1;        			  REGISTER_PARAM( showfps, PAINT );
+int headless    = 0;					REGISTER_PARAM( headless, PAINT );
+int set_screenx = 640;					REGISTER_PARAM( set_screenx, PAINT );
+int set_screeny = 480;					REGISTER_PARAM( set_screeny, PAINT );
+char sound_source[ 16 ];				REGISTER_PARAM( sound_source, PABUFFER );
+int cpu_autolimit = 1; 					REGISTER_PARAM( cpu_autolimit, PAINT );
+float cpu_autolimit_interval = 0.016;	REGISTER_PARAM( cpu_autolimit_interval, PAFLOAT );
+int sample_channel = -1;				REGISTER_PARAM( sample_channel, PAINT );
+int showfps = 1;        				REGISTER_PARAM( showfps, PAINT );
 
 #if defined( ANDROID ) || defined( __android__ )
 float in_amplitude = 2;
@@ -178,7 +178,7 @@ void HandleKey( int keycode, int bDown )
 		return;
 	}
 #endif
-	if( keycode == ESCAPE_KEY ) exit( 0 );
+	if( keycode == ESCAPE_KEY )	exit( 0 );
 	if( c == 'W' )				force_white = bDown;
 	if( c == 'D' && bDown )		show_debug = !show_debug;
 	if( c == '9' && bDown )		{ gKey--; 		RecalcBaseHz(); }
@@ -234,7 +234,7 @@ void SoundCB( struct CNFADriver *sd, short *out, short *in, int framesp, int fra
 						fo += f;
 					else
 						fo += ( f > 0 ) ? 1 : -1;
-					}
+				}
 				fo /= channelin;
 				sound[ soundhead ] = fo * in_amplitude;
 				soundhead		   = ( soundhead + 1 ) % SOUNDCBSIZE;
@@ -245,7 +245,7 @@ void SoundCB( struct CNFADriver *sd, short *out, short *in, int framesp, int fra
 				if ( f > 1 || f < -1 ) f = ( f > 0 ) ? 1 : -1;
 				sound[ soundhead ] = f * in_amplitude;
 				soundhead		   = ( soundhead + 1 ) % SOUNDCBSIZE;
-				}
+			}
 		}
 		SoundEventHappened( framesr, in, 0, channelin );
 	}
@@ -279,11 +279,11 @@ void RegisterConstructorFunctions()
 	REGISTERheadless();
 	REGISTERset_screenx();
 	REGISTERset_screeny();
- 	REGISTERsound_source();
- 	REGISTERcpu_autolimit();
- 	REGISTERcpu_autolimit_interval();
+	REGISTERsound_source();
+	REGISTERcpu_autolimit();
+	REGISTERcpu_autolimit_interval();
 	REGISTERsample_channel();
-    REGISTERshowfps();
+	REGISTERshowfps();
 	REGISTERin_amplitude();
 
 	// Audio stuff
@@ -326,19 +326,13 @@ int main( int argc, char **argv )
 
 #if defined( WIN32 ) || defined( USE_WINDOWS )
 	// In case something needs network access.
-    WSADATA wsaData;
+	WSADATA wsaData;
 	WSAStartup( 0x202, &wsaData );
 #elif defined( ANDROID )
-	int hasperm = AndroidHasPermissions( "READ_EXTERNAL_STORAGE" );
-	if ( !hasperm )
-	{
-		AndroidRequestAppPermissions( "READ_EXTERNAL_STORAGE" );
-	}
+	int hasperm			= AndroidHasPermissions( "READ_EXTERNAL_STORAGE" );
 	int haspermInternet = AndroidHasPermissions( "INTERNET" );
-	if ( !haspermInternet )
-	{
-		AndroidRequestAppPermissions( "INTERNET" );
-	}
+	if ( !hasperm ) AndroidRequestAppPermissions( "READ_EXTERNAL_STORAGE" );
+	if ( !haspermInternet ) AndroidRequestAppPermissions( "INTERNET" );
 #else
 	// Linux
 #endif
@@ -351,11 +345,11 @@ int main( int argc, char **argv )
 	// Initialize Rawdraw
 	int frames = 0;
 	double ThisTime;
-	double LastFPSTime	 = OGGetAbsoluteTime();
-	double LastFrameTime = OGGetAbsoluteTime();
 	double SecToWait;
-	CNFGBGColor		= 0x800000;
-	CNFGDialogColor = 0x444444;
+	double LastFPSTime		= OGGetAbsoluteTime();
+	double LastFrameTime	= OGGetAbsoluteTime();
+	CNFGBGColor				= 0x800000;
+	CNFGDialogColor			= 0x444444;
 
 	// Generate the window title
 	char title[ 1024 ];
