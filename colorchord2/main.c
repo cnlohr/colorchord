@@ -123,8 +123,8 @@ void HandleDestroy()
 #endif
 
 float DeltaFrameTime = 0;
-double Now			 = 0;
-int is_suspended	 = 0;
+double Now           = 0;
+int is_suspended     = 0;
 int lastfps;
 short screenx, screeny;
 
