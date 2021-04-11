@@ -30,6 +30,8 @@ struct DPODriver
 {
 	int leds;
 	int skipfirst;
+	int wled_realtime;
+	int wled_timeout;
 	int fliprg;
 	int flipgb;
 	int firstval;
@@ -100,6 +102,17 @@ static void DPOUpdate(void * id, struct NoteFinder*nf)
 
 		d->firstval = 0;
 		i = 0;
+
+		if(d->wled_realtime)
+		{
+			//Packet byte 0 is 2 (DRGB mode) or 3 (DRGBW mode) if is_rgby
+			buffer[i] = 2 + d->is_rgby;
+			lbuff[i++] = 2 + d->is_rgby;
+			//Packet byte 1 is the time in seconds the controller will wait to take control after it stops receiving data
+			buffer[i] = d->wled_timeout;
+			lbuff[i++] = d->wled_timeout;
+		}
+
 		while( i < d->skipfirst )
 		{
 			lbuff[i] = d->firstval;
@@ -216,11 +229,13 @@ static void DPOParams(void * id )
 
 	d->leds = 10;		RegisterValue(  "leds", PAINT, &d->leds, sizeof( d->leds ) );
 	d->skipfirst = 1;	RegisterValue(  "skipfirst", PAINT, &d->skipfirst, sizeof( d->skipfirst ) );
+	d->wled_realtime = 0;RegisterValue( "wled_realtime", PAINT, &d->wled_realtime, sizeof( d->wled_realtime ) );
+	d->wled_timeout = 2;RegisterValue(	"wled_timeout", PAINT, &d->wled_timeout, sizeof( d->wled_timeout ) );
 	d->port = 7777;		RegisterValue(  "port", PAINT, &d->port, sizeof( d->port ) );
 	d->firstval = 0;	RegisterValue(  "firstval", PAINT, &d->firstval, sizeof( d->firstval ) );
 						RegisterValue(  "address", PABUFFER, d->address, sizeof( d->address ) );
 	d->fliprg = 0;		RegisterValue(  "fliprg", PAINT, &d->fliprg, sizeof( d->fliprg ) );
-	d->flipgb = 0;		RegisterValue(  "flipgb", PAINT, &d->flipgb, sizeof( d->flipgb ) );
+	d->flipgb = 0;		RegisterValue(  "flipgb", PAINT, &d->flipgb, sizeof( d->flipgb ) );	
 	d->is_rgby = 0;		RegisterValue(  "rgby", PAINT, &d->is_rgby, sizeof( d->is_rgby ) );
 	d->skittlequantity=0;RegisterValue(  "skittlequantity", PAINT, &d->skittlequantity, sizeof( d->skittlequantity ) );
 	d->socket = -1;
