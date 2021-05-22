@@ -216,7 +216,7 @@ void HandleMotion( int x, int y, int mask )
 
 void SoundCB( struct CNFADriver *sd, short *out, short *in, int framesp, int framesr )
 {
-	int channelin  = sd->channelsRec;
+	int channelin = sd->channelsRec;
 	int channelout = sd->channelsPlay;
 
 	// Load the samples into a ring buffer.  Split the channels from interleved to one per buffer.
@@ -237,14 +237,14 @@ void SoundCB( struct CNFADriver *sd, short *out, short *in, int framesp, int fra
 				}
 				fo /= channelin;
 				sound[ soundhead ] = fo * in_amplitude;
-				soundhead          = ( soundhead + 1 ) % SOUNDCBSIZE;
+				soundhead = ( soundhead + 1 ) % SOUNDCBSIZE;
 			}
 			else
 			{
 				float f = in[ i * channelin + sample_channel ] / 32767.;
 				if ( f > 1 || f < -1 ) f = ( f > 0 ) ? 1 : -1;
 				sound[ soundhead ] = f * in_amplitude;
-				soundhead          = ( soundhead + 1 ) % SOUNDCBSIZE;
+				soundhead = ( soundhead + 1 ) % SOUNDCBSIZE;
 			}
 		}
 		SoundEventHappened( framesr, in, 0, channelin );
@@ -253,7 +253,7 @@ void SoundCB( struct CNFADriver *sd, short *out, short *in, int framesp, int fra
 
 	if ( out )
 	{
-		memset(out, 0, framesp * channelout);
+		memset( out, 0, framesp * channelout );
 		SoundEventHappened( framesp, out, 1, channelout );
 	}
 }
@@ -329,7 +329,7 @@ int main( int argc, char **argv )
 	WSADATA wsaData;
 	WSAStartup( 0x202, &wsaData );
 #elif defined( ANDROID )
-	int hasperm         = AndroidHasPermissions( "READ_EXTERNAL_STORAGE" );
+	int hasperm = AndroidHasPermissions( "READ_EXTERNAL_STORAGE" );
 	int haspermInternet = AndroidHasPermissions( "INTERNET" );
 	if ( !hasperm ) AndroidRequestAppPermissions( "READ_EXTERNAL_STORAGE" );
 	if ( !haspermInternet ) AndroidRequestAppPermissions( "INTERNET" );
@@ -346,10 +346,10 @@ int main( int argc, char **argv )
 	int frames = 0;
 	double ThisTime;
 	double SecToWait;
-	double LastFPSTime   = OGGetAbsoluteTime();
+	double LastFPSTime = OGGetAbsoluteTime();
 	double LastFrameTime = OGGetAbsoluteTime();
-	CNFGBGColor          = 0x800000;
-	CNFGDialogColor      = 0x444444;
+	CNFGBGColor = 0x800000;
+	CNFGDialogColor = 0x444444;
 
 	// Generate the window title
 	char title[ 1024 ];
@@ -383,15 +383,14 @@ int main( int argc, char **argv )
 			*ThisDriver = 0;
 			ThisDriver++;
 		}
-	
+
 		printf( "Loading: %s\n", TDStart );
 		outdriver[ i ] = SetupOutDriver( TDStart );
 	}
 	free( OutDriverNames );
 
 
-	do
-	{
+	do {
 		// Initialize Sound
 		sd = CNFAInit( sound_source, "colorchord", &SoundCB, GetParameterI( "samplerate", 44100 ),
 			GetParameterI( "samplerate", 44100 ), GetParameterI( "channels", 2 ),
@@ -399,7 +398,7 @@ int main( int argc, char **argv )
 			GetParameterS( "devplay", 0 ), GetParameterS( "devrecord", 0 ), NULL );
 
 		if ( sd ) break;
-			
+
 		CNFGColor( 0xffffff );
 		CNFGPenX = 10;
 		CNFGPenY = 100;
@@ -453,9 +452,9 @@ int main( int argc, char **argv )
 		if ( !headless )
 		{
 			// Handle outputs.
-			int freqbins   = nf->freqbins;
+			int freqbins = nf->freqbins;
 			int note_peaks = freqbins / 2;
-			int freqs      = freqbins * nf->octaves;
+			int freqs = freqbins * nf->octaves;
 
 			// Do a bunch of debugging.
 			if ( show_debug_basic && !is_suspended )
@@ -473,11 +472,11 @@ int main( int argc, char **argv )
 				// Draw the folded bins
 				for ( int bin = 0; bin < freqbins; bin++ )
 				{
-					const float x0   = bin / ( float )freqbins * ( float )screenx;
-					const float x1   = ( bin + 1 ) / ( float )freqbins * ( float )screenx;
-					const float amp  = nf->folded_bins[ bin ] * 250.0;
-					const float note = ( float )( bin + 0.5 ) / freqbins;
-					CNFGDialogColor  = CCtoHEX( note, 1.0, 1.0 );
+					const float x0 = bin / (float)freqbins * (float)screenx;
+					const float x1 = ( bin + 1 ) / (float)freqbins * (float)screenx;
+					const float amp = nf->folded_bins[ bin ] * 250.0;
+					const float note = (float)( bin + 0.5 ) / freqbins;
+					CNFGDialogColor = CCtoHEX( note, 1.0, 1.0 );
 					CNFGDrawBox( x0, 400 - amp, x1, 400 );
 				}
 				CNFGDialogColor = 0xf0f000;
@@ -486,15 +485,15 @@ int main( int argc, char **argv )
 				for ( int peak = 0; peak < note_peaks; peak++ )
 				{
 					if ( nf->note_amplitudes_out[ peak ] < 0 ) continue;
-					float note      = ( float )nf->note_positions[ peak ] / freqbins;
+					float note = (float)nf->note_positions[ peak ] / freqbins;
 					CNFGDialogColor = CCtoHEX( note, 1.0, 1.0 );
-					const int x1    = ( ( float )peak / note_peaks ) * screenx;
-					const int x2    = ( ( float )( peak + 1 ) / note_peaks ) * screenx;
-					const int y1    = 480 - nf->note_amplitudes_out[ peak ] * 100;
-					const int y2    = 480;
+					const int x1 = ( (float)peak / note_peaks ) * screenx;
+					const int x2 = ( (float)( peak + 1 ) / note_peaks ) * screenx;
+					const int y1 = 480 - nf->note_amplitudes_out[ peak ] * 100;
+					const int y2 = 480;
 					CNFGDrawBox( x1, y1, x2, y2 );
 
-					CNFGPenX = ( ( float )( peak + .4 ) / note_peaks ) * screenx;
+					CNFGPenX = ( (float)( peak + .4 ) / note_peaks ) * screenx;
 					CNFGPenY = screeny - 30;
 					sprintf( stt, "%d\n%0.0f", nf->enduring_note_id[ peak ],
 						nf->note_amplitudes2[ peak ] * 1000.0 );
@@ -503,16 +502,16 @@ int main( int argc, char **argv )
 
 				// Let's draw the o-scope.
 				int thissoundhead = soundhead;
-				thissoundhead     = ( thissoundhead - 1 + SOUNDCBSIZE ) % SOUNDCBSIZE;
-				int lasty         = sound[ thissoundhead ] * 128 + 128;
-				thissoundhead     = ( thissoundhead - 1 + SOUNDCBSIZE ) % SOUNDCBSIZE;
-				int thisy         = sound[ thissoundhead ] * 128 + 128;
-				thissoundhead     = ( thissoundhead - 1 + SOUNDCBSIZE ) % SOUNDCBSIZE;
+				thissoundhead = ( thissoundhead - 1 + SOUNDCBSIZE ) % SOUNDCBSIZE;
+				int lasty = sound[ thissoundhead ] * 128 + 128;
+				thissoundhead = ( thissoundhead - 1 + SOUNDCBSIZE ) % SOUNDCBSIZE;
+				int thisy = sound[ thissoundhead ] * 128 + 128;
+				thissoundhead = ( thissoundhead - 1 + SOUNDCBSIZE ) % SOUNDCBSIZE;
 				for ( int i = 0; i < screenx; i++ )
 				{
 					CNFGTackSegment( i, lasty, i + 1, thisy );
-					lasty         = thisy;
-					thisy         = sound[ thissoundhead ] * 128 + 128;
+					lasty = thisy;
+					thisy = sound[ thissoundhead ] * 128 + 128;
 					thissoundhead = ( thissoundhead - 1 + SOUNDCBSIZE ) % SOUNDCBSIZE;
 				}
 			}
@@ -527,7 +526,7 @@ int main( int argc, char **argv )
 				for ( int x_val = -1; x_val < screenx; x_val++ )
 				{
 					// Calculate the value of the histogram at the current screen position
-					float hist_point = ( float )x_val / ( float )screenx * freqbins - 0.5;
+					float hist_point = (float)x_val / (float)screenx * freqbins - 0.5;
 					float thishistval =
 						CalcHistAt( hist_point, nf->freqbins, nf->dists, nf->dists_count );
 
@@ -542,10 +541,10 @@ int main( int argc, char **argv )
 				// Draw the bins
 				for ( int bin = 0; bin < freqs; bin++ )
 				{
-					float x0        = bin / ( float )freqs * ( float )screenx;
-					float x1        = ( bin + 1 ) / ( float )freqs * ( float )screenx;
-					float amp       = nf->outbins[ bin ] * 250.0;
-					float note      = ( float )bin / freqbins;
+					float x0 = bin / (float)freqs * (float)screenx;
+					float x1 = ( bin + 1 ) / (float)freqs * (float)screenx;
+					float amp = nf->outbins[ bin ] * 250.0;
+					float note = (float)bin / freqbins;
 					CNFGDialogColor = CCtoHEX( note, 1.0, 1.0 );
 					CNFGDrawBox( x0, 0, x1, amp );
 				}
@@ -606,7 +605,7 @@ int main( int argc, char **argv )
 			printf( "FPS: %d\n", frames );
 #endif
 			lastfps = frames;
-			frames  = 0;
+			frames = 0;
 			LastFPSTime += 1;
 		}
 
@@ -615,7 +614,7 @@ int main( int argc, char **argv )
 			SecToWait = cpu_autolimit_interval - ( ThisTime - LastFrameTime );
 			LastFrameTime += cpu_autolimit_interval;
 			if ( SecToWait < -.1 ) LastFrameTime = ThisTime - .1;
-			if ( SecToWait > 0 ) OGUSleep( ( int )( SecToWait * 1000000 ) );
+			if ( SecToWait > 0 ) OGUSleep( (int)( SecToWait * 1000000 ) );
 		}
 
 		if ( !is_suspended ) SetEnvValues( 0 );
