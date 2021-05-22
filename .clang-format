@@ -15,7 +15,8 @@ MaxEmptyLinesToKeep: 2
 PointerAlignment: Right
 SpaceInEmptyParentheses: 'false'
 SpacesInAngles: 'true'
-SpacesInCStyleCastParentheses: 'true'
+# this is just atrocious 
+#SpacesInCStyleCastParentheses: 'true'
 SpacesInContainerLiterals: 'true'
 SpacesInParentheses: 'true'
 SpacesInSquareBrackets: 'true'
@@ -26,9 +27,15 @@ IndentCaseLabels: 'true'
 
 # Additions by Sam Ellicott
 ColumnLimit: 100
-AlignConsecutiveAssignments: true 
-AlignConsecutiveMacros: true 
-AlignTrailingComments: true
+# From general dislike from Charles and Cai, I am turning these off
+#AlignConsecutiveAssignments: true 
+#AlignConsecutiveMacros: true 
+#AlignTrailingComments: true
+#AlignOperands: AlignAfterOperator
+# Turn off alignment
+AlignConsecutiveAssignments: false
+AlignConsecutiveMacros: false
+AlignTrailingComments: false
 AlignEscapedNewlines: Left
 AlignOperands: AlignAfterOperator
 AllowShortBlocksOnASingleLine: Always
