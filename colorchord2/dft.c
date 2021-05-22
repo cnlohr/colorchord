@@ -10,24 +10,25 @@
 
 #ifndef CCEMBEDDED
 
-void DoDFT( float * outbins, float * frequencies, int bins, float * databuffer, int place_in_data_buffer, int size_of_data_buffer, float q )
+void DoDFT( float *outbins, float *frequencies, int bins, float *databuffer,
+	int place_in_data_buffer, int size_of_data_buffer, float q )
 {
 	int i, j;
-	for( i = 0; i < bins; i++ )
+	for ( i = 0; i < bins; i++ )
 	{
-		float freq = frequencies[i];
+		float freq = frequencies[ i ];
 		float phi = 0;
 		int sampleplace = place_in_data_buffer;
-		float advance = 3.14159*2.0/freq;
+		float advance = 3.14159 * 2.0 / freq;
 
 		float binqtys = 0;
 		float binqtyc = 0;
 
-		for( j = 0; j <= freq * q; j++ )
+		for ( j = 0; j <= freq * q; j++ )
 		{
-			float sample = databuffer[sampleplace];
-			sampleplace = (sampleplace-1+size_of_data_buffer)%size_of_data_buffer;
-//printf( "%d\n", sampleplace );
+			float sample = databuffer[ sampleplace ];
+			sampleplace = ( sampleplace - 1 + size_of_data_buffer ) % size_of_data_buffer;
+			// printf( "%d\n", sampleplace );
 			float sv = sin( phi ) * sample;
 			float cv = cos( phi ) * sample;
 
@@ -38,36 +39,37 @@ void DoDFT( float * outbins, float * frequencies, int bins, float * databuffer, 
 		}
 
 		float amp = sqrtf( binqtys * binqtys + binqtyc * binqtyc );
-		outbins[i] = amp / freq / q;
+		outbins[ i ] = amp / freq / q;
 	}
 }
 
-void DoDFTQuick( float * outbins, float * frequencies, int bins, const float * databuffer, int place_in_data_buffer, int size_of_data_buffer, float q, float speedup )
+void DoDFTQuick( float *outbins, float *frequencies, int bins, const float *databuffer,
+	int place_in_data_buffer, int size_of_data_buffer, float q, float speedup )
 {
 	int i, j;
 
-	for( i = 0; i < bins; i++ )
+	for ( i = 0; i < bins; i++ )
 	{
 		int flirts = 0;
 
-		float freq = frequencies[i];
+		float freq = frequencies[ i ];
 		float phi = 0;
-		int ftq = freq * q; 
+		int ftq = freq * q;
 		int sampleplace = place_in_data_buffer;
-		float advance = 3.14159*2.0/freq;
+		float advance = 3.14159 * 2.0 / freq;
 
 		float binqtys = 0;
 		float binqtyc = 0;
 
 		int skip = floor( ftq / speedup );
-		if( skip == 0 ) skip = 1;
+		if ( skip == 0 ) skip = 1;
 		advance *= skip;
 
-		for( j = 0; j <= ftq; j += skip )
+		for ( j = 0; j <= ftq; j += skip )
 		{
-			float sample = databuffer[sampleplace];
-			sampleplace = (sampleplace-skip+size_of_data_buffer)%size_of_data_buffer;
-//printf( "%d\n", sampleplace );
+			float sample = databuffer[ sampleplace ];
+			sampleplace = ( sampleplace - skip + size_of_data_buffer ) % size_of_data_buffer;
+			// printf( "%d\n", sampleplace );
 			float sv = sinf( phi ) * sample;
 			float cv = cosf( phi ) * sample;
 
@@ -79,25 +81,24 @@ void DoDFTQuick( float * outbins, float * frequencies, int bins, const float * d
 		}
 
 		float amp = sqrtf( binqtys * binqtys + binqtyc * binqtyc );
-		outbins[i] = amp / freq / q * skip;
+		outbins[ i ] = amp / freq / q * skip;
 	}
 }
-
 
 
 ////////////////////////////DFT Progressive is for embedded systems, primarily.
 
 
-static float * gbinqtys;
-static float * gbinqtyc;
-static float * phis;
-static float * gfrequencies;
-static float * lastbins;
-static float * advances;
-static float * goutbins;
-static int     gbins;
-static float   gq;
-static float   gspeedup;
+static float *gbinqtys;
+static float *gbinqtyc;
+static float *phis;
+static float *gfrequencies;
+static float *lastbins;
+static float *advances;
+static float *goutbins;
+static int gbins;
+static float gq;
+static float gspeedup;
 
 #define PROGIIR .005
 
@@ -105,53 +106,53 @@ void HandleProgressive( float sample )
 {
 	int i;
 
-	for( i = 0; i < gbins; i++ )
+	for ( i = 0; i < gbins; i++ )
 	{
-		float thiss = sinf( phis[i] ) * sample;
-		float thisc = cosf( phis[i] ) * sample;
+		float thiss = sinf( phis[ i ] ) * sample;
+		float thisc = cosf( phis[ i ] ) * sample;
 
-		float s = gbinqtys[i] = gbinqtys[i] * (1.-PROGIIR) + thiss * PROGIIR;
-		float c = gbinqtyc[i] = gbinqtyc[i] * (1.-PROGIIR) + thisc * PROGIIR;
+		float s = gbinqtys[ i ] = gbinqtys[ i ] * ( 1. - PROGIIR ) + thiss * PROGIIR;
+		float c = gbinqtyc[ i ] = gbinqtyc[ i ] * ( 1. - PROGIIR ) + thisc * PROGIIR;
 
-		phis[i] += advances[i];
-		if( phis[i] > 6.283 ) phis[i]-=6.283;
+		phis[ i ] += advances[ i ];
+		if ( phis[ i ] > 6.283 ) phis[ i ] -= 6.283;
 
-		goutbins[i] = sqrtf( s * s + c * c );
+		goutbins[ i ] = sqrtf( s * s + c * c );
 	}
 }
 
 
-void DoDFTProgressive( float * outbins, float * frequencies, int bins, const float * databuffer, int place_in_data_buffer, int size_of_data_buffer, float q, float speedup )
+void DoDFTProgressive( float *outbins, float *frequencies, int bins, const float *databuffer,
+	int place_in_data_buffer, int size_of_data_buffer, float q, float speedup )
 {
 	int i;
 	static int last_place;
 
-	if( gbins != bins )
+	if ( gbins != bins )
 	{
-		if( gbinqtys ) free( gbinqtys );
-		if( gbinqtyc ) free( gbinqtyc );
-		if( phis ) free( phis );
-		if( lastbins ) free( lastbins );
-		if( advances ) free( advances );
+		if ( gbinqtys ) free( gbinqtys );
+		if ( gbinqtyc ) free( gbinqtyc );
+		if ( phis ) free( phis );
+		if ( lastbins ) free( lastbins );
+		if ( advances ) free( advances );
 
-		gbinqtys = malloc( sizeof(float)*bins );
-		gbinqtyc = malloc( sizeof(float)*bins );
-		phis = malloc(  sizeof(float)*bins );
-		lastbins = malloc(  sizeof(float)*bins );
-		advances = malloc(  sizeof(float)*bins );
+		gbinqtys = malloc( sizeof( float ) * bins );
+		gbinqtyc = malloc( sizeof( float ) * bins );
+		phis = malloc( sizeof( float ) * bins );
+		lastbins = malloc( sizeof( float ) * bins );
+		advances = malloc( sizeof( float ) * bins );
 
-		memset( gbinqtys, 0, sizeof(float)*bins );
-		memset( gbinqtyc, 0, sizeof(float)*bins );
-		memset( phis, 0, sizeof(float)*bins );
-		memset( lastbins, 0, sizeof(float)*bins );
-
+		memset( gbinqtys, 0, sizeof( float ) * bins );
+		memset( gbinqtyc, 0, sizeof( float ) * bins );
+		memset( phis, 0, sizeof( float ) * bins );
+		memset( lastbins, 0, sizeof( float ) * bins );
 	}
-	memcpy( outbins, lastbins, sizeof(float)*bins );
+	memcpy( outbins, lastbins, sizeof( float ) * bins );
 
-	for( i = 0; i < bins; i++ )
+	for ( i = 0; i < bins; i++ )
 	{
-		float freq = frequencies[i];
-		advances[i] = 3.14159*2.0/freq;
+		float freq = frequencies[ i ];
+		advances[ i ] = 3.14159 * 2.0 / freq;
 	}
 
 	gbins = bins;
@@ -160,34 +161,26 @@ void DoDFTProgressive( float * outbins, float * frequencies, int bins, const flo
 	gspeedup = speedup;
 	gq = q;
 
-	place_in_data_buffer = (place_in_data_buffer+1)%size_of_data_buffer;
+	place_in_data_buffer = ( place_in_data_buffer + 1 ) % size_of_data_buffer;
 
 	int didrun = 0;
-	for( i = last_place; i != place_in_data_buffer; i = (i+1)%size_of_data_buffer )
+	for ( i = last_place; i != place_in_data_buffer; i = ( i + 1 ) % size_of_data_buffer )
 	{
-		float fin = ((float)((int)(databuffer[i] * 127))) / 127.0;  //simulate 8-bit input (it looks FINE!)
+		float fin = ( (float)( (int)( databuffer[ i ] * 127 ) ) ) /
+					127.0; // simulate 8-bit input (it looks FINE!)
 		HandleProgressive( fin );
 		didrun = 1;
 	}
 	last_place = place_in_data_buffer;
 
-	if( didrun )
-	{
-		memcpy( lastbins, outbins, sizeof(float)*bins );
-	}
+	if ( didrun ) { memcpy( lastbins, outbins, sizeof( float ) * bins ); }
 
-/*	for( i = 0; i < bins; i++ )
-	{
-		printf( "%0.2f ", outbins[i]*100 );
-	}
-	printf( "\n" );*/
-
+	/*	for( i = 0; i < bins; i++ )
+	    {
+	        printf( "%0.2f ", outbins[i]*100 );
+	    }
+	    printf( "\n" );*/
 }
-
-
-
-
-
 
 
 /////////////////////////////INTEGER DFT
@@ -223,109 +216,109 @@ void HandleProgressiveInt( int8_t sample1, int8_t sample2 )
 
 	//Estimated 78 minimum instructions... So for two pairs each... just over 4ksps, theoretical.
 	//Running overall at ~2kHz.  With GCC: YUCK! 102 cycles!!!
-	for( i = 0; i < gbins; i++ )            //Loop, fixed size = 3 + 2 cycles                       N/A
+	for( i = 0; i < gbins; i++ )   //Loop, fixed size = 3 + 2 cycles                       N/A
 	{
 		//12 cycles MIN
-		adv = *(ds++); //Read, indirect from RAM (and increment)  2+2 cycles			4
-		ipl = *(ds++); //Read, indirect from RAM (and increment)  2+2 cycles			4
+		adv = *(ds++);             //Read, indirect from RAM (and increment)  2+2 cycles           4
+		ipl = *(ds++);             //Read, indirect from RAM (and increment)  2+2 cycles           4
 
 		//13 cycles MIN
-		ipl += adv;   				         //Advance, 16bit += 16bit, 1 + 1 cycles                2
-		localipl = (ipl>>8)<<1;				//Select upper 8 bits  1 cycles							1   *** AS/IS: 4
+		ipl += adv;                //Advance, 16bit += 16bit,         1 + 1 cycles                 2
+		localipl = (ipl>>8)<<1;    //Select upper 8 bits,                 1 cycle     1 *** AS/IS: 4
 
 		st = &sintable[localipl];
-		s1 = *(st++);						//Read s1 component out of table. 2+2    cycles			2
-		c1 = *st;							//Read c1 component out of table. 2    cycles			2   *** AS/IS: 4
+		s1 = *(st++);              //Read s1 component out of table.    2+2 cycles                 2
+		c1 = *st;                  //Read c1 component out of table.      2 cycles    2 *** AS/IS: 4
 
-		ts = (s1 * sample1);				// 8 x 8 multiply signed + copy R1 out. zero MSB ts		2  ->Deferred
-		tc = (c1 * sample1);				// 8 x 8 multiply signed + copy R1 out. zero MSB tc   	2  ->Deferred
+		ts = (s1 * sample1);       // 8 x 8 multiply signed + copy R1 out. zero MSB ts  2 ->Deferred
+		tc = (c1 * sample1);       // 8 x 8 multiply signed + copy R1 out. zero MSB tc  2 ->Deferred
 
 
 		//15 cycles MIN
-		ipl += adv;   				        //Advance, 16bit += 16bit, 1 + 1 cycles   				2
-		localipl = (ipl>>8)<<1;				//Select upper 8 bits  1 cycles							1  *** AS/IS: 4
+		ipl += adv;                //Advance, 16bit += 16bit,         1 + 1 cycles                 2
+		localipl = (ipl>>8)<<1;    //Select upper 8 bits                  1 cycles    1 *** AS/IS: 4
 
-			// need to load Z with 'sintable' and add localipl										2
+		// need to load Z with 'sintable' and add localipl                                         2
 		st = &sintable[localipl];
-		s1 = *(st++);						//Read s1 component out of table. 2   cycles			2	
-		c1 = *st;							//Read c1 component out of table. 2    cycles			2 *** AS/IS: 4
+		s1 = *(st++);              //Read s1 component out of table.      2 cycles                 2
+		c1 = *st;                  //Read c1 component out of table.      2 cycles    2 *** AS/IS: 4
 
-		ts += (s1 * sample2);				// 8 x 8 multiply signed + add R1 out.					3  ->Deferred
-		tc += (c1 * sample2);				// 8 x 8 multiply signed + add R1 out.					3  ->Deferred
+		ts += ( s1 * sample2 );    // 8 x 8 multiply signed + add R1 out.               3 ->Deferred
+		tc += ( c1 * sample2 );    // 8 x 8 multiply signed + add R1 out.               3 ->Deferred
 
 
-		//Add TS and TC to the datspace stuff. (24 instructions)
-		tmp1 = (*ds);			//Read out, sin component.								4  Accurate.
-		tmp1 -= tmp1>>7;					//Subtract from the MSB (with carry)					2 -> 6  AS/IS: 7+7 = 14
-		tmp1 += ts>>7;						//Add MSBs with carry									2 -> 6  AS/IS: 6
+		// Add TS and TC to the datspace stuff. (24 instructions)
+		tmp1 = ( *ds );            // Read out, sin component.                          4   Accurate
+		tmp1 -= tmp1 >> 7;         // Subtract from the MSB (with carry)     2 -> 6  AS/IS: 7+7 = 14
+		tmp1 += ts >> 7;           // Add MSBs with carry                    2 -> 6  AS/IS:        6
 
-		*(ds++) = tmp1;			//Store values back										4
+		*( ds++ ) = tmp1;          // Store values back                                            4
 
-		tmp1 = *ds;			//Read out, sin component.								4
-		tmp1 -= tmp1>>7;					//Subtract from the MSB (with carry)					2 -> 6 AS/IS: 7+7 = 14
-		tmp1 += tc>>7;						//Add MSBs with carry									2 -> 6 AS/IS: 6
+		tmp1 = *ds;                // Read out, sin component.                                     4
+		tmp1 -= tmp1 >> 7;         // Subtract from the MSB (with carry)     2 -> 6  AS/IS: 7+7 = 14
+		tmp1 += tc >> 7;           // Add MSBs with carry                    2 -> 6  AS/IS:        6
 
-		*ds++ = tmp1;			//Store values back										4
+		*ds++ = tmp1;              // Store values back                                            4
 
-		*(ds-3) = ipl;			//Store values back										4 AS/IS: 6
+		*( ds - 3 ) = ipl;         // Store values back                                   4 AS/IS: 6
 
 		//AS-IS: 8 loop overhead.
 	}
 }
 
-void DoDFTProgressiveInteger( float * outbins, float * frequencies, int bins, const float * databuffer, int place_in_data_buffer, int size_of_data_buffer, float q, float speedup )
+void DoDFTProgressiveInteger( float *outbins, float *frequencies, int bins, const float *databuffer,
+	int place_in_data_buffer, int size_of_data_buffer, float q, float speedup )
 {
 	int i;
 	static int last_place;
 
-	if( !donefirstrun )
+	if ( !donefirstrun )
 	{
 		donefirstrun = 1;
-		for( i = 0; i < 256; i++ )
+		for ( i = 0; i < 256; i++ )
 		{
-			sintable[i*2+0] = (int8_t)((sinf( i / 256.0 * 6.283 ) * 127.0));
-			sintable[i*2+1] = (int8_t)((cosf( i / 256.0 * 6.283 ) * 127.0));
+			sintable[ i * 2 + 0 ] = ( int8_t )( ( sinf( i / 256.0 * 6.283 ) * 127.0 ) );
+			sintable[ i * 2 + 1 ] = ( int8_t )( ( cosf( i / 256.0 * 6.283 ) * 127.0 ) );
 		}
 	}
 
-	if( gbins != bins )
+	if ( gbins != bins )
 	{
 		gbins = bins;
-		if( datspace ) free( datspace );
+		if ( datspace ) free( datspace );
 		datspace = malloc( bins * 2 * 4 );
 	}
 
-	
-	for( i = 0; i < bins; i++ )
+
+	for ( i = 0; i < bins; i++ )
 	{
-		float freq = frequencies[i];
-		datspace[i*4] = 65536.0/freq;
+		float freq = frequencies[ i ];
+		datspace[ i * 4 ] = 65536.0 / freq;
 	}
 
 
-	for( i = last_place; i != ( place_in_data_buffer&0xffffe ); i = (i+2)%size_of_data_buffer )
+	for ( i = last_place; i != ( place_in_data_buffer & 0xffffe );
+		  i = ( i + 2 ) % size_of_data_buffer )
 	{
-		int8_t ifr1 = (int8_t)( ((databuffer[i+0]) ) * 127 );
-		int8_t ifr2 = (int8_t)( ((databuffer[i+1]) ) * 127 );
-//		printf( "%d %d\n", i, place_in_data_buffer&0xffffe );
+		int8_t ifr1 = ( int8_t )( ( ( databuffer[ i + 0 ] ) ) * 127 );
+		int8_t ifr2 = ( int8_t )( ( ( databuffer[ i + 1 ] ) ) * 127 );
+		//		printf( "%d %d\n", i, place_in_data_buffer&0xffffe );
 		HandleProgressiveInt( ifr1, ifr2 );
 	}
 
-	last_place = place_in_data_buffer&0xfffe;
+	last_place = place_in_data_buffer & 0xfffe;
 
-	//Extract bins.
-	for( i = 0; i < bins; i++ )
+	// Extract bins.
+	for ( i = 0; i < bins; i++ )
 	{
-		int16_t isps = datspace[i*4+2];
-		int16_t ispc = datspace[i*4+3];
-		int16_t mux = ( (isps/256) * (isps/256)) + ((ispc/256) * (ispc/256));
-//		printf( "%d (%d %d)\n", mux, isps, ispc );
-		outbins[i] = sqrt( mux )/100.0;
+		int16_t isps = datspace[ i * 4 + 2 ];
+		int16_t ispc = datspace[ i * 4 + 3 ];
+		int16_t mux = ( ( isps / 256 ) * ( isps / 256 ) ) + ( ( ispc / 256 ) * ( ispc / 256 ) );
+		//		printf( "%d (%d %d)\n", mux, isps, ispc );
+		outbins[ i ] = sqrt( mux ) / 100.0;
 	}
-//	printf( "\n");
+	//	printf( "\n");
 }
-
-
 
 
 #endif

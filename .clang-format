@@ -1,3 +1,4 @@
+# Basic style rules by Charles Lohr
 BasedOnStyle: Microsoft
 AccessModifierOffset: -4
 AlwaysBreakTemplateDeclarations: 'Yes'
@@ -14,11 +15,30 @@ MaxEmptyLinesToKeep: 2
 PointerAlignment: Right
 SpaceInEmptyParentheses: 'false'
 SpacesInAngles: 'true'
-SpacesInCStyleCastParentheses: 'true'
+# this is just atrocious 
+#SpacesInCStyleCastParentheses: 'true'
 SpacesInContainerLiterals: 'true'
 SpacesInParentheses: 'true'
 SpacesInSquareBrackets: 'true'
 TabWidth: '4'
-UseTab: Always
+UseTab: AlignWithSpaces 
 FixNamespaceComments: 'true'
 IndentCaseLabels: 'true'
+
+# Additions by Sam Ellicott
+ColumnLimit: 100
+# From general dislike from Charles and Cai, I am turning these off
+#AlignConsecutiveAssignments: true 
+#AlignConsecutiveMacros: true 
+#AlignTrailingComments: true
+#AlignOperands: AlignAfterOperator
+# Turn off alignment
+AlignConsecutiveAssignments: false
+AlignConsecutiveMacros: false
+AlignTrailingComments: false
+AlignEscapedNewlines: Left
+AlignOperands: AlignAfterOperator
+AllowShortBlocksOnASingleLine: Always
+AllowShortIfStatementsOnASingleLine: WithoutElse 
+AllowShortCaseLabelsOnASingleLine: true
+AllowShortLoopsOnASingleLine: true

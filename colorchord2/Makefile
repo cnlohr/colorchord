@@ -8,7 +8,7 @@ WINGCCFLAGS:= -g -DICACHE_FLASH_ATTR= -I../embeddedcommon -Icnfa -Irawdraw -I. -
 WINLDFLAGS:=-lwinmm -lgdi32 -lws2_32  -lsetupapi
 
 #CFLAGS:=-g -O1 -flto -Wall -ffast-math -I../embeddedcommon -I.  -Icnfa -Irawdraw -DICACHE_FLASH_ATTR=
-CFLAGS:=-g -O1 -Wall -ffast-math -I../embeddedcommon -I.  -Icnfa -Irawdraw -DICACHE_FLASH_ATTR=
+CFLAGS:=-g -O2 -Wall -ffast-math -I../embeddedcommon -I.  -Icnfa -Irawdraw -DICACHE_FLASH_ATTR=
 
 ifneq ($(OS),Windows_NT)
 ifneq ($(shell uname),Darwin)
@@ -23,12 +23,16 @@ EXTRALIBS+=-ludev
 EXTRALIBS+=$(shell pkg-config --libs alsa)
 EXTRALIBS+=$(shell pkg-config --libs libpulse)
 EXTRALIBS+=$(shell pkg-config --libs libpulse-simple)
+OPENGLLIBS=$(shell pkg-config --cflags --libs glut)
 endif
 
 OBJS:=main.o  dft.o decompose.o filter.o color.o notefinder.o util.o outdrivers.o $(OUTS) parameters.o chash.o hook.o ../embeddedcommon/DFT32.o configs.o
 
 colorchord : $(OBJS)
 	$(CC) -o $@ $^ $(EXTRALIBS) $(RAWDRAWLIBS)
+
+colorchord-opengl : $(OBJS)
+	$(CC) -o $@ $^ -DCNFGOGL $(EXTRALIBS) $(OPENGLLIBS) $(RAWDRAWLIBS)
 
 colorchord.exe : main.c  dft.c decompose.c filter.c color.c notefinder.c util.c outdrivers.c parameters.c chash.c OutputVoronoi.c OutputProminent.c DisplayArray.c OutputLinear.c DisplayPie.c DisplayNetwork.c hook.c RecorderPlugin.c ../embeddedcommon/DFT32.c OutputCells.c configs.c hidapi.c DisplayHIDAPI.c
 	$(WINGCC) $(WINGCCFLAGS) -o $@ $^ $(WINLDFLAGS)
