@@ -211,7 +211,7 @@ static void DPOUpdate(void * id, struct NoteFinder*nf)
 			}
 		}
 
-		int r = sendto( d->socket, buffer, i, MSG_NOSIGNAL,(const struct sockaddr *) &d->servaddr, sizeof( d->servaddr ) );
+		int r = sendto( d->socket, (const char*) buffer, i, MSG_NOSIGNAL,(const struct sockaddr *) &d->servaddr, sizeof( d->servaddr ) );
 		if( r < 0 )
 		{
 			fprintf( stderr, "Send fault.\n" );

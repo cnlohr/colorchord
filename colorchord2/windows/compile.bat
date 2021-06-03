@@ -3,7 +3,7 @@ echo Unzip http://download.savannah.gnu.org/releases/tinycc/tcc-0.9.27-win64-bin
 echo Also, if compiling with OpenGL, download http://download.savannah.nongnu.org/releases/tinycc/winapi-full-for-0.9.27.zip and overwrite the include, etc. folders in C:\tcc.
 echo Don't worry.  It includes the i386 compiler in the win64 build.
 
-set CFLAGS= -v -DHIDAPI -DWINDOWS -DWIN32 -DTCC -DRUNTIME_SYMNUM -O2 -Itccinc -DINCLUDING_EMBEDDED -rdynamic -g -DCNFGOGL
+set CFLAGS= -v -DHIDAPI -DWINDOWS -DWIN32 -DTCC -DRUNTIME_SYMNUM -O2 -Itccinc -DINCLUDING_EMBEDDED -rdynamic -g 
 set INCLUDES=-I../rawdraw -I../cnfa -I.. -I. -I../../embeddedcommon 
 set LDFLAGS=-lkernel32 -lole32 -lgdi32 -luser32 -lsetupapi -ldbghelp -lws2_32 -lAvrt -lopengl32
 

@@ -2,8 +2,6 @@
 
 #if defined( WINDOWS ) || defined( USE_WINDOWS ) || defined( WIN32 ) || defined( WIN64 ) || \
 	defined( _WIN32 ) || defined( _WIN64 )
-#include <windows.h>
-#include <winsock2.h>
 #ifndef strdup
 #define strdup _strdup
 #endif
