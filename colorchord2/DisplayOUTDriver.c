@@ -121,26 +121,6 @@ static void DPOUpdate(void * id, struct NoteFinder*nf)
 		}
 	}
 
-/*	float cw = ((float)screenx) / d->xn;
-	float ch = ((float)screeny) / d->yn;
-
-	for( i = 0; i < d->note_peaks; i++ )
-	{
-		struct LINote * l = &d->notes[i];
-		int j;
-		float sat = nf->note_amplitudes_out[i] * d->satamp;
-		if( sat > 1 ) sat = 1;
-		CNFGDialogColor = CCtoHEX( nf->note_positions[i] / nf->freqbins, 1.0, sat );
-		for( j = 0; j < l->nrleds; j++ )
-		{
-			int id = l->ledids[j];
-			float x = (id % d->xn) * cw;
-			float y = (id / d->xn) * ch;
-
-			CNFGDrawBox( x, y, x+cw, y+ch );
-		}
-	}*/
-
 	int led = 0;
 	for( i = 0; i < d->note_peaks; i++ )
 	{
