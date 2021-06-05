@@ -118,8 +118,11 @@ void HandleDestroy()
 	CNFAClose( sd );
 }
 #else
-
 #define ESCAPE_KEY 65307
+// Stub function for Linux
+void HandleDestroy()
+{
+}
 
 #endif
 
@@ -349,8 +352,9 @@ int main( int argc, char **argv )
 	double SecToWait;
 	double LastFPSTime = OGGetAbsoluteTime();
 	double LastFrameTime = OGGetAbsoluteTime();
-	CNFGBGColor = 0x800000;
-	CNFGDialogColor = 0x444444;
+	CNFGBGColor = 0x800000FF;
+	//CNFGColor( 0x444444FF );
+	CNFGDialogColor = 0x444444FF;
 
 	// Generate the window title
 	char title[ 1024 ];
@@ -477,10 +481,13 @@ int main( int argc, char **argv )
 					const float x1 = ( bin + 1 ) / (float)freqbins * (float)screenx;
 					const float amp = nf->folded_bins[ bin ] * 250.0;
 					const float note = (float)( bin + 0.5 ) / freqbins;
+					// CNFGColor( CCtoHEX( note, 1.0, 1.0 ) );
 					CNFGDialogColor = CCtoHEX( note, 1.0, 1.0 );
 					CNFGDrawBox( x0, 400 - amp, x1, 400 );
 				}
-				CNFGDialogColor = 0xf0f000;
+				CNFGDialogColor = 0xf0f000FF;
+				// CNFGColor(0xf0f000FF);
+
 
 				// Draw the note peaks
 				for ( int peak = 0; peak < note_peaks; peak++ )
@@ -488,6 +495,7 @@ int main( int argc, char **argv )
 					if ( nf->note_amplitudes_out[ peak ] < 0 ) continue;
 					float note = (float)nf->note_positions[ peak ] / freqbins;
 					CNFGDialogColor = CCtoHEX( note, 1.0, 1.0 );
+					//CNFGColor( CCtoHEX( note, 1.0, 1.0 ) );
 					const int x1 = ( (float)peak / note_peaks ) * screenx;
 					const int x2 = ( (float)( peak + 1 ) / note_peaks ) * screenx;
 					const int y1 = 480 - nf->note_amplitudes_out[ peak ] * 100;
@@ -547,9 +555,11 @@ int main( int argc, char **argv )
 					float amp = nf->outbins[ bin ] * 250.0;
 					float note = (float)bin / freqbins;
 					CNFGDialogColor = CCtoHEX( note, 1.0, 1.0 );
+					//CNFGColor( CCtoHEX( note, 1.0, 1.0 ) );
 					CNFGDrawBox( x0, 0, x1, amp );
 				}
-				CNFGDialogColor = 0x0f0f0f;
+				CNFGDialogColor = 0x0f0f0fff;
+				//CNFGColor(0xf0f000FF);
 
 				char stdebug[ 1024 ];
 				sprintf( stdebug, "DFT:%8.2fms\nFLT:%8.2f\nDEC:%8.2f\nFNL:%8.2f\nDPY:%8.2f",
