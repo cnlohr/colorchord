@@ -67,6 +67,15 @@ int genloglines;
 int genlinelen   = 0;
 int firstnewline = -1;
 
+
+// Define application colors RGBA format
+#define BACKGROUND_COLOR 0x000080ff
+#define LINE_COLOR 0xffffffff
+#define TEXT_COLOR 0xffffffff
+// Text colors for the debug options at the bottom of the screen
+#define ENABLED_COLOR 0xffffffff
+#define DISABLED_COLOR 0x800000ff
+
 void example_log_function( int readSize, char *buf )
 {
 	static og_mutex_t *mt;
@@ -352,9 +361,7 @@ int main( int argc, char **argv )
 	double SecToWait;
 	double LastFPSTime = OGGetAbsoluteTime();
 	double LastFrameTime = OGGetAbsoluteTime();
-	CNFGBGColor = 0x800000FF;
-	//CNFGColor( 0x444444FF );
-	CNFGDialogColor = 0x444444FF;
+	CNFGBGColor = BACKGROUND_COLOR;
 
 	// Generate the window title
 	char title[ 1024 ];
@@ -365,7 +372,6 @@ int main( int argc, char **argv )
 		strcat( title, " " );
 	}
 	if ( !headless ) CNFGSetup( title, set_screenx, set_screeny );
-
 
 	char *OutDriverNames = strdup( GetParameterS( "outdrivers", "null" ) );
 	char *ThisDriver = OutDriverNames;
@@ -404,7 +410,7 @@ int main( int argc, char **argv )
 
 		if ( sd ) break;
 
-		CNFGColor( 0xffffff );
+		CNFGColor( LINE_COLOR );
 		CNFGPenX = 10;
 		CNFGPenY = 100;
 		CNFGHandleInput();
@@ -434,7 +440,7 @@ int main( int argc, char **argv )
 		{
 			CNFGHandleInput();
 			CNFGClearFrame();
-			CNFGColor( 0xFFFFFF );
+			CNFGColor( LINE_COLOR );
 			CNFGGetDimensions( &screenx, &screeny );
 		}
 
@@ -464,6 +470,7 @@ int main( int argc, char **argv )
 			// Do a bunch of debugging.
 			if ( show_debug_basic && !is_suspended )
 			{
+				CNFGColor( TEXT_COLOR );
 				for ( int i = 0; i < nf->dists_count; i++ )
 				{
 					// Move over 0.5 for visual purposes.  The means is correct.
@@ -472,8 +479,8 @@ int main( int argc, char **argv )
 					sprintf( stt, "%f\n%f\n", nf->dists[ i ].mean, nf->dists[ i ].amp );
 					CNFGDrawText( stt, 2 );
 				}
-				CNFGColor( 0xffffff );
 
+				CNFGColor( LINE_COLOR );
 				// Draw the folded bins
 				for ( int bin = 0; bin < freqbins; bin++ )
 				{
@@ -481,13 +488,9 @@ int main( int argc, char **argv )
 					const float x1 = ( bin + 1 ) / (float)freqbins * (float)screenx;
 					const float amp = nf->folded_bins[ bin ] * 250.0;
 					const float note = (float)( bin + 0.5 ) / freqbins;
-					// CNFGColor( CCtoHEX( note, 1.0, 1.0 ) );
 					CNFGDialogColor = CCtoHEX( note, 1.0, 1.0 );
 					CNFGDrawBox( x0, 400 - amp, x1, 400 );
 				}
-				CNFGDialogColor = 0xf0f000FF;
-				// CNFGColor(0xf0f000FF);
-
 
 				// Draw the note peaks
 				for ( int peak = 0; peak < note_peaks; peak++ )
@@ -495,20 +498,23 @@ int main( int argc, char **argv )
 					if ( nf->note_amplitudes_out[ peak ] < 0 ) continue;
 					float note = (float)nf->note_positions[ peak ] / freqbins;
 					CNFGDialogColor = CCtoHEX( note, 1.0, 1.0 );
-					//CNFGColor( CCtoHEX( note, 1.0, 1.0 ) );
 					const int x1 = ( (float)peak / note_peaks ) * screenx;
 					const int x2 = ( (float)( peak + 1 ) / note_peaks ) * screenx;
 					const int y1 = 480 - nf->note_amplitudes_out[ peak ] * 100;
 					const int y2 = 480;
+					CNFGColor( LINE_COLOR );
 					CNFGDrawBox( x1, y1, x2, y2 );
 
 					CNFGPenX = ( (float)( peak + .4 ) / note_peaks ) * screenx;
 					CNFGPenY = screeny - 30;
 					sprintf( stt, "%d\n%0.0f", nf->enduring_note_id[ peak ],
 						nf->note_amplitudes2[ peak ] * 1000.0 );
+
+					CNFGColor( TEXT_COLOR );
 					CNFGDrawText( stt, 2 );
 				}
 
+				CNFGColor( LINE_COLOR );
 				// Let's draw the o-scope.
 				int thissoundhead = soundhead;
 				thissoundhead = ( thissoundhead - 1 + SOUNDCBSIZE ) % SOUNDCBSIZE;
@@ -530,8 +536,7 @@ int main( int argc, char **argv )
 			{
 				// Draw the histogram
 				float lasthistval;
-				CNFGColor( 0xffffff );
-
+				CNFGColor( LINE_COLOR );
 				for ( int x_val = -1; x_val < screenx; x_val++ )
 				{
 					// Calculate the value of the histogram at the current screen position
@@ -545,8 +550,7 @@ int main( int argc, char **argv )
 					lasthistval = thishistval;
 				}
 
-				CNFGColor( 0xffffff );
-
+				CNFGColor( LINE_COLOR );
 				// Draw the bins
 				for ( int bin = 0; bin < freqs; bin++ )
 				{
@@ -555,12 +559,10 @@ int main( int argc, char **argv )
 					float amp = nf->outbins[ bin ] * 250.0;
 					float note = (float)bin / freqbins;
 					CNFGDialogColor = CCtoHEX( note, 1.0, 1.0 );
-					//CNFGColor( CCtoHEX( note, 1.0, 1.0 ) );
 					CNFGDrawBox( x0, 0, x1, amp );
 				}
-				CNFGDialogColor = 0x0f0f0fff;
-				//CNFGColor(0xf0f000FF);
 
+				CNFGColor( TEXT_COLOR );
 				char stdebug[ 1024 ];
 				sprintf( stdebug, "DFT:%8.2fms\nFLT:%8.2f\nDEC:%8.2f\nFNL:%8.2f\nDPY:%8.2f",
 					( nf->DFTTime - nf->StartTime ) * 1000, ( nf->FilterTime - nf->DFTTime ) * 1000,
@@ -574,30 +576,30 @@ int main( int argc, char **argv )
 
 			if ( !is_suspended )
 			{
-				CNFGColor( show_debug ? 0xffffff : 0x000000 );
+				CNFGColor( show_debug ? ENABLED_COLOR : DISABLED_COLOR );
 				CNFGPenX = 0;
 				CNFGPenY = screeny - 10;
 				CNFGDrawText( "Extra Debug (D)", 2 );
 
-				CNFGColor( show_debug_basic ? 0xffffff : 0x000000 );
+				CNFGColor( show_debug_basic ? ENABLED_COLOR : DISABLED_COLOR );
 				CNFGPenX = 120;
 				CNFGPenY = screeny - 10;
 				CNFGDrawText( "Basic Debug (E)", 2 );
 
-				CNFGColor( show_debug_basic ? 0xffffff : 0x000000 );
+				CNFGColor( show_debug_basic ? ENABLED_COLOR : DISABLED_COLOR );
 				CNFGPenX = 240;
 				CNFGPenY = screeny - 10;
 				sprintf( stt, "[9] Key: %d [0] (%3.1f) [-]", gKey, nf->base_hz );
 				CNFGDrawText( stt, 2 );
 
-				CNFGColor( 0xffffff );
+				CNFGColor( TEXT_COLOR );
 				CNFGPenX = 440;
 				CNFGPenY = screeny - 10;
 				sprintf( stt, "FPS: %d", lastfps );
 				CNFGDrawText( stt, 2 );
 
 #ifdef ANDROID
-				CNFGColor( 0xffffff );
+				CNFGColor( TEXT_COLOR );
 				CNFGPenX = 10;
 				CNFGPenY = 600;
 				CNFGDrawText( genlog, 3 );
