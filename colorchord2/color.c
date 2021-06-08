@@ -105,5 +105,6 @@ uint32_t HSVtoHEX( float hue, float sat, float value )
 	if( ob < 0 ) ob = 0;
 	if( ob > 255 ) ob = 255;
 
-	return (ob<<16) | (og<<8) | ora;
+    // Pack bits in RGBA format
+    return (ora << 24) | (og << 16) | (ob << 8) | 0xFF;
 }
