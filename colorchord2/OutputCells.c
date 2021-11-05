@@ -187,9 +187,9 @@ static void LEDUpdate(void * id, struct NoteFinder*nf)
 		if( sendsat > 1 ) sendsat = 1;
 		int r = CCtoHEX( binpos[ia], 1.0, pow( sendsat, led->outgamma ) );
 
-		OutLEDs[i*3+0] = r & 0xff;
-		OutLEDs[i*3+1] = (r>>8) & 0xff;
-		OutLEDs[i*3+2] = (r>>16) & 0xff;
+		OutLEDs[i*3+0] = (r>>24) & 0xff;
+		OutLEDs[i*3+1] = (r>>16) & 0xff;
+		OutLEDs[i*3+2] = (r>>8) & 0xff;
 	}
 
 }

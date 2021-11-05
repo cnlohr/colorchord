@@ -65,7 +65,7 @@ static void DPRUpdate(void * id, struct NoteFinder*nf)
 			CNFGTackPoly( pts+3, 3 );
 
 
-			CNFGColor( 0x00000000 );
+			CNFGColor( 0x000000ff );
 			CNFGTackSegment( p1x, p1y, p2x, p2y);
 			CNFGTackSegment( p2x, p2y, p4x, p4y);
 			CNFGTackSegment( p3x, p3y, p1x, p1y);
@@ -114,7 +114,7 @@ static void DPRUpdate(void * id, struct NoteFinder*nf)
 			CNFGTackPoly( pts, 3 );
 			CNFGTackPoly( pts+3, 3 );
 
-			CNFGColor( 0x00000000 );
+			CNFGColor( 0x000000ff );
 			CNFGTackSegment( p1x, p1y, p2x, p2y);
 			CNFGTackSegment( p2x, p2y, p4x, p4y);
 			CNFGTackSegment( p3x, p3y, p1x, p1y);
@@ -124,7 +124,7 @@ static void DPRUpdate(void * id, struct NoteFinder*nf)
 
 
 
-	CNFGColor( 0xffffff );
+	CNFGColor( 0xffffffff );
 }
 
 static void DPRParams(void * id )

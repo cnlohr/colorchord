@@ -131,9 +131,9 @@ static void DPOUpdate(void * id, struct NoteFinder*nf)
 			color = CCtoHEX( note_color, 1.0, pow( sat, d->outgamma ) );
 		}
 
-		OutLEDs[led*3+0] = color & 0xff;
-		OutLEDs[led*3+1] = ( color >> 8 ) & 0xff;
-		OutLEDs[led*3+2] = ( color >> 16 ) & 0xff;
+		OutLEDs[led*3+0] = ( color >> 24 ) & 0xff;
+		OutLEDs[led*3+1] = ( color >> 16 ) & 0xff;
+		OutLEDs[led*3+2] = ( color >> 8 ) & 0xff;
 		led++;
 	}
 }
