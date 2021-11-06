@@ -43,18 +43,16 @@ static void LEDUpdate(void * id, struct NoteFinder*nf)
 		}
 	}
 
-
+	float sendsat = selected_amp;
+	if( sendsat > 1 ) sendsat = 1;
+	int r = CCtoHEX( selected_note, 1.0, sendsat );
 
 	//Advance the LEDs to this position when outputting the values.
 	for( i = 0; i < led->total_leds; i++ )	
 	{
-		float sendsat = selected_amp;
-		if( sendsat > 1 ) sendsat = 1;
-		int r = CCtoHEX( selected_note, 1.0, sendsat );
-
-		OutLEDs[i*3+0] = r & 0xff;
-		OutLEDs[i*3+1] = (r>>8) & 0xff;
-		OutLEDs[i*3+2] = (r>>16) & 0xff;
+		OutLEDs[i*3+0] = (r>>24) & 0xff;
+		OutLEDs[i*3+1] = (r>>16) & 0xff;
+		OutLEDs[i*3+2] = (r>>8) & 0xff;
 	}
 
 }

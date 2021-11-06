@@ -53,13 +53,13 @@ static void DPOUpdate(void * id, struct NoteFinder*nf)
 		pts[5].x = cw + cos(angB) * sizeA;
 		pts[5].y = ch + sin(angB) * sizeA;
 
-		CNFGColor(  OutLEDs[i*3+0] | (OutLEDs[i*3+1] <<8)|(OutLEDs[i*3+2] <<16) );
+		CNFGColor( ( OutLEDs[i*3+0] <<24) | (OutLEDs[i*3+1] <<16) | (OutLEDs[i*3+2] <<8) | 0xff );
 		CNFGTackPoly( pts, 3 );
 		CNFGTackPoly( pts+3, 3 );
 	}
 
 
-	CNFGColor( 0xffffff );
+	CNFGColor( 0xffffffff );
 }
 
 static void DPOParams(void * id )
