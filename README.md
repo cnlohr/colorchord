@@ -103,7 +103,7 @@ There are 3 options available for building on Windows, clang, or TCC, MSYS2.
 ### clang
 Start by [downloading](https://clang.llvm.org/) the clang compiler, and installing it.
 
-Edit the batch script at `colorchord1/windows/compile-clang.bat`:
+Edit the batch script at `colorchord2/windows/compile-clang.bat`:
 - Verify that the executable location is correct, on line 0 (`CC`).
 
 If you have the Windows SDK installed, you should not need to do any additional work.  
