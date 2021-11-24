@@ -516,18 +516,15 @@ int main( int argc, char **argv )
 
 				CNFGColor( LINE_COLOR );
 				// Let's draw the o-scope.
-				int thissoundhead = soundhead;
-				thissoundhead = ( thissoundhead - 1 + SOUNDCBSIZE ) % SOUNDCBSIZE;
-				int lasty = sound[ thissoundhead ] * 128 + 128;
-				thissoundhead = ( thissoundhead - 1 + SOUNDCBSIZE ) % SOUNDCBSIZE;
-				int thisy = sound[ thissoundhead ] * 128 + 128;
-				thissoundhead = ( thissoundhead - 1 + SOUNDCBSIZE ) % SOUNDCBSIZE;
-				for ( int i = 0; i < screenx; i++ )
+				int lasty;
+				int thissoundhead = ( soundhead - 1 + SOUNDCBSIZE ) % SOUNDCBSIZE;
+				int thisy = sound[ thissoundhead ] * -128 + 128;
+				for ( int i = screenx - 1; i > 0; i-- )
 				{
-					CNFGTackSegment( i, lasty, i + 1, thisy );
 					lasty = thisy;
-					thisy = sound[ thissoundhead ] * 128 + 128;
 					thissoundhead = ( thissoundhead - 1 + SOUNDCBSIZE ) % SOUNDCBSIZE;
+					thisy = sound[ thissoundhead ] * -128 + 128;
+					CNFGTackSegment( i, lasty, i - 1, thisy );
 				}
 			}
 
