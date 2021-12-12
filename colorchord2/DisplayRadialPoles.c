@@ -52,7 +52,7 @@ static void DPRUpdate(void * id, struct NoteFinder*nf)
 			float p4x = extentx - orthox;
 			float p4y = extenty - orthoy;
 
-			CNFGColor( CCtoHEX( pole / (float)freqbins, 1.0, 1.0 ) );
+			CNFGColor( CCtoHEX( (float)pole / (float)freqbins, 1.0, 1.0 ) );
 			RDPoint pts[6] = {
 				{ p1x, p1y },
 				{ p2x, p2y },
@@ -102,7 +102,7 @@ static void DPRUpdate(void * id, struct NoteFinder*nf)
 			float p4x = cx + cos( angleN ) * (d->radialscale * binvalN + d->centeroffset);
 			float p4y = cy + sin( angleN ) * (d->radialscale * binvalN + d->centeroffset);
 
-			CNFGColor( CCtoHEX( pole / (float)freqbins, 1.0, 1.0 ) );
+			CNFGColor( CCtoHEX( (float)pole / (float)freqbins, 1.0, 1.0 ) );
 			RDPoint pts[6] = {
 				{ p1x, p1y },
 				{ p2x, p2y },
