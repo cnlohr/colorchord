@@ -1,4 +1,14 @@
-Copyright (c) 2015, Charles Lohr (CNLohr)
+Copyright (c) 2012-2022, Charles Lohr (CNLohr), et. al.
+
+This license covers the core of ColorChord, but not the ESP8266 or STM32
+embedded builds, for them, they have a separate license.
+
+All major contributors have agreed to allowing ColorChord to be distributed
+in either CC0, MIT-x11 or NewBSD license terms as of September, 2022.
+Depending on the user's preferences and needs.  You may feel free to copy
+and use ColorChord in your project under ther terms listed below (NewBSD
+license) or any of the afore-mentioned licenses.
+
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
