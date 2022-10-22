@@ -74,7 +74,7 @@ int firstnewline = -1;
 
 
 // Define application colors RGBA format
-#define BACKGROUND_COLOR 0x000080ff
+#define BACKGROUND_COLOR 0x000000ff
 #define LINE_COLOR 0xffffffff
 #define TEXT_COLOR 0xffffffff
 // Text colors for the debug options at the bottom of the screen
