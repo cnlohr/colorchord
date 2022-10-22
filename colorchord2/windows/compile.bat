@@ -13,7 +13,7 @@ set SOURCES=..\main.c ..\chash.c ..\color.c ..\configs.c ..\decompose.c ..\dft.c
 ..\..\embeddedcommon\DFT32.c tcc_stubs.c symbol_enumerator.c ^
 ..\DisplayArray.c ..\DisplayDMX.c ..\DisplayFileWrite.c ..\DisplayHIDAPI.c ..\DisplayNetwork.c ^
 ..\DisplayOUTDriver.c ..\DisplayPie.c ..\DisplayRadialPoles.c ..\DisplaySHM.c ..\DisplayUSB2812.c ^
-..\OutputCells.c ..\OutputLinear.c ..\OutputProminent.c ..\OutputVoronoi.c .
+..\OutputCells.c ..\OutputLinear.c ..\OutputProminent.c ..\OutputVoronoi.c
   
 set ARCH_SPECIFIC=-L32 C:\windows\system32\winmm.dll -DWIN32_LEAN_AND_MEAN 
 set CC=C:\tcc\tcc.exe

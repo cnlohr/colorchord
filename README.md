@@ -102,14 +102,18 @@ Building with Windows
 There are 3 options available for building on Windows, clang, or TCC, MSYS2.
 ### clang
 Start by [downloading](https://clang.llvm.org/) the clang compiler, and installing it.
-
-Edit the batch script at `colorchord2/windows/compile-clang.bat`:
-- Verify that the executable location is correct, on line 0 (`CC`).
+You can also install using `winget` using the following command in PowerShell
+```
+winget install -e --id LLVM.LLVM
+```
 
 If you have the Windows SDK installed, you should not need to do any additional work.  
-If you do not, you'll want to either [install it](https://developer.microsoft.com/en-US/windows/downloads/windows-11-sdk/) to get the official headers, or use the unofficial headers instead by adding `-DNO_WIN_HEADERS` to the `CCFLAGS` line in the batch file above.
+If you do not, you'll want to either [install it](https://developer.microsoft.com/en-US/windows/downloads/windows-11-sdk/) to get the official headers. Realistically, it's easyist to get the headers by installing Visual Studio Communitiy and selecting the C/C++ Desktop Application devlopment package and installing it from there [Visual Studio](https://visualstudio.microsoft.com/).
 
-Run the batch script, and it should output to `colorchord2/colorchord.exe`.
+Once the Windows headers are installed run the clang batch script, and it should output to `colorchord2/colorchord.exe`.
+```
+./compile-clang.bat
+```
 
 ### TCC
 Start by [downloading TCC](http://savannah.nongnu.org/projects/tinycc/), and extracting it to `C:\tcc`.
@@ -119,7 +123,7 @@ to the default location, you can skip the next step.
 Edit the batch script at `colorchord2/windows/compile.bat`:
 - Edit line 17 (`CC`) to be the location where you put TCC. If there are spaces in the path, wrap the entire path in quotes.
 
-Note that TCC is not able to use the Windows SDK, and as such using the unofficial headers is required, and automatically enabled when compiling with TCC. If you encounter issues, try the clang method above instead.
+Note that TCC is not able to use the Windows SDK, and as such using the unofficial headers is required, and automatically enabled when compiling with TCC. If you encounter issues, try the clang method above instead. TCC does not support open-gl rendering and is limited to software rendering.
 
 ### MSYS2
 With either 64bit or 32bit [MSYS2](https://msys2.github.io/) installed, run the _MSYS2 MSYS_ launcher and use `pacman` to set up a MinGW32 toolchain, if you don't have one already:
