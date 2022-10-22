@@ -3,12 +3,17 @@
 #if defined( WINDOWS ) || defined( USE_WINDOWS ) || defined( WIN32 ) || defined( WIN64 ) || \
 	defined( _WIN32 ) || defined( _WIN64 )
 #ifdef TCC
-#include <winsock2.h> 
+#include <winsock2.h>
 #endif
 #ifndef strdup
 #define strdup _strdup
 #endif
-#endif 
+// define convenient macro to detect windows
+#define IS_WINDOWS 1
+#else
+// this isn't windows
+#define IS_WINDOWS 0
+#endif
 
 #include "color.h"
 #include "configs.h"
@@ -313,7 +318,14 @@ void RegisterConstructorFunctions()
 	REGISTERDisplayNetwork();
 	REGISTERDisplayOutDriver();
 	REGISTERDisplayPie();
-	// REGISTERDisplaySHM();
+	REGISTERDisplayRadialPoles();
+	// block trying to load linux specific displays
+#if not IS_WINDOWS
+	REGISTERDisplayDMX();
+	REGISTERDisplayFileWrite();
+	REGISTERDisplaySHM();
+	REGISTERDisplayUSB2812();
+#endif
 
 	// Output stuff
 	// REGISTERDisplayUSB2812();
@@ -402,11 +414,17 @@ int main( int argc, char **argv )
 
 
 	do {
+#if IS_WINDOWS
+		const char *record_dev_name = "defaultRender";
+#else
+		const char *record_dev_name = "@DEFAULT_MONITOR@";
+#endif
 		// Initialize Sound
 		sd = CNFAInit( sound_source, "colorchord", &SoundCB, GetParameterI( "samplerate", 44100 ),
 			GetParameterI( "samplerate", 44100 ), GetParameterI( "channels", 2 ),
 			GetParameterI( "channels", 2 ), GetParameterI( "buffer", 1024 ),
-			GetParameterS( "devplay", 0 ), GetParameterS( "devrecord", 0 ), NULL );
+			GetParameterS( "devplay", "default" ), GetParameterS( "devrecord", record_dev_name ),
+			NULL );
 
 		if ( sd ) break;
 
