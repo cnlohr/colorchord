@@ -1,4 +1,4 @@
-all : colorchord
+all : colorchord colorchord-opengl
 
 OUTS := OutputVoronoi.o DisplayArray.o OutputLinear.o DisplayPie.o DisplayNetwork.o DisplayUSB2812.o DisplayDMX.o OutputProminent.o RecorderPlugin.o DisplayHIDAPI.o hidapi.o OutputCells.o DisplaySHM.o DisplayFileWrite.o DisplayRadialPoles.o
 
@@ -39,4 +39,4 @@ colorchord.exe : main.c  dft.c decompose.c filter.c color.c notefinder.c util.c 
 
 
 clean :
-	rm -rf *.o *~ colorchord colorchord.exe embeddedcc $(OBJS)
+	rm -rf *.o *~ colorchord colorchord-opengl colorchord.exe embeddedcc $(OBJS)
