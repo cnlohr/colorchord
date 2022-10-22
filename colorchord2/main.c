@@ -64,12 +64,12 @@ void HandleDestroy()
 
 
 #define GENLINEWIDTH 89
-#define GENLINES     67
+#define GENLINES 67
 
 char genlog[ ( GENLINEWIDTH + 1 ) * ( GENLINES + 1 ) + 2 ] = "log";
 int genloglen;
 int genloglines;
-int genlinelen   = 0;
+int genlinelen = 0;
 int firstnewline = -1;
 
 
@@ -95,8 +95,8 @@ void example_log_function( int readSize, char *buf )
 			genloglines++;
 			if ( genloglines >= GENLINES )
 			{
-				genloglen   -= firstnewline + 1;
-				int offset   = firstnewline;
+				genloglen -= firstnewline + 1;
+				int offset = firstnewline;
 				firstnewline = -1;
 				int k;
 				for ( k = 0; k < genloglen; k++ )
@@ -111,12 +111,12 @@ void example_log_function( int readSize, char *buf )
 			if ( c != '\n' )
 			{
 				genlog[ genloglen + 1 ] = 0;
-				genlog[ genloglen++ ]   = '\n';
+				genlog[ genloglen++ ] = '\n';
 			}
 			if ( firstnewline < 0 ) firstnewline = genloglen;
 		}
 		genlog[ genloglen + 1 ] = 0;
-		genlog[ genloglen++ ]   = c;
+		genlog[ genloglen++ ] = c;
 		if ( c != '\n' ) genlinelen++;
 	}
 
@@ -173,7 +173,7 @@ double VisTimeEnd, VisTimeStart;
 float sound[ SOUNDCBSIZE ];
 int soundhead        = 0;
 int show_debug       = 0;
-int show_debug_basic = 1;
+int show_debug_basic = 0;
 
 int gKey = 0;
 extern int force_white;
@@ -312,8 +312,6 @@ void RegisterConstructorFunctions()
 	// Video Stuff
 	REGISTERnull();
 	REGISTERDisplayArray();
-	// REGISTERDisplayDMX();
-	// REGISTERDisplayFileWrite();
 	REGISTERDisplayHIDAPI();
 	REGISTERDisplayNetwork();
 	REGISTERDisplayOutDriver();
@@ -328,7 +326,6 @@ void RegisterConstructorFunctions()
 #endif
 
 	// Output stuff
-	// REGISTERDisplayUSB2812();
 	REGISTEROutputCells();
 	REGISTEROutputLinear();
 	REGISTEROutputProminent();
@@ -629,9 +626,6 @@ int main( int argc, char **argv )
 		ThisTime = OGGetAbsoluteTime();
 		if ( ThisTime > LastFPSTime + 1 && showfps )
 		{
-#ifndef ANDROID
-			printf( "FPS: %d\n", frames );
-#endif
 			lastfps = frames;
 			frames = 0;
 			LastFPSTime += 1;
