@@ -1,5 +1,10 @@
 //Copyright 2015 <>< Charles Lohr under the ColorChord License.
 
+// only compile file if we are one a unix system
+#if defined( WINDOWS ) || defined( USE_WINDOWS ) || defined( WIN32 ) || defined( WIN64 ) || \
+	defined( _WIN32 ) || defined( _WIN64 )
+#warning Windows does not support the DisplayUSB2812 module
+#else
 #include "outdrivers.h"
 #include "notefinder.h"
 #include <stdio.h>
@@ -166,5 +171,4 @@ static struct DriverInstances * DisplayUSB2812()
 }
 
 REGISTER_OUT_DRIVER(DisplayUSB2812);
-
-
+#endif
