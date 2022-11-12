@@ -2,10 +2,10 @@ all : colorchord colorchord-opengl
 
 OUTS := OutputVoronoi.o DisplayArray.o OutputLinear.o DisplayPie.o DisplayNetwork.o DisplayUSB2812.o DisplayDMX.o OutputProminent.o RecorderPlugin.o DisplayHIDAPI.o hidapi.o OutputCells.o DisplaySHM.o DisplayFileWrite.o DisplayRadialPoles.o
 
-WINGCC:= i686-w64-mingw32-gcc
+WINGCC?=i686-w64-mingw32-gcc
 
 WINGCCFLAGS:= -g -DICACHE_FLASH_ATTR= -I../embeddedcommon -Icnfa -Irawdraw -I. -O1   #-O2 -Wl,--relax -Wl,--gc-sections -ffunction-sections -fdata-sections
-WINLDFLAGS:=-lwinmm -lgdi32 -lws2_32  -lsetupapi
+WINLDFLAGS:=-lwinmm -lgdi32 -lws2_32  -lsetupapi -lole32 -lavrt
 
 #CFLAGS:=-g -O1 -flto -Wall -ffast-math -I../embeddedcommon -I.  -Icnfa -Irawdraw -DICACHE_FLASH_ATTR=
 CFLAGS:=-g -O2 -Wall -ffast-math -I../embeddedcommon -I.  -Icnfa -Irawdraw -DICACHE_FLASH_ATTR=
@@ -35,7 +35,7 @@ colorchord-opengl : $(OBJS)
 	$(CC) -o $@ $^ -DCNFGOGL $(EXTRALIBS) $(OPENGLLIBS) $(RAWDRAWLIBS)
 
 colorchord.exe : main.c  dft.c decompose.c filter.c color.c notefinder.c util.c outdrivers.c parameters.c chash.c OutputVoronoi.c OutputProminent.c DisplayArray.c OutputLinear.c DisplayPie.c DisplayNetwork.c hook.c RecorderPlugin.c ../embeddedcommon/DFT32.c OutputCells.c configs.c hidapi.c DisplayHIDAPI.c
-	$(WINGCC) $(WINGCCFLAGS) -o $@ $^ $(WINLDFLAGS)
+	$(WINGCC) $(WINGCCFLAGS) -o $@ $^ $(o)  $(WINLDFLAGS)
 
 
 clean :
