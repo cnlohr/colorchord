@@ -46,25 +46,36 @@
 
 
 uint32_t EHSVtoHEX( uint8_t hue, uint8_t sat, uint8_t val );
-
+int binmode = 0;
+int additionaltone = 0;
 int lastx = 200;
 int lasty = 1000;
+
+// Keep notimes as small as possible
+static int timul( int adder, int notimes )
+{
+	int sum = 0;
+	while( notimes )
+	{
+		if ( notimes & 1) sum += adder;
+		adder <<= 1;
+		notimes >>= 1;
+	}
+	return sum;
+}
 
 int main()
 {
 	#define FSPS  22100  // Careful, this matters!  It is selected to avoid periodic peaks encountered with DC offsets.
 	#define OCTAVES 6
-	#define BPERO 24
+	#define BPERO 32
 	#define BASE_FREQ 22.5
 	#define QUADRATURE_STEP_DENOMINATOR 16384
 	
-	// Careful:  It makes a lot of sense to explore these relationships.
-	#define SAMPLE_Q 4
-	#define MAG_IIR 0
-	#define RUNNING_IIR 31
-	#define COMPLEX_IIR 2
-	
-	#define TEST_SAMPLES 256
+	// This ultimately determines smoothness + q.
+	#define COMPLEX_IIR 3
+
+	#define TEST_SAMPLES 1024
 
 
 	int16_t samples[TEST_SAMPLES];
@@ -101,44 +112,53 @@ int main()
 		//printf( "%f %d\n", spacing, flipdistance[i] );
 	}
 
+
+	struct bindata
+	{
+		int32_t quadrature_timing_last;
+		uint32_t last_accumulated_value[2];
+		int32_t real_imaginary_running[2];
+		uint32_t magsum;
+		uint8_t quadrature_state;
+		uint8_t reserved1, reserved2, reserved3;
+	} bins[BPERO*OCTAVES] = { 0 };
 	// This is for timing.  Not accumulated data.
-	int32_t quadrature_timing_last[BPERO*OCTAVES] = { 0 };
-	uint8_t  quadrature_state[BPERO*OCTAVES] = { 0 };
-	
-	uint32_t last_accumulated_value[BPERO*OCTAVES*2] = { 0 };
-	
+
 	uint32_t octave_timing[OCTAVES] = { 0 };
-	
-	int32_t real_imaginary_running[BPERO*OCTAVES*2] = { 0 };
-	
+
 	uint32_t sample_accumulator = 0;
 	
-	int32_t qcount[BPERO*OCTAVES] = { 0 };
-	int32_t magsum[BPERO*OCTAVES] = { 0 };
-
 	int frameno = 0;
 	double dLT = OGGetAbsoluteTime();
 	int samplenoIn = 0;
 	int sampleno = 0;
 	double ToneOmega = 0;
+	double ToneOmega2 = 0;
 	int ops;
 	while( CNFGHandleInput() )
 	{
+		short w, h;
+		CNFGGetDimensions( &w, &h );
 		CNFGClearFrame();
 		
 		frameno++;
 		float freq = 
 			//pow( 2, (frameno%600)/100.0 ) * 25;
-			pow( 2, (lastx)/100.0 ) * lastx;
+			pow( 2, (lastx)/100.0 ) * 22.5;
+			//101;
+		float freq2 = 
+			//pow( 2, (frameno%600)/100.0 ) * 25;
+			pow( 2, (200)/100.0 ) * 22.5;
 			//101;
 			
 		for( i = 0; i < TEST_SAMPLES; i++ )
 		{
-			samples[i] = lasty/5 + sin( ToneOmega ) * 127;// + (rand()%128)-64;
+			samples[i] = lasty/5 + sin( ToneOmega ) * 127 + (additionaltone?(sin(ToneOmega2)*128):0);// + (rand()%128)-64;
 			ToneOmega += 1 / (double)FSPS * (double)freq * 3.14159 * 2.0;
+			ToneOmega2 += 1 / (double)FSPS * (double)freq2 * 3.14159 * 2.0;
 		}
 		char cts[1024];
-		sprintf( cts, "%f %d %f", freq, sampleno, ops/(double)sampleno );
+		sprintf( cts, "%f %d %f binmode: %d", freq, sampleno, ops/(double)sampleno, binmode );
 		CNFGColor( 0xffffffff );
 		CNFGPenX = 2;
 		CNFGPenY = 2;
@@ -147,15 +167,6 @@ int main()
 		while( OGGetAbsoluteTime() < dLT + TEST_SAMPLES / (double)FSPS );
 		dLT += TEST_SAMPLES / (double)FSPS;
 
-		if( 0 )
-		{
-			memset( real_imaginary_running, 0, sizeof( real_imaginary_running ) );
-			memset( last_accumulated_value, 0, sizeof( last_accumulated_value ) );
-			memset( quadrature_timing_last, 0, sizeof( quadrature_timing_last ) );
-			memset( quadrature_state, 0, sizeof( quadrature_state ) );
-			memset( octave_timing, 0, sizeof( octave_timing ) );
-			sample_accumulator = 0;
-		}
 		
 		for( i = 0; i < TEST_SAMPLES; i++ )
 		{
@@ -175,37 +186,41 @@ int main()
 			for( b = 0; b < BPERO; b++, binno++ )
 			{
 				ops+=5;
-				if( ocative_time - quadrature_timing_last[binno] > 0 )
+				struct bindata * thisbin = &bins[binno];
+				if( ocative_time - thisbin->quadrature_timing_last > 0 )
 				{
 					ops+=20;
-					quadrature_timing_last[binno] += flipdistance[b];
+					thisbin->quadrature_timing_last += flipdistance[b];
+
 					// This code will get appropriately executed every quadrature update.
 
-					int qstate = quadrature_state[binno] = ( quadrature_state[binno] + 1 ) % 4;
+					int qstate = thisbin->quadrature_state = ( thisbin->quadrature_state + 1 ) % 4;
 
-					int last_q_bin = (binno * 2) + ( qstate & 1 );
-					int delta = sample_accumulator - last_accumulated_value[last_q_bin];
-					last_accumulated_value[last_q_bin] = sample_accumulator;
+					int last_q_bin = ( qstate & 1 );
+
+					//int delta = sample_accumulator - last_accumulated_value[binmode?(binno*2):last_q_bin];
+					//last_accumulated_value[binmode?(binno*2):last_q_bin] = sample_accumulator * (binmode?1.8:1.0);
+
+					int delta = sample_accumulator - thisbin->last_accumulated_value[last_q_bin];
+					thisbin->last_accumulated_value[last_q_bin] = sample_accumulator;
 					
 					// Qstate = 
 					//   (0) = +Cos, (1) = +Sin, (2) = -Cos, (3) = -Sin
 					if( qstate & 2 ) delta *= -1;
 
 					// Update real and imaginary components with delta.
-					int running = real_imaginary_running[last_q_bin];
-					running = running - (running>>RUNNING_IIR) + delta;
-					real_imaginary_running[last_q_bin] = running;
+					int running = thisbin->real_imaginary_running[last_q_bin];
+					running = running + delta;
+					thisbin->real_imaginary_running[last_q_bin] = running;
 					
-					int q = ++qcount[binno];
-					if( q == SAMPLE_Q ) // Effective Q factor.
+					if( qstate == 0 )
 					{
 						ops+=20;
-						qcount[binno] = 0;
-						int newmagR = real_imaginary_running[(binno * 2)];
-						int newmagI = real_imaginary_running[(binno * 2)+1];
+						int newmagR = thisbin->real_imaginary_running[0];
+						int newmagI = thisbin->real_imaginary_running[1];
 
-						real_imaginary_running[(binno * 2)] = newmagR - (newmagR>>COMPLEX_IIR);
-						real_imaginary_running[(binno * 2)+1] = newmagI - (newmagI>>COMPLEX_IIR);
+						thisbin->real_imaginary_running[0] = newmagR - (newmagR>>COMPLEX_IIR);
+						thisbin->real_imaginary_running[1] = newmagI - (newmagI>>COMPLEX_IIR);
 
 						// Super-cheap, non-multiply, approximate complex vector magnitude calculation.
 						newmagR = (newmagR<0)?-newmagR:newmagR;
@@ -213,28 +228,136 @@ int main()
 						int newmag = 
 							//sqrt(newmagR*newmagR + newmagI*newmagI );
 							newmagR > newmagI ? newmagR + (newmagI>>1) : newmagI + (newmagR>>1);
-
-						int lastmag = magsum[binno];
-						magsum[binno] = lastmag - (lastmag>>MAG_IIR) + newmag;
+						thisbin->magsum = newmag >> (OCTAVES-octave);
 					}
 				}
 			}
 		}
-		
+
+		int folded_bins[BPERO];
+
+		// Taper and fold (happens when we want to update lights)
+		for( i = 0; i < BPERO; i++ )
+		{
+			int b = i;
+			int running;
+			running = bins[b].magsum * i / BPERO;
+			b+=BPERO;
+			int j;
+			for( j = 1; j < OCTAVES-1; j++ )
+			{
+				running += bins[b].magsum;
+				b+=BPERO;
+			}
+			running += bins[b].magsum * ( BPERO - i ) / BPERO;
+			folded_bins[i] = running * pow( 2, (i%BPERO) / (double)BPERO );  //XXX TODO: Make this fixed.
+		}
+
 		int lx, ly;
+#if 0
+		// Boxcar filter 
+		int fuzzed_bins[BPERO];
+		int fuzzed_bins2[BPERO];
+
+		// Taper and fold (happens when we want to update lights)
+		for( i = 0; i < BPERO; i++ )
+		{
+			fuzzed_bins[i] = (folded_bins[i] + (folded_bins[(i+1)%BPERO]>>0) + (folded_bins[(i+BPERO-1)%BPERO]>>0))>>1;
+		}
+
+		// Taper and fold (happens when we want to update lights)
+		for( i = 0; i < BPERO; i++ )
+		{
+			fuzzed_bins2[i] = (fuzzed_bins[i] + (folded_bins[(i+1)%BPERO]>>0) + (fuzzed_bins[(i+BPERO-1)%BPERO]>>0))>>1;
+		}
+
+		// Filter agian.
+		for( i = 0; i < BPERO; i++ )
+		{
+			fuzzed_bins[i] = (fuzzed_bins2[i] + (fuzzed_bins2[(i+1)%BPERO]>>0) + (fuzzed_bins2[(i+BPERO-1)%BPERO]>>0))>>1;
+		}
+
+		// Taper and fold (happens when we want to update lights)
+		for( i = 0; i < BPERO; i++ )
+		{
+			fuzzed_bins2[i] = (fuzzed_bins[i] + (folded_bins[(i+1)%BPERO]>>0) + (fuzzed_bins[(i+BPERO-1)%BPERO]>>0))>>1;
+
+			fuzzed_bins2[i] = fuzzed_bins2[i]>>1;
+		}
+
+#else
+		int fuzzed_bins2[BPERO];
+		int fziir = folded_bins[i];
+		// Forward IIR
+		int j;
+
+		#define FUZZ_IIR 2
+		for( j = 0; j < 4; j++ )
+		for( i = 0; i < BPERO; i++ )
+		{
+			// Initiate IIR
+			fziir = fziir - (fziir>>FUZZ_IIR) + folded_bins[i];
+		}
+		for( i = 0; i < BPERO; i++ )
+		{
+			fziir = fziir - (fziir>>FUZZ_IIR) + folded_bins[i];;
+			fuzzed_bins2[i] = fziir;
+		}
+
+		// reverse IIR.
+		for( j = 0; j < 4; j++ )
+		for( i = BPERO-1; i >= 0; i-- )
+		{
+			// Initiate IIR
+			fziir = fziir - (fziir>>FUZZ_IIR) + fuzzed_bins2[i];
+		}
+		for( i = BPERO-1; i >= 0; i-- )
+		{
+			fziir = fziir - (fziir>>FUZZ_IIR) + fuzzed_bins2[i];
+			fuzzed_bins2[i] = fziir;
+		}
+
+		int minfuzz = fziir;
+		for( i = 0; i < BPERO; i++ )
+		{
+			if( minfuzz > fuzzed_bins2[i] ) minfuzz = fuzzed_bins2[i];
+		}
+		for( i = 0; i < BPERO; i++ )
+		{
+			fuzzed_bins2[i] = ( fuzzed_bins2[i] - minfuzz ) >> FUZZ_IIR;
+		}
+#endif
 		for( i = 0; i < BPERO*OCTAVES; i++ )
 		{
 			CNFGColor( (EHSVtoHEX( (i * 256 / BPERO)&0xff, 255, 255 ) << 8) | 0xff );
-			float real = real_imaginary_running[i*2+0];
-			float imag = real_imaginary_running[i*2+1];
-			float mag = sqrt( real * real + imag * imag );
-			
-			mag = (float)magsum[i] * pow( 2, i / (double)BPERO );
-			int y = 768 - ((int)(mag / FSPS * 10) >> MAG_IIR);
+			float mag = (float)bins[i].magsum * pow( 2, (i%BPERO) / (double)BPERO );
+			int y = 768 - mag/20;
 			if( i ) CNFGTackSegment( i*4, y, lx*4, ly );
 			lx = i; ly= y;
-			//printf( "%d %d\n", real_imaginary_running[i*2+0], real_imaginary_running[i*2+1] );
 		}
+
+
+		for( i = 0; i < BPERO*2; i++ )
+		{
+			CNFGColor( (EHSVtoHEX( (i * 256 / BPERO)&0xff, 255, 255 ) << 8) | 0xff );
+			float mag = (float)folded_bins[i%BPERO];
+			int y = 400 - mag/100;
+			if( i ) CNFGTackSegment( i*8, y, lx*8, ly );
+			lx = i; ly= y;
+		}
+
+		for( i = 0; i < BPERO*2; i++ )
+		{
+			CNFGColor( (EHSVtoHEX( (i * 256 / BPERO)&0xff, 255, 255 ) << 8) | 0xff );
+			float mag = (float)fuzzed_bins2[i%BPERO];
+			int y = 500 - mag/100;
+			if( i ) CNFGTackSegment( i*8, y, lx*8, ly );
+			lx = i; ly= y;
+		}
+
+
+		// Fol
+
 		
 		CNFGSwapBuffers();		
 	}
@@ -244,7 +367,7 @@ int main()
 
 
 
-void HandleKey( int keycode, int bDown ) { }
+void HandleKey( int keycode, int bDown ) { if( bDown ) { if( keycode == 'a' ) binmode =!binmode; if( keycode == 'b' ) additionaltone = ! additionaltone; } }
 void HandleButton( int x, int y, int button, int bDown ) { }
 void HandleMotion( int x, int y, int mask ) { lastx = x; lasty = y; }
 void HandleDestroy() { }
