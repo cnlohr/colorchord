@@ -148,7 +148,7 @@ int main()
 			//101;
 		float freq2 = 
 			//pow( 2, (frameno%600)/100.0 ) * 25;
-			pow( 2, (200)/100.0 ) * 22.5;
+			pow( 2, (500)/100.0 ) * 22.5;
 			//101;
 			
 		for( i = 0; i < TEST_SAMPLES; i++ )
@@ -198,12 +198,20 @@ int main()
 
 					int last_q_bin = ( qstate & 1 );
 
-					//int delta = sample_accumulator - last_accumulated_value[binmode?(binno*2):last_q_bin];
-					//last_accumulated_value[binmode?(binno*2):last_q_bin] = sample_accumulator * (binmode?1.8:1.0);
+					int delta;
+					if( binmode )
+					{
+						delta = sample_accumulator - thisbin->last_accumulated_value[0];
+						thisbin->last_accumulated_value[0] = sample_accumulator;
+						delta *= 1.5;
+					}
+					else
+					{
+						delta = sample_accumulator - thisbin->last_accumulated_value[last_q_bin];
+						thisbin->last_accumulated_value[last_q_bin] = sample_accumulator;
+					}
 
-					int delta = sample_accumulator - thisbin->last_accumulated_value[last_q_bin];
-					thisbin->last_accumulated_value[last_q_bin] = sample_accumulator;
-					
+				
 					// Qstate = 
 					//   (0) = +Cos, (1) = +Sin, (2) = -Cos, (3) = -Sin
 					if( qstate & 2 ) delta *= -1;
