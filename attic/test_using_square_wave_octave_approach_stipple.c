@@ -52,7 +52,7 @@ int lasty = 1000;
 
 int main()
 {
-	#define FSPS  22100
+	#define FSPS  22100  // Careful, this matters!  It is selected to avoid periodic peaks encountered with DC offsets.
 	#define OCTAVES 6
 	#define BPERO 24
 	#define BASE_FREQ 22.5
