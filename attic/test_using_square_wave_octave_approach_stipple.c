@@ -174,13 +174,10 @@ int main()
 			int ocative_time = octave_timing[octave] += QUADRATURE_STEP_DENOMINATOR;
 			for( b = 0; b < BPERO; b++, binno++ )
 			{
-				if( binno == WATCHBIN )
-				{
-					printf( "%d %d %d %6d %6d %6d\n", ocative_time, quadrature_timing_last[binno], quadrature_state[0], real_imaginary_running[0], real_imaginary_running[1], magsum[0] );
-				}
+				ops+=5;
 				if( ocative_time - quadrature_timing_last[binno] > 0 )
 				{
-					ops++;
+					ops+=20;
 					quadrature_timing_last[binno] += flipdistance[b];
 					// This code will get appropriately executed every quadrature update.
 
@@ -189,9 +186,6 @@ int main()
 					int last_q_bin = (binno * 2) + ( qstate & 1 );
 					int delta = sample_accumulator - last_accumulated_value[last_q_bin];
 					last_accumulated_value[last_q_bin] = sample_accumulator;
-					
-					if( binno == WATCHBIN )
-						printf( "Delta: %d\n", delta );
 					
 					// Qstate = 
 					//   (0) = +Cos, (1) = +Sin, (2) = -Cos, (3) = -Sin
@@ -205,6 +199,7 @@ int main()
 					int q = ++qcount[binno];
 					if( q == SAMPLE_Q ) // Effective Q factor.
 					{
+						ops+=20;
 						qcount[binno] = 0;
 						int newmagR = real_imaginary_running[(binno * 2)];
 						int newmagI = real_imaginary_running[(binno * 2)+1];
