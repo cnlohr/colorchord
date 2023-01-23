@@ -153,7 +153,7 @@ int main()
 			
 		for( i = 0; i < TEST_SAMPLES; i++ )
 		{
-			samples[i] = lasty/5 + sin( ToneOmega ) * 127 + (additionaltone?(sin(ToneOmega2)*128):0);// + (rand()%128)-64;
+			samples[i] = (lasty/5 + sin( ToneOmega ) * 127 + (additionaltone?(sin(ToneOmega2)*128):0))/2;// + (rand()%128)-64;
 			ToneOmega += 1 / (double)FSPS * (double)freq * 3.14159 * 2.0;
 			ToneOmega2 += 1 / (double)FSPS * (double)freq2 * 3.14159 * 2.0;
 		}
@@ -220,7 +220,8 @@ int main()
 					int running = thisbin->real_imaginary_running[last_q_bin];
 					running = running + delta;
 					thisbin->real_imaginary_running[last_q_bin] = running;
-					
+
+					// Only perform on full quadrature completions.
 					if( qstate == 0 )
 					{
 						ops+=20;
@@ -349,7 +350,7 @@ int main()
 		{
 			CNFGColor( (EHSVtoHEX( (i * 256 / BPERO)&0xff, 255, 255 ) << 8) | 0xff );
 			float mag = (float)folded_bins[i%BPERO];
-			int y = 400 - mag/100;
+			int y = 600 - mag/100;
 			if( i ) CNFGTackSegment( i*8, y, lx*8, ly );
 			lx = i; ly= y;
 		}
@@ -362,9 +363,6 @@ int main()
 			if( i ) CNFGTackSegment( i*8, y, lx*8, ly );
 			lx = i; ly= y;
 		}
-
-
-		// Fol
 
 		
 		CNFGSwapBuffers();		
