@@ -1,7 +1,7 @@
 @echo off
 set CC="C:\Program Files\LLVM\bin\clang.exe"
 rem To enable OpenGL rendering use the -DCNFGOGL option
-set CCFLAGS=-g -D_CRT_SECURE_NO_WARNINGS -DCNFGOGL 
+set CCFLAGS=-g -D_CRT_SECURE_NO_WARNINGS -DCNFGOGL -DNO_WIN_HEADERS
 set CCIFLAGS=-I../../embeddedcommon -I../cnfa -I../rawdraw -I../ -O2
 set CCLFLAGS=-lwinmm -lgdi32 -lws2_32 -lsetupapi -lkernel32 -luser32 -ldbghelp -lole32 -lmmdevapi -lAvrt -lopengl32
 set SOURCES=..\main.c ..\chash.c ..\color.c ..\configs.c ..\decompose.c ..\dft.c ..\filter.c ^
