@@ -19,7 +19,7 @@ int HandleDestroy() { return 0; }
 
 struct CNFADriver * cnfa;
 
-#define MAX_AUDIO_HISTORY 8192
+#define MAX_AUDIO_HISTORY 32768
 short audioHistory[MAX_AUDIO_HISTORY];
 int audioHead;
 
@@ -49,7 +49,7 @@ float PhasorLerp( float from, float to, float alpha )
 
 int main()
 {
-	cnfa = CNFAInit( "PULSE", "colorchord", &SoundCB, 48000, 48000, 0, 1, 1024, "default", "@DEFAULT_MONITOR@", NULL );
+	cnfa = CNFAInit( "PULSE", "colorchord", &SoundCB, 48000, 48000, 0, 1, 512, "default", "@DEFAULT_MONITOR@", NULL );
 
 	CNFGSetup( "NC Test", 1920, 1080 );
 	while(CNFGHandleInput())
@@ -89,7 +89,6 @@ int main()
 		const float fBase = 55/2.0;
 		const int nBinsPerOctave = 24;
 		const int nOctaves = 6;
-		const float fSemitonesWidth = 1.5;
 
 		int headAtStart = audioHead;
 
@@ -100,28 +99,30 @@ int main()
 		float fPhases[nBinsPerOctave * nOctaves];
 
 		// XXX TODO: Compute the DFT once, and extract NC and Phase from DFT.
+		// ONLY VIABLE on whole-number semitone steps.
 
 		for( semitone = 0; semitone < nBinsPerOctave * nOctaves; semitone++ )
 		{
+			float fSemitonesWidth = 
+				//1.0;
+				0.5 + 4.0*(1.0-(semitone/(float)(nBinsPerOctave * nOctaves)));
 			float fCenter = fBase * powf( 2, semitone / (float)nBinsPerOctave );
 			float fLeft   = fBase * powf( 2, ( semitone - fSemitonesWidth ) / (float)nBinsPerOctave );
 			float fRight  = fBase * powf( 2, ( semitone + fSemitonesWidth ) / (float)nBinsPerOctave );
 			float Wnc = fRight - fLeft;
+			// XXX WHY does removing the inner round fix things?
 			int N = round( round( 2*fCenter / Wnc ) * fS/(2*fCenter) );
-			//printf( "N: %f %d\n", fCenter, N );
+			//printf( "N: %f %d %f %f\n", fCenter, N, Wnc, fSemitonesWidth );
 
 			float fRLeft = 0;
 			float fILeft = 0;
 			float fRRight = 0;
 			float fIRight = 0;
-			float fRCenter = 0;
-			float fICenter = 0;
 			int i;
 
 			int samp = headAtStart;
 			float fOmegaLeft = 0;
 			float fOmegaRight = 0;
-			float fOmegaCenter = 0;
 			for( i = 0; i < N; i++ )
 			{
 				samp--;
@@ -129,7 +130,6 @@ int main()
 				float v = audioHistory[samp] / 32768.0;
 				fOmegaLeft   += fLeft   * 3.1415926 * 2.0 / fS;
 				fOmegaRight  += fRight  * 3.1415926 * 2.0 / fS;
-				fOmegaCenter += fCenter * 3.1415926 * 2.0 / fS;
 				fRLeft   += cosf( fOmegaLeft   ) * v;
 				fILeft   += sinf( fOmegaLeft   ) * v;
 				fRRight  += cosf( fOmegaRight  ) * v;
@@ -139,13 +139,22 @@ int main()
 			// Second part is the rescale
 			float fRescale = 1.0/N * (fCenter + 4000)/300;
 
+/*
 			fRLeft   *= fRescale;
 			fILeft   *= fRescale;
 			fRRight  *= fRescale;
 			fIRight  *= fRescale;
-
+*/
 			//	max(0, −(Re′L × Re′R + Im′L × Im′R)).
+
+			// TODO: Rotate by a theta.
+
 			float fNC = -(fRLeft * fRRight + fILeft * fIRight);
+
+			// XXX TODO Fix 
+
+			fNC *= fRescale*fRescale;
+
 			fNCs[semitone] = fNC;
 
 			if( fNC < 0 ) fNC = 0;
@@ -219,18 +228,30 @@ int main()
 		CNFGColor( 0xffffffff ); 
 		int i;
 		int samp = headAtStart-1;
-		int samplesShift = ( -fMaxPhase + 3.14159) * fS / fCenterMax / 3.14159 / 2.0;
+
+		// -fMaxPhase + 3.14159/2 (If you want it to be at a sine crossing)
+		float fPhaseOffset =  - fMaxPhase  - (w/2)/(fS / fCenterMax / 3.14159 / 2.0);
+
+		while( fPhaseOffset < 0 ) fPhaseOffset += 3.1415926 * 2.0;
+
+		int samplesShift = ( fPhaseOffset ) * fS / fCenterMax / 3.14159 / 2.0;
+
+
+
 		samp -= samplesShift;
+
+		float vLast = 0;
 
 		for( i = w-1; i >= 0; i-- )
 		{
 			samp--;
-			if( samp < 0 ) samp += MAX_AUDIO_HISTORY;
+			while( samp < 0 ) samp += MAX_AUDIO_HISTORY;
 			float v = audioHistory[samp] / 32768.0;
-			float vLast = audioHistory[(samp+1)&MAX_AUDIO_HISTORY] / 32768.0;
 			int hsc = h/4;
-			float aS = h/8;
-			CNFGTackSegment( i, v * aS + hsc, i-1, v * aS + hsc );
+			float aS = h/4;
+			if( i != w-1 )
+				CNFGTackSegment( i, v * aS + hsc, i-1, vLast * aS + hsc );
+			vLast = v;
 		}
 
 
