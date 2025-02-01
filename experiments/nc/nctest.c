@@ -141,6 +141,22 @@ int main()
 
 			float fReCenterPhase = atan2f( fRLeft - fRRight, fILeft - fIRight );
 
+
+// If we did not know about the starting rotation, would need to rotate.
+#if 0
+			float re = fRLeft;
+			float im = fILeft;
+			float theta = -fOmegaLeft;
+			fRLeft = re * cos( theta ) - im * sin( theta );
+			fILeft = re * sin( theta ) + im * cos( theta );
+
+			re = fRRight;
+			im = fIRight;
+			theta = -fOmegaRight;
+			fRRight = re * cos( theta ) - im * sin( theta );
+			fIRight = re * sin( theta ) + im * cos( theta );
+#endif
+
 			//	max(0, −(Re′L × Re′R + Im′L × Im′R)).
 
 			float fNC = -(fRLeft * fRRight + fILeft * fIRight);
