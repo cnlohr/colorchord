@@ -104,8 +104,8 @@ int main()
 		for( semitone = 0; semitone < nBinsPerOctave * nOctaves; semitone++ )
 		{
 			float fSemitonesWidth = 
-				//1.0;
-				0.5 + 4.0*(1.0-(semitone/(float)(nBinsPerOctave * nOctaves)));
+				1.0; // Fixed bin width
+				//0.5 + 4.0*(1.0-(semitone/(float)(nBinsPerOctave * nOctaves))); // Dynamic bin width
 			float fCenter = fBase * powf( 2, semitone / (float)nBinsPerOctave );
 			float fLeft   = fBase * powf( 2, ( semitone - fSemitonesWidth ) / (float)nBinsPerOctave );
 			float fRight  = fBase * powf( 2, ( semitone + fSemitonesWidth ) / (float)nBinsPerOctave );
@@ -139,19 +139,11 @@ int main()
 			// Second part is the rescale
 			float fRescale = 1.0/N * (fCenter + 4000)/300;
 
-/*
-			fRLeft   *= fRescale;
-			fILeft   *= fRescale;
-			fRRight  *= fRescale;
-			fIRight  *= fRescale;
-*/
+			float fReCenterPhase = atan2f( fRLeft - fRRight, fILeft - fIRight );
+
 			//	max(0, −(Re′L × Re′R + Im′L × Im′R)).
 
-			// TODO: Rotate by a theta.
-
 			float fNC = -(fRLeft * fRRight + fILeft * fIRight);
-
-			// XXX TODO Fix 
 
 			fNC *= fRescale*fRescale;
 
@@ -167,7 +159,6 @@ int main()
 
 			CNFGTackRectangle( bS, y, bE, center );
 
-			float fReCenterPhase = atan2f( fRLeft - fRRight, fILeft - fIRight );
 			fPhases[semitone] = fReCenterPhase;
 			if( fNC > fHighestAmp && semitone > 0 && semitone < nBinsPerOctave * nOctaves - 1 )
 			{
@@ -230,13 +221,11 @@ int main()
 		int samp = headAtStart-1;
 
 		// -fMaxPhase + 3.14159/2 (If you want it to be at a sine crossing)
-		float fPhaseOffset =  - fMaxPhase  - (w/2)/(fS / fCenterMax / 3.14159 / 2.0);
+		float fPhaseOffset =  - fMaxPhase + 3.14159/2  - (w/2)/(fS / fCenterMax / 3.14159 / 2.0);
 
 		while( fPhaseOffset < 0 ) fPhaseOffset += 3.1415926 * 2.0;
 
 		int samplesShift = ( fPhaseOffset ) * fS / fCenterMax / 3.14159 / 2.0;
-
-
 
 		samp -= samplesShift;
 
