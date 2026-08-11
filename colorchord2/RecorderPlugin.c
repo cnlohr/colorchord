@@ -181,13 +181,13 @@ static void DPOParams(void * id )
 
 	memset( d->In_Filename, 0, PARAM_BUFF );	RegisterValue(  "player_filename", PABUFFER, d->In_Filename, PARAM_BUFF );
 	memset( d->Out_Filename, 0, PARAM_BUFF );	RegisterValue(  "recorder_filename", PABUFFER, d->Out_Filename, PARAM_BUFF );
-	
+
 	d->sps = 0;		RegisterValue(  "samplerate", PAINT, &d->sps, sizeof( d->sps ) );
 	d->BypassLength = 0;	RegisterValue(  "recorder_bypass", PAINT, &d->BypassLength, sizeof( d->BypassLength ) );
 
 }
 
-static struct DriverInstances * RecorderPlugin(const char * parameters)
+static struct DriverInstances * RecorderPlugin()
 {
 	struct DriverInstances * ret = malloc( sizeof( struct DriverInstances ) );
 	struct RecorderPlugin * rp = ret->id = malloc( sizeof( struct RecorderPlugin ) );
@@ -204,5 +204,3 @@ static struct DriverInstances * RecorderPlugin(const char * parameters)
 }
 
 REGISTER_OUT_DRIVER(RecorderPlugin);
-
-
