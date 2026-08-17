@@ -53,7 +53,7 @@ static void DPOUpdate(void * id, struct NoteFinder*nf)
 	static int wsa_did_start;
 	if( !wsa_did_start )
 	{
-		
+
 		WORD wVersionRequested;
 		WSADATA wsaData;
 		int err;
@@ -235,14 +235,14 @@ static void DPOParams(void * id )
 	d->firstval = 0;	RegisterValue(  "firstval", PAINT, &d->firstval, sizeof( d->firstval ) );
 						RegisterValue(  "address", PABUFFER, d->address, sizeof( d->address ) );
 	d->fliprg = 0;		RegisterValue(  "fliprg", PAINT, &d->fliprg, sizeof( d->fliprg ) );
-	d->flipgb = 0;		RegisterValue(  "flipgb", PAINT, &d->flipgb, sizeof( d->flipgb ) );	
+	d->flipgb = 0;		RegisterValue(  "flipgb", PAINT, &d->flipgb, sizeof( d->flipgb ) );
 	d->is_rgby = 0;		RegisterValue(  "rgby", PAINT, &d->is_rgby, sizeof( d->is_rgby ) );
 	d->skittlequantity=0;RegisterValue(  "skittlequantity", PAINT, &d->skittlequantity, sizeof( d->skittlequantity ) );
 	d->socket = -1;
 	d->oldaddress[0] = 0;
 }
 
-static struct DriverInstances * DisplayNetwork(const char * parameters)
+static struct DriverInstances * DisplayNetwork()
 {
 	struct DriverInstances * ret = malloc( sizeof( struct DriverInstances ) );
 	struct DPODriver * d = ret->id = malloc( sizeof( struct DPODriver ) );
@@ -254,5 +254,3 @@ static struct DriverInstances * DisplayNetwork(const char * parameters)
 }
 
 REGISTER_OUT_DRIVER(DisplayNetwork);
-
-

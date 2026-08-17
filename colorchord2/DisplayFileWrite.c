@@ -106,7 +106,7 @@ static void FileWriteParams(void * id )
 	d->file_thread_usleep = 10000;	RegisterValue( "file_thread_usleep", PAINT, &d->file_thread_usleep, sizeof( d->file_thread_usleep ));
 }
 
-static struct DriverInstances * DisplayFileWrite(const char * parameters)
+static struct DriverInstances * DisplayFileWrite()
 {
 	struct DriverInstances * ret = malloc( sizeof( struct DriverInstances ) );
 	struct FileWriteDriver * d = ret->id = malloc( sizeof( struct FileWriteDriver ) );

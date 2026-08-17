@@ -91,7 +91,7 @@ static void SHMUpdate(void * id, struct NoteFinder*nf)
 	if( d->lights_ptr )
 	{
 		memcpy( d->lights_ptr, &d->total_leds, 4 );
-		memcpy( d->lights_ptr + 4, OutLEDs, d->total_leds*3 ); 
+		memcpy( d->lights_ptr + 4, OutLEDs, d->total_leds*3 );
 	}
 
 
@@ -110,7 +110,7 @@ static void SHMParams(void * id )
 	d->total_leds = 300;	RegisterValue( "leds", PAINT, &d->total_leds, sizeof( d->total_leds ));
 }
 
-static struct DriverInstances * DisplaySHM(const char * parameters)
+static struct DriverInstances * DisplaySHM()
 {
 	struct DriverInstances * ret = malloc( sizeof( struct DriverInstances ) );
 	struct SHMDriver * d = ret->id = malloc( sizeof( struct SHMDriver ) );

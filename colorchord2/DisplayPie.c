@@ -72,7 +72,7 @@ static void DPOParams(void * id )
 
 }
 
-static struct DriverInstances * DisplayPie(const char * parameters)
+static struct DriverInstances * DisplayPie()
 {
 	struct DriverInstances * ret = malloc( sizeof( struct DriverInstances ) );
 	struct DPODriver * d = ret->id = malloc( sizeof( struct DPODriver ) );
@@ -84,5 +84,3 @@ static struct DriverInstances * DisplayPie(const char * parameters)
 }
 
 REGISTER_OUT_DRIVER(DisplayPie);
-
-

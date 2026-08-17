@@ -57,7 +57,7 @@ static void DPRUpdate(void * id, struct NoteFinder*nf)
 				{ p1x, p1y },
 				{ p2x, p2y },
 				{ p3x, p3y },
-				{ p4x, p4y }, 
+				{ p4x, p4y },
 				{ p3x, p3y },
 				{ p2x, p2y },
 			};
@@ -107,7 +107,7 @@ static void DPRUpdate(void * id, struct NoteFinder*nf)
 				{ p1x, p1y },
 				{ p2x, p2y },
 				{ p3x, p3y },
-				{ p4x, p4y }, 
+				{ p4x, p4y },
 				{ p3x, p3y },
 				{ p2x, p2y },
 			};
@@ -137,7 +137,7 @@ static void DPRParams(void * id )
 	d->radialmode = 0;		RegisterValue(  "radialmode", PAINT, &d->radialmode, sizeof( d->radialmode ) );
 }
 
-static struct DriverInstances * DisplayRadialPoles(const char * parameters)
+static struct DriverInstances * DisplayRadialPoles()
 {
 	struct DriverInstances * ret = malloc( sizeof( struct DriverInstances ) );
 	struct DPRDriver * d = ret->id = malloc( sizeof( struct DPRDriver ) );
@@ -149,5 +149,3 @@ static struct DriverInstances * DisplayRadialPoles(const char * parameters)
 }
 
 REGISTER_OUT_DRIVER(DisplayRadialPoles);
-
-

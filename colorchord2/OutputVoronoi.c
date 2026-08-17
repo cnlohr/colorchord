@@ -112,10 +112,10 @@ static void DPOUpdate(void * id, struct NoteFinder*nf)
 			else if( d->distpow == 2.0 )
 				dist = sqrtf(distsq);
 			else
-				dist = powf(distsq,1.0);
+				dist = powf(distsq,1.0 / d->distpow);
 
 			float match = l->ledexp / dist;
-			if( match > bestmatchval ) 
+			if( match > bestmatchval )
 			{
 				bestmatch = i;
 				bestmatchval = match;
@@ -143,9 +143,9 @@ static void DPOParams(void * id )
 	struct DPODriver * d = (struct DPODriver*)id;
 
 	//XXX WRONG
-	d->xn = 160;		RegisterValue( "lightx", PAINT, &d->xn, sizeof( d->xn ) ); 
+	d->xn = 160;		RegisterValue( "lightx", PAINT, &d->xn, sizeof( d->xn ) );
 	d->yn = 90;			RegisterValue( "lighty", PAINT, &d->yn, sizeof( d->yn ) );
-	d->cutoff = .01; 	RegisterValue( "Voronoi_cutoff", PAFLOAT, &d->cutoff, sizeof( d->cutoff ) );
+	d->cutoff = .01; 	RegisterValue( "shape_cutoff", PAFLOAT, &d->cutoff, sizeof( d->cutoff ) );
 	d->satamp = 5;		RegisterValue( "satamp", PAFLOAT, &d->satamp, sizeof( d->satamp ) );
 	d->outgamma = 1.0;  RegisterValue( "outgamma", PAFLOAT, &d->outgamma, sizeof( d->outgamma ) );
 	d->amppow = 2.51;	RegisterValue( "amppow", PAFLOAT, &d->amppow, sizeof( d->amppow ) );
@@ -156,7 +156,7 @@ static void DPOParams(void * id )
 	d->note_peaks = 0;
 }
 
-static struct DriverInstances * OutputVoronoi(const char * parameters)
+static struct DriverInstances * OutputVoronoi()
 {
 	struct DriverInstances * ret = malloc( sizeof( struct DriverInstances ) );
 	struct DPODriver * d = ret->id = malloc( sizeof( struct DPODriver ) );
@@ -168,5 +168,3 @@ static struct DriverInstances * OutputVoronoi(const char * parameters)
 }
 
 REGISTER_OUT_DRIVER(OutputVoronoi);
-
-
