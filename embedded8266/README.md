@@ -100,6 +100,14 @@ PORT=<port_value> make burn
 If all went well, the esp module should be broadcasting a wifi access point that you can connect to. Once that is done, you should be able to see the colorchord webpage dashboard at the ip address [192.168.4.1](http://192.168.4.1). That should be it! Enjoy using colorchord, and don't hesitate to reach out if you have any issues.
 
 ## Common Problems
+
 **Under Construction**
 
 If you experience any issues building colorchord embedded, please open an issue and we will try and work through it. I will try and keep this section up to date with relevant information.
+
+**WSL Path Issues** 
+Under WSL the default Windows environment paths are included. When building colorchord and the Windows User/System Path includes non Linux compatible characters (eg. spaces and parentheses like /Program Files (x86)) it will fail compililng.
+An easy solution is to backup the Windows path variable, then deleting keys including spaces and parentheses and restarting WSL.
+
+**Flash tool not using specified port**
+WSL sometimes doesn't correctly use the environment variable that specifies the serial port. It needs to be changed in the user.cfg file in the /embedded8266 folder.
