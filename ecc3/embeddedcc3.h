@@ -8,7 +8,7 @@
 // What if we do an IIR based falloff
 // but, we were very careful about what that IIR window was.
 
-#ifndef ECC3_BERPO
+#ifndef ECC3_BPERO
 	#define ECC3_BPERO 24
 #endif
 
@@ -20,24 +20,51 @@
 	#define ECC3_FRAMETYPE int16_t
 #endif
 
-// Goertzels basically requires the coefficients to be 32-bits.
-const uint32_t ecc3_constants[ECC3_BPERO*ECC3_OCTAVES];
 
-struct embeddedcc3_t
+#define ECC_BINS ((ECC3_BPERO)*(ECC3_OCTAVES))
+
+// Goertzels basically requires the coefficients to be 32-bits.
+uint32_t ecc3_constants[ECC_BINS];
+uint32_t ecc3_iirfalloff[ECC_BINS];
+
+typedef struct embeddedcc3_t
 {
-	int32_t spreva2[ECC3_BPERO*ECC3_OCTAVES][2];
+	int32_t spreva2[ECC_BINS][2];
 } embeddedcc3;
 
+static void ResetECC3( embeddedcc3 * ecc ) { memset( ecc, 0, sizeof(*ecc) ); }
+
 static void UpdateECC3( embeddedcc3 * ecc, ECC3_FRAMETYPE * frames, int nrframes );
-
-
 
 static void UpdateECC3( embeddedcc3 * ecc, ECC3_FRAMETYPE * frames, int nrframes )
 {
 	int i;
-	for( i = 0; i < ECC3_BPERO; i++ )
+	int32_t * sprevaptr = ecc->spreva2[0];
+	for( i = 0; i < ECC_BINS; i++ )
 	{
-		
+		int32_t sprev = sprevaptr[0];
+		int32_t sprev2 = sprevaptr[1];
+		uint32_t coeff = ecc3_constants[i];
+		uint32_t iircons = ecc3_iirfalloff[i];
+		for( int j = 0; j < nrframes; j++ )
+		{
+			ECC3_FRAMETYPE v = frames[j];
+//if( i == 0 ) printf( "%d\n", v );
+			//From https://github.com/cnlohr/cnlohr_tricks/#goertzels-dft
+			//float s = SAMPLE + coeff * sprev - sprev2;
+
+			// Update phasor
+			int32_t s = v + 2*((sprev*(uint64_t)coeff)>>32) - sprev2;
+			// Decay
+			//s = (s * (uint64_t)iircons);
+
+			sprev2 = sprev;
+			sprev = s;
+		}
+//printf( "%d %d\n", i, sprev );
+		sprevaptr[0] = sprev;
+		sprevaptr[1] = sprev2;
+		sprevaptr += 2;
 	}
 }
 

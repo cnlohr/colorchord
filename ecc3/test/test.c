@@ -5,15 +5,48 @@
 #include "../../colorchord2/cnfa/CNFA_pulse.c"
 #include "../../colorchord2/cnfa/CNFA.c"
 
+#include <math.h>
+
+#define ECC3_BPERO 1
+#define ECC3_OCTAVES 1
+
+#include "../embeddedcc3.h"
 
 void HandleKey( int keycode, int bDown ) { }
 void HandleButton( int x, int y, int button, int bDown ) { }
 void HandleMotion( int x, int y, int mask ) { }
 int HandleDestroy() { return 0; }
 
+embeddedcc3 cc3;
+
+		float maxv = 0;
+		float powers[ECC_BINS];
+
 void AudioCB( struct CNFADriver * sd, short * out, short * in, int framesp, int framesr )
 {
-	printf( "%d\n", framesr );
+	ResetECC3( &cc3 );
+	UpdateECC3( &cc3, in, framesr );
+//	printf( "%d\n", ecc3_constants[0] );
+//	printf( "%d %d %d\n", framesr, cc3.spreva2[0], cc3.spreva2[1] );
+		for( int i = 0; i < ECC_BINS; i++ )
+		{
+			float sprev = cc3.spreva2[i][0];
+			float sprev2 = cc3.spreva2[i][1];
+			float coeff = ecc3_constants[i] / (float)(1ULL<<32);
+			float power = sprev*sprev + sprev2*sprev2 - (coeff * sprev * sprev2);
+
+
+
+			float fTarget = 440 * pow( 2, 0/(float)ECC3_BPERO );
+			float omegaPerSample = fTarget / 48000 * 3.1415926 * 2;
+			float coeff_s = 2 * sin( omegaPerSample );
+			double rR = 0.5 * coeff   * sprev - sprev2;
+			double rI = 0.5 * coeff_s * sprev;
+			printf ("%f %f\n", rR, rI );
+			power = sqrt( power );
+			powers[i] = power;
+			if( power > maxv ) maxv = power;
+		}
 }
 
 int main()
@@ -21,6 +54,15 @@ int main()
 	struct CNFADriver * cnfad = 0;
 	CNFGSetup( "Example App", 1024, 768 );
 	cnfad = CNFAInit( 0, "ecc3", AudioCB, 0, 48000, 0, 1, 1024, 0, 0, 0 );
+
+	for( int i = 0; i < ECC_BINS; i++ )
+	{
+		float fTarget = 440 * pow( 2, i/(float)ECC3_BPERO );
+		float omegaPerSample = fTarget / 48000 * 3.1415926 * 2;
+		ecc3_constants[i] = cos( omegaPerSample ) * 4294967295;
+		//printf( "%d: %u\n", i, ecc3_constants[i] );
+		ecc3_iirfalloff[i] = -1;
+	}
 
 	while(CNFGHandleInput())
 	{
@@ -33,15 +75,21 @@ int main()
 		//Change color to white.
 		CNFGColor( 0xffffffff ); 
 
-		CNFGPenX = 1; CNFGPenY = 1;
-		CNFGDrawText( "Hello, World", 2 );
-		CNFGTackPixel( 30, 30 );         
+		float fpv = (float)w / ECC_BINS;
+		float fx = 0;
 
-		//Draw a line from 50,50 to 100,50
-		CNFGTackSegment( 50, 50, 100, 50 );
+		for( int i = 0; i < ECC_BINS; i++ )
+		{
+			float v = powers[i];
+			const float scale = 0.0001;
+
+			CNFGTackRectangle( fx, 0, fx+fpv, v*scale ); 
+			fx += fpv;
+		}
 
 
 		//Display the image and wait for time to display next frame.
-		CNFGSwapBuffers();		
+		CNFGSwapBuffers();	
+		usleep(10000);	
 	}
 }
