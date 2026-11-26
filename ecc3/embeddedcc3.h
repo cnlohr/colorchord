@@ -49,14 +49,14 @@ static void UpdateECC3( embeddedcc3 * ecc, ECC3_FRAMETYPE * frames, int nrframes
 		for( int j = 0; j < nrframes; j++ )
 		{
 			ECC3_FRAMETYPE v = frames[j];
-//if( i == 0 ) printf( "%d\n", v );
+
 			//From https://github.com/cnlohr/cnlohr_tricks/#goertzels-dft
-			//float s = SAMPLE + coeff * sprev - sprev2;
 
 			// Update phasor
-			int32_t s = v + 2*((sprev*(uint64_t)coeff)>>32) - sprev2;
-			// Decay
-			//s = (s * (uint64_t)iircons);
+			int32_t s = 
+				v 
+				+ 2*((sprev*(uint64_t)coeff)>>32)   // Actually sprev * coeff, *2 here because >>31 would be a slower operation.  For floating-point formulations, do that here.
+				- ((sprev2*(uint64_t)iircons)>>32); // Traditionally, goertzels would use sprev2*1 here over the window, but we are trying windowless.
 
 			sprev2 = sprev;
 			sprev = s;
