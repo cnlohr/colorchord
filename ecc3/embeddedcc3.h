@@ -14,7 +14,9 @@
 //   [2] Goertzels DFT https://github.com/cnlohr/cnlohr_tricks/#goertzels-dft
 //   [3] Rotating output bins for NC-style collaboration between bins.
 //		https://github.com/7ERr0r/sbsdft/blob/02b80708151af77cacfa4a8d2502139bd8ca93fe/src/spectrumapp/sbswdft.rs#L1474-L1496
-
+//
+// Useful tool I used:
+//  https://audio.js.org/util/tone-generator/
 
 #ifndef ECC3_BPERO
 	#define ECC3_BPERO 24

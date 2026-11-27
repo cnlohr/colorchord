@@ -7,17 +7,34 @@
 
 
 #include <math.h>
+#include <ctype.h>
 
 #define ECC3_BPERO 24
 #define ECC3_OCTAVES 6
 
-#define FREQ_BASE 55
+#define FREQ_BASE 32.7
 
 #include "../embeddedcc3.h"
 
-void HandleKey( int keycode, int bDown ) { }
-void HandleButton( int x, int y, int button, int bDown ) { }
+float setRot = 1.25;
+
+void HandleKey( int keycode, int bDown )
+{
+	if( !bDown ) return;
+	switch( toupper( keycode ) )
+	{
+	case 'A': setRot += 0.1; break;
+	case 'Q': setRot -= 0.1; break;
+	}
+}
+
+void HandleButton( int x, int y, int button, int bDown )
+{
+	
+}
+
 void HandleMotion( int x, int y, int mask ) { }
+
 int HandleDestroy() { return 0; }
 
 embeddedcc3 cc3;
@@ -71,12 +88,13 @@ int main()
 		float fTarget = FREQ_BASE * pow( 2, (i-0.5)/(float)ECC3_BPERO );
 		float omegaPerSample = fTarget / 48000 * 3.1415926 * 2;
 
-		// With omegaPerSample/4.0, it's too flat at high and too sharp at small.
-		// With .99, it's too sharp on high end and flat on low end.
-		// With 1.0-.001/omegaPerSample, it's too sharp on high end, lumpy on low.
-		//float tFalloff = 1-(omegaPerSample/3.14159/2/12);
+		float Q = 1.0; // Higher Q = more narrow.
 
-		float Q = 1; // 0.5 = Target 50% adjacent note.
+		// Radians.  Smaller numbers make NC sharper.  Larger, NC bigger.
+		// 1.25 is selected specifically because it is the minimum to always
+		// fully detect microtones.  Any smaller and there become unresolvable notes.
+		float NCRotation = 1.25; 
+
 		float tFalloff = 1-(1./Q*omegaPerSample/ECC3_BPERO);
 
 		float rescalePhasor = ((tFalloff+1)/2); // Is this right?  It looks right.
@@ -87,7 +105,7 @@ int main()
 		float power_falloff = pow( 0.5, ((ECC_BINS-i)/(float)ECC3_BPERO));
 		ecc3_powerfalloff[i] = power_falloff*(1ULL<<32);
 
-		printf( "%d: %f: om:%f %llu %llu\n", fTarget, i, omegaPerSample, (1ULL<<32)-ecc3_constants[i], (1ULL<<32)-ecc3_iirfalloff[i] );
+		printf( "%d: %f: om:%f %llu %llu\n", i, fTarget, omegaPerSample, (1ULL<<32)-ecc3_constants[i], (1ULL<<32)-ecc3_iirfalloff[i] );
 	}
 
 	while(CNFGHandleInput())
@@ -104,6 +122,10 @@ int main()
 		float fpv = (float)w / ECC_BINS;
 		float fx = 0;
 
+		fx = 0;
+
+		float BPERONCTotals[ECC3_BPERO] = { 0 };
+
 		for( int i = 0; i < ECC_BINS-1; i++ )
 		{
 			//float v = powers[i];
@@ -116,31 +138,88 @@ int main()
 //need to rotate 
 //XXX HERE TODO PICKUP
 			float relativeRotateP = 0;
-			float relativeRotate = -1.57;
+			float relativeRotate = setRot;
 
 			float rP = cos(relativeRotateP)*inrP - sin(relativeRotateP)*iniP;
 			float iP = sin(relativeRotateP)*inrP + cos(relativeRotateP)*iniP;
 			float rN = cos(relativeRotate)*inrN - sin(relativeRotate)*iniN;
 			float iN = sin(relativeRotate)*inrN + cos(relativeRotate)*iniN;
-			float v =  (rP * rN + iP * iN);
+			float v =  -(rP * rN + iP * iN);
 			float ascale = ecc3_powerfalloff[i] / (float)(1ULL<<32);
-
-			uint32_t hex = ECC3toHEX( (i%ECC3_BPERO)*8, 255, 255 );
-			CNFGColor( ((hex&0xff)<<16) | ((hex&0xff00)<<16) | ((hex&0xff0000)>>8) | 0xff );
 
 if( i == 48 )
 {
 CNFGColor( 0xffffffff );
-	printf( "%f %f (%f) %f %f (%f)\n", inrP, iniP, atan2( iniP, inrP ), inrN, iniN, atan2( iniN, inrN ) );
+	printf( "Rot: %6.2f %8.0f %8.0f (%6.2f) %8.0f %8.0f (%6.2f) Rot: %f\n", setRot, inrP, iniP, atan2( iniP, inrP ), inrN, iniN, atan2( iniN, inrN ) );
 }
 
-			if( v < 0 ) v = 0;
+			int negative = 0;
+			if( v < 0 ) { v = -v; negative = 1; }
+
+
 			v = sqrt(v);
-			float scale = 0.001*ascale;
-			CNFGTackRectangle( fx, h/2-v*scale, fx+fpv, h/2 ); 
+
+			int noteinoctave = i%ECC3_BPERO;
+			int o = i/ECC3_BPERO;
+			float rpower = 1.0;
+			if( o == 0 )
+			{
+				rpower = noteinoctave / (float)ECC3_BPERO;
+			}
+			else if( o == ECC3_OCTAVES-1 )
+			{
+				rpower = (ECC3_BPERO - noteinoctave - 1) / (float)ECC3_BPERO;
+			}
+			BPERONCTotals[noteinoctave] += v * rpower * (negative?0:1) * ascale;
+
+			float scale = 0.01*ascale;
+			if( negative )
+			{
+				uint32_t hex = ECC3toHEX( (i%ECC3_BPERO)*8, 255, 127 );
+				CNFGColor( ((hex&0xff)<<16) | ((hex&0xff00)<<16) | ((hex&0xff0000)>>8) | 0xff );
+				CNFGTackRectangle( fx, h*2/3, fx+fpv, h*2/3+v*scale ); 
+			}
+			else
+			{
+				uint32_t hex = ECC3toHEX( (i%ECC3_BPERO)*8, 255, 255 );
+				CNFGColor( ((hex&0xff)<<16) | ((hex&0xff00)<<16) | ((hex&0xff0000)>>8) | 0xff );
+				CNFGTackRectangle( fx, h*2/3-v*scale, fx+fpv, h*2/3 ); 
+			}
+
+				uint32_t hex = ECC3toHEX( (i%ECC3_BPERO)*8, 255, 255 );
+				CNFGColor( ((hex&0xff)<<16) | ((hex&0xff00)<<16) | ((hex&0xff0000)>>8) | 0xff );
 
 			float p = (rP * rP + iP * iP);
 			CNFGTackRectangle( fx, h-(sqrt(p))*scale, fx+fpv, h ); 
+
+
+			fx += fpv;
+		}
+
+
+		fx = 0;
+
+
+		for( int i = 0; i < ECC3_BPERO; i++ )
+		{
+			float v =  BPERONCTotals[i];
+			int negative = v < 0;
+
+			float scale = 0.01;
+
+			if( negative )
+			{
+				v *= -1;
+				uint32_t hex = ECC3toHEX( (i%ECC3_BPERO)*8, 255, 127 );
+				CNFGColor( ((hex&0xff)<<16) | ((hex&0xff00)<<16) | ((hex&0xff0000)>>8) | 0xff );
+				CNFGTackRectangle( fx, h/3, fx+fpv, h/3+v*scale ); 
+			}
+			else
+			{
+				uint32_t hex = ECC3toHEX( (i%ECC3_BPERO)*8, 255, 255 );
+				CNFGColor( ((hex&0xff)<<16) | ((hex&0xff00)<<16) | ((hex&0xff0000)>>8) | 0xff );
+				CNFGTackRectangle( fx, h/3-v*scale, fx+fpv, h/3 ); 
+			}
 
 
 			fx += fpv;
