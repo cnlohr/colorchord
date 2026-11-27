@@ -5,6 +5,7 @@
 #include "../../colorchord2/cnfa/CNFA_pulse.c"
 #include "../../colorchord2/cnfa/CNFA.c"
 
+
 #include <math.h>
 
 #define ECC3_BPERO 24
@@ -67,18 +68,25 @@ int main()
 
 	for( int i = 0; i < ECC_BINS; i++ )
 	{
-		float fTarget = FREQ_BASE * pow( 2, (i-0.5)/(float)ECC3_BPERO - 0.5 );
+		float fTarget = FREQ_BASE * pow( 2, (i-0.5)/(float)ECC3_BPERO );
 		float omegaPerSample = fTarget / 48000 * 3.1415926 * 2;
 
 		// With omegaPerSample/4.0, it's too flat at high and too sharp at small.
 		// With .99, it's too sharp on high end and flat on low end.
 		// With 1.0-.001/omegaPerSample, it's too sharp on high end, lumpy on low.
 		//float tFalloff = 1-(omegaPerSample/3.14159/2/12);
-		float tFalloff = 1-(1.8*omegaPerSample/ECC3_BPERO);
+
+		float Q = 1; // 0.5 = Target 50% adjacent note.
+		float tFalloff = 1-(1./Q*omegaPerSample/ECC3_BPERO);
 
 		float rescalePhasor = ((tFalloff+1)/2); // Is this right?  It looks right.
 		ecc3_constants[i] = cos( omegaPerSample ) * 4294967295 * rescalePhasor;
 		ecc3_iirfalloff[i] = tFalloff *(1ULL<<32);
+
+		// Treat ECC_BINS = unity.
+		float power_falloff = pow( 0.5, ((ECC_BINS-i)/(float)ECC3_BPERO));
+		ecc3_powerfalloff[i] = power_falloff*(1ULL<<32);
+
 		printf( "%d: %f: om:%f %llu %llu\n", fTarget, i, omegaPerSample, (1ULL<<32)-ecc3_constants[i], (1ULL<<32)-ecc3_iirfalloff[i] );
 	}
 
@@ -107,29 +115,32 @@ int main()
 
 //need to rotate 
 //XXX HERE TODO PICKUP
+			float relativeRotateP = 0;
 			float relativeRotate = -1.57;
 
-			float rP = inrP;
-			float iP = iniP;
+			float rP = cos(relativeRotateP)*inrP - sin(relativeRotateP)*iniP;
+			float iP = sin(relativeRotateP)*inrP + cos(relativeRotateP)*iniP;
 			float rN = cos(relativeRotate)*inrN - sin(relativeRotate)*iniN;
 			float iN = sin(relativeRotate)*inrN + cos(relativeRotate)*iniN;
-			float v = (rP * rN + iP * iN);
+			float v =  (rP * rN + iP * iN);
+			float ascale = ecc3_powerfalloff[i] / (float)(1ULL<<32);
 
-	CNFGColor (0xffffffff);
+			uint32_t hex = ECC3toHEX( (i%ECC3_BPERO)*8, 255, 255 );
+			CNFGColor( ((hex&0xff)<<16) | ((hex&0xff00)<<16) | ((hex&0xff0000)>>8) | 0xff );
 
-if( i == 84 )
+if( i == 48 )
 {
-	CNFGColor (0xff0000ff);
-	printf( "%f %f[%f] / %f %f[%f] -> %f\n", rP, iP, atan2( rP, iP ), rN, iN, atan2( rN, iN ), v );
+CNFGColor( 0xffffffff );
+	printf( "%f %f (%f) %f %f (%f)\n", inrP, iniP, atan2( iniP, inrP ), inrN, iniN, atan2( iniN, inrN ) );
 }
 
 			if( v < 0 ) v = 0;
 			v = sqrt(v);
-			float scale = 0.001;
-			CNFGTackRectangle( fx, 0, fx+fpv, v*scale ); 
+			float scale = 0.001*ascale;
+			CNFGTackRectangle( fx, h/2-v*scale, fx+fpv, h/2 ); 
 
 			float p = (rP * rP + iP * iP);
-			CNFGTackRectangle( fx, h/2, fx+fpv, h/2+(sqrt(p))*scale ); 
+			CNFGTackRectangle( fx, h-(sqrt(p))*scale, fx+fpv, h ); 
 
 
 			fx += fpv;
