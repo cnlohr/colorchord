@@ -1,6 +1,8 @@
 #ifndef _EMBEDDEDCC3_H
 #define _EMBEDDEDCC3_H
 
+// TODO: Fix function names.
+
 /* Overall outline
  1: Try goertzels-only, but NC-mode. See if we can NC with IIR
 */
@@ -40,17 +42,27 @@ uint32_t ecc3_constants[ECC_BINS];
 uint32_t ecc3_iirfalloff[ECC_BINS];
 uint32_t ecc3_powerfalloff[ECC_BINS];
 
+uint32_t ecc3_phasorsin[ECC_BINS];
+uint32_t ecc3_phasorcos[ECC_BINS];
+uint32_t ecc3_ncrotateC;
+uint32_t ecc3_ncrotateS;
+
+
 typedef struct embeddedcc3_t
 {
 	int32_t spreva2[ECC_BINS][2];
+
+	uint32_t folded_dft_nc[ECC3_BPERO];
 } embeddedcc3;
 
 static void ResetECC3( embeddedcc3 * ecc ) { memset( ecc, 0, sizeof(*ecc) ); }
 static void UpdateECC3( embeddedcc3 * ecc, ECC3_FRAMETYPE * frames, int nrframes );
+static void RunOutputECC3( embeddedcc3 * ecc );
 
 // Utility
-
 static uint32_t ECC3toHEX( uint8_t note, uint8_t sat, uint8_t val );
+static uint32_t EHSVtoHEX( uint8_t hue, uint8_t sat, uint8_t val );
+static int apsqrt_ECC3( uint32_t i );
 
 static void UpdateECC3( embeddedcc3 * ecc, ECC3_FRAMETYPE * frames, int nrframes )
 {
@@ -95,10 +107,80 @@ static void UpdateECC3( embeddedcc3 * ecc, ECC3_FRAMETYPE * frames, int nrframes
 	}
 }
 
+// Debug, eventually put on stack.
+int32_t realimag[ECC_BINS][2];
+
+static void RunOutputECC3( embeddedcc3 * ecc )
+{
+	int i;
+	for( i = 0; i < ECC_BINS; i++ )
+	{
+		int32_t sprev = ecc->spreva2[i][0];
+		int32_t sprev2 = ecc->spreva2[i][1];
+
+		int32_t real = ( ( sprev * (uint64_t)ecc3_phasorcos[i]) >> 32) - sprev2;
+		int32_t imag = ( ( sprev * (uint64_t)ecc3_phasorsin[i]) >> 32);
+
+		realimag[i][0] = real;
+		realimag[i][1] = imag;
+	}
+
+	int n;
+
+	i = 0;
+
+	for( n = 0; n < ECC3_BPERO; n++ )
+	{
+		int32_t powervalue = 0;
+		int sum = 0;
+		for( int o = 0; o < ECC3_OCTAVES; o++ )
+		{
+			int i = n + o * ECC3_BPERO;
+			int32_t rp = realimag[i][0];
+			int32_t ip = realimag[i][1];
+			if( i == ECC_BINS ) break;
+			int32_t rn = realimag[i+1][0];
+			int32_t in = realimag[i+1][1];
+
+			int32_t rotrn = ((rn * (uint64_t)ecc3_ncrotateC)>>32) - ((in * (uint64_t)ecc3_ncrotateS)>>32);
+			int32_t rotin = ((rn * (uint64_t)ecc3_ncrotateS)>>32) + ((in * (uint64_t)ecc3_ncrotateC)>>32);
+
+			// 12 picked here arbitrarily. It's so we can handle up to value of 13M in input.
+
+			#define INASCALE 12
+			int v =  -(( (rp * (int64_t)rotrn)>>INASCALE) + ((ip * (int64_t)rotin)>>INASCALE));
+
+			int negative = 0;
+			if( v < 0 ) continue;
+
+			uint32_t powerfalloff = ecc3_powerfalloff[i];
+			v = (apsqrt_ECC3(v));
+			int noteinoctave = i%ECC3_BPERO;
+
+			// Feather start and end.
+			if( o == 0 )
+			{
+				powerfalloff = powerfalloff / ECC3_BPERO * (n+1);
+			}
+			else if( o == ECC3_OCTAVES-1 )
+			{
+				// Taper ending to zero to exclude last element, since it is unusable.
+				powerfalloff = powerfalloff / ECC3_BPERO * (ECC3_BPERO - n - 1) ;
+			}
+			else
+			{
+				// powerfalloff unaffected.
+			}
+			powervalue += (v * (uint64_t)powerfalloff)>>32;
+		}
+		ecc->folded_dft_nc[n] = powervalue;
+	}
+}
 
 
 
-uint32_t EHSVtoHEX( uint8_t hue, uint8_t sat, uint8_t val )
+
+static uint32_t EHSVtoHEX( uint8_t hue, uint8_t sat, uint8_t val )
 {
 	#define SIXTH1 43
 	#define SIXTH2 85
@@ -199,6 +281,17 @@ static uint32_t ECC3toHEX( uint8_t note, uint8_t sat, uint8_t val )
 	hue >>= 8;
 
 	return EHSVtoHEX( hue, sat, val );
+}
+
+static int apsqrt_ECC3( uint32_t i )
+{
+	// Fast approximate square root, accurate to about 1-2 code values across integer space.
+	if( i == 0 ) return 0;
+	int x = 1<<( ( 32 - __builtin_clz(i) )/2);
+	x = (x + i/x)/2;
+	x = (x + i/x)/2;
+	x = (x + i/x)/2;
+	return x;
 }
 
 
