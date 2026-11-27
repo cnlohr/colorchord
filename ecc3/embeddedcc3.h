@@ -2,10 +2,7 @@
 #define _EMBEDDEDCC3_H
 
 // TODO: Fix function names.
-
-/* Overall outline
- 1: Try goertzels-only, but NC-mode. See if we can NC with IIR
-*/
+// TODO: Fix #define names.
 
 // What if we do an IIR based falloff
 // but, we were very careful about what that IIR window was.
@@ -32,32 +29,95 @@
 	#define ECC3_FRAMETYPE int16_t
 #endif
 
+#ifndef ECC3_MIN_AMP_FOR_NOTE
+	#define ECC3_MIN_AMP_FOR_NOTE 80
+#endif
 
-#define ECC_BINS ((ECC3_BPERO)*(ECC3_OCTAVES))
+#ifndef ECC3_MAXNOTES
+	#define ECC3_MAXNOTES  12
+#endif
+
+#ifndef ECC3_MAX_JUMP_DISTANCE
+	#define ECC3_MAX_JUMP_DISTANCE 4
+#endif
+
+#ifndef ECC3_AMP_1_IIR_BITS
+	#define ECC3_AMP_1_IIR_BITS 4
+#endif
+
+#ifndef ECC3_AMP_2_IIR_BITS
+	#define ECC3_AMP_2_IIR_BITS 2
+#endif
+
+#ifndef ECC3_MAX_COMBINE_DISTANCE
+	#define ECC3_MAX_COMBINE_DISTANCE 7
+#endif
+
+#ifndef ECC3_MINIMUM_AMP_FOR_NOTE_TO_DISAPPEAR
+	#define ECC3_MINIMUM_AMP_FOR_NOTE_TO_DISAPPEAR 64
+#endif
+
+#ifndef ECC3_NUM_LIN_LEDS
+	#define ECC3_NUM_LIN_LEDS 64
+#endif
+
+#ifndef USE_ECC3_NUM_LIN_LEDS
+	#define USE_ECC3_NUM_LIN_LEDS ECC3_NUM_LIN_LEDS
+#endif
+
+#ifndef NERF_NOTE_PORP
+	#define NERF_NOTE_PORP 15
+#endif
+
+#ifndef NOTE_FINAL_AMP
+	#define NOTE_FINAL_AMP  12   //Number from 0...255
+#endif
+
+
+#define ECC3_BINS ((ECC3_BPERO)*(ECC3_OCTAVES))
 #define SEMIBITSPERBIN 3 // 8 semitone levels.
 #define ECC3_NOTERANGE ((1<<SEMIBITSPERBIN)*ECC3_BPERO)
 
 // Goertzels basically requires the coefficients to be 32-bits.
-uint32_t ecc3_constants[ECC_BINS];
-uint32_t ecc3_iirfalloff[ECC_BINS];
-uint32_t ecc3_powerfalloff[ECC_BINS];
+uint32_t ecc3_constants[ECC3_BINS];
+uint32_t ecc3_iirfalloff[ECC3_BINS];
+uint32_t ecc3_powerfalloff[ECC3_BINS];
 
-uint32_t ecc3_phasorsin[ECC_BINS];
-uint32_t ecc3_phasorcos[ECC_BINS];
+uint32_t ecc3_phasorsin[ECC3_BINS];
+uint32_t ecc3_phasorcos[ECC3_BINS];
 uint32_t ecc3_ncrotateC;
 uint32_t ecc3_ncrotateS;
 
 
 typedef struct embeddedcc3_t
 {
-	int32_t spreva2[ECC_BINS][2];
+	int32_t spreva2[ECC3_BINS][2];
 
-	uint32_t folded_dft_nc[ECC3_BPERO];
+	uint32_t nc_values[ECC3_BINS]; // May be useful for positionally sensitive stuff.  May be on stack.
+	uint32_t folded_dft_nc[ECC3_BPERO]; // Allowed to be on stack.
+
+	uint8_t  note_peak_freqs[ECC3_MAXNOTES];
+	uint16_t note_peak_amps[ECC3_MAXNOTES];
+	uint16_t note_peak_amps2[ECC3_MAXNOTES];
+	uint8_t  note_jumped_to[ECC3_MAXNOTES];
+
+	//uint8_t ledArray[ECC3_NUM_LIN_LEDS]; //Points to which notes correspond to these LEDs
+	uint8_t ledOut[ECC3_NUM_LIN_LEDS*3];
+	uint16_t ledAmpOut[ECC3_NUM_LIN_LEDS];
+	uint8_t ledFreqOut[ECC3_NUM_LIN_LEDS];
+	uint8_t ledFreqOutOld[ECC3_NUM_LIN_LEDS];
+
+	uint16_t ledSpin;
+	uint8_t RootNoteOffset;
+
 } embeddedcc3;
 
 static void ResetECC3( embeddedcc3 * ecc ) { memset( ecc, 0, sizeof(*ecc) ); }
 static void UpdateECC3( embeddedcc3 * ecc, ECC3_FRAMETYPE * frames, int nrframes );
 static void RunOutputECC3( embeddedcc3 * ecc );
+
+static void ECC3UpdateAllSameLEDs( embeddedcc3 * ecc );
+
 
 // Utility
 static uint32_t ECC3toHEX( uint8_t note, uint8_t sat, uint8_t val );
@@ -68,7 +128,7 @@ static void UpdateECC3( embeddedcc3 * ecc, ECC3_FRAMETYPE * frames, int nrframes
 {
 	int i;
 	int32_t * sprevaptr = ecc->spreva2[0];
-	for( i = 0; i < ECC_BINS; i++ )
+	for( i = 0; i < ECC3_BINS; i++ )
 	{
 		int32_t sprev = sprevaptr[0];
 		int32_t sprev2 = sprevaptr[1];
@@ -107,13 +167,12 @@ static void UpdateECC3( embeddedcc3 * ecc, ECC3_FRAMETYPE * frames, int nrframes
 	}
 }
 
-// Debug, eventually put on stack.
-int32_t realimag[ECC_BINS][2];
-
 static void RunOutputECC3( embeddedcc3 * ecc )
 {
+	int32_t realimag[ECC3_BINS][2];
+
 	int i;
-	for( i = 0; i < ECC_BINS; i++ )
+	for( i = 0; i < ECC3_BINS; i++ )
 	{
 		int32_t sprev = ecc->spreva2[i][0];
 		int32_t sprev2 = ecc->spreva2[i][1];
@@ -127,8 +186,6 @@ static void RunOutputECC3( embeddedcc3 * ecc )
 
 	int n;
 
-	i = 0;
-
 	for( n = 0; n < ECC3_BPERO; n++ )
 	{
 		int32_t powervalue = 0;
@@ -138,23 +195,17 @@ static void RunOutputECC3( embeddedcc3 * ecc )
 			int i = n + o * ECC3_BPERO;
 			int32_t rp = realimag[i][0];
 			int32_t ip = realimag[i][1];
-			if( i == ECC_BINS ) break;
+			if( i == ECC3_BINS-1 ) break;
 			int32_t rn = realimag[i+1][0];
 			int32_t in = realimag[i+1][1];
 
 			int32_t rotrn = ((rn * (uint64_t)ecc3_ncrotateC)>>32) - ((in * (uint64_t)ecc3_ncrotateS)>>32);
 			int32_t rotin = ((rn * (uint64_t)ecc3_ncrotateS)>>32) + ((in * (uint64_t)ecc3_ncrotateC)>>32);
 
-			// 12 picked here arbitrarily. It's so we can handle up to value of 13M in input.
-
-			#define INASCALE 12
-			int v =  -(( (rp * (int64_t)rotrn)>>INASCALE) + ((ip * (int64_t)rotin)>>INASCALE));
-
-			int negative = 0;
-			if( v < 0 ) continue;
+			// It's algebraically more work to do the scaling here, but we want to do it here so
+			// we don't lose precision in the NC step.
 
 			uint32_t powerfalloff = ecc3_powerfalloff[i];
-			v = (apsqrt_ECC3(v));
 			int noteinoctave = i%ECC3_BPERO;
 
 			// Feather start and end.
@@ -171,11 +222,464 @@ static void RunOutputECC3( embeddedcc3 * ecc )
 			{
 				// powerfalloff unaffected.
 			}
-			powervalue += (v * (uint64_t)powerfalloff)>>32;
+
+			rp = (rp * (uint64_t)powerfalloff)>>32;
+			ip = (ip * (uint64_t)powerfalloff)>>32;
+
+			rotrn = (rotrn * (uint64_t)powerfalloff)>>32;
+			rotin = (rotin * (uint64_t)powerfalloff)>>32;
+
+			// 8 Picked somewhat arbitrarily, but to help keep accuracy and minimize overflows.
+			#define ECC3_LOCAL_INASCALE 8
+			int v =  -(( (rp * (int64_t)rotrn)>>ECC3_LOCAL_INASCALE) + ((ip * (int64_t)rotin)>>ECC3_LOCAL_INASCALE));
+
+			int negative = 0;
+			if( v < 0 ) continue;
+			v = (apsqrt_ECC3(v));
+
+			ecc->nc_values[i] = v;
+
+			powervalue += v;
 		}
 		ecc->folded_dft_nc[n] = powervalue;
+		// Right now, this tops out around 22193.  
+		// Something else is wrong before this chunk that causes that.
+	}
+
+	// folded_dft_nc is now populated.
+	// Next, find the peaks.
+	// The next part is wholesale-lifted from colorchord/embeddedcommon (for colorchord2)
+
+	uint32_t * folded_bins = ecc->folded_dft_nc;
+	uint8_t hitnotes[ECC3_MAXNOTES] = { 0 };
+
+	//Next, we have to find the peaks, this is what "decompose" does in our
+	//normal tool.  NOTE: We CANNOT accept bins > 32767 here.
+	{
+		int adjLeft = ECC3_BPERO-1;
+		int adjRight = 1;
+		for( i = 0; i < ECC3_BPERO; i++ )
+		{
+			int32_t prevBin = folded_bins[adjLeft];
+			int32_t nextBin = folded_bins[adjRight];
+			int32_t thisBin = folded_bins[i];
+			int thisfreq = i<<SEMIBITSPERBIN;
+			int offset;
+			adjLeft++; if( adjLeft == ECC3_BPERO ) adjLeft = 0;
+			adjRight++; if( adjRight == ECC3_BPERO ) adjRight = 0;
+			if( thisBin < ECC3_MIN_AMP_FOR_NOTE ) continue;
+			if( prevBin > thisBin || nextBin > thisBin ) continue;
+			if( prevBin == thisBin && nextBin == thisBin ) continue;
+
+			//i is at a peak... 
+			int32_t totaldiff = (( thisBin - prevBin ) + ( thisBin - nextBin ));
+			int32_t porpdiffP = ((thisBin-prevBin)<<16) / totaldiff; //close to 0 =
+					//closer to this side, 32768 = in the middle, 65535 away.
+			int32_t porpdiffN = ((thisBin-nextBin)<<16) / totaldiff;
+
+			if( porpdiffP < porpdiffN )
+			{
+				//Closer to prev.
+				offset = -(32768 - porpdiffP);
+			}
+			else
+			{
+				//Closer to next
+				offset = (32768 - porpdiffN);
+			}
+
+			//Need to round.  That's what that extra +(15.. is in the center.
+			thisfreq += (offset+(1<<(15-SEMIBITSPERBIN)))>>(16-SEMIBITSPERBIN);
+
+			//In the event we went 'below zero' need to wrap to the top.
+			if( thisfreq > 255-(1<<SEMIBITSPERBIN) )
+				thisfreq = (1<<SEMIBITSPERBIN)*ECC3_BPERO - (256-thisfreq);
+
+			//Okay, we have a peak, and a frequency. Now, we need to search
+			//through the existing notes to see if we have any matches.
+			//If we have a note that's close enough, we will try to pull it
+			//closer to us and boost it.
+			int8_t lowest_found_free_note = -1;
+			int8_t closest_note_id = -1;
+			int16_t closest_note_distance = 32767;
+			
+			for( int j = 0; j < ECC3_MAXNOTES; j++ )
+			{
+				uint8_t nf = ecc->note_peak_freqs[j];
+
+				if( nf == 255 )
+				{
+					if( lowest_found_free_note == -1 )
+						lowest_found_free_note = j;
+					continue;
+				}
+
+				int16_t distance = thisfreq - nf;
+
+				if( distance < 0 ) distance = -distance;
+
+				//Make sure that if we've wrapped around the right side of the
+				//array, we can detect it and loop it back.
+				if( distance > ((1<<(SEMIBITSPERBIN-1))*ECC3_BPERO) )
+				{
+					distance = ((1<<(SEMIBITSPERBIN))*ECC3_BPERO) - distance;
+				}
+
+				//If we find a note closer to where we are than any of the 
+				//others, we can mark it as our desired note.
+				if( distance < closest_note_distance )
+				{	
+					closest_note_id = j;
+					closest_note_distance = distance;
+				}
+			}
+
+			int8_t marked_note = -1;
+
+			if( closest_note_distance <= ECC3_MAX_JUMP_DISTANCE )
+			{
+				//We found the note we need to augment.
+				ecc->note_peak_freqs[closest_note_id] = thisfreq;
+				marked_note = closest_note_id;
+			}
+
+			//The note was not found.
+			else if( lowest_found_free_note != -1 )
+			{
+				ecc->note_peak_freqs[lowest_found_free_note] = thisfreq;
+				marked_note = lowest_found_free_note;
+			}
+
+			//If we found a note to attach to, we have to use the IIR to
+			//increase the strength of the note, but we can't exactly snap
+			//it to the new strength.
+			if( marked_note != -1 )
+			{
+				hitnotes[marked_note] = 1;
+
+				ecc->note_peak_amps[marked_note] =
+					ecc->note_peak_amps[marked_note] -
+					(ecc->note_peak_amps[marked_note]>>ECC3_AMP_1_IIR_BITS) +
+					(thisBin>>(ECC3_AMP_1_IIR_BITS-3));
+
+				ecc->note_peak_amps2[marked_note] =
+					ecc->note_peak_amps2[marked_note] -
+					(ecc->note_peak_amps2[marked_note]>>ECC3_AMP_2_IIR_BITS) +
+					((thisBin<<3)>>(ECC3_AMP_2_IIR_BITS));
+			}
+		}
+	}
+
+#if 0
+	for( i = 0; i < MAXNOTES; i++ )
+	{
+		if( note_peak_freqs[i] == 255 ) continue;
+		printf( "%d / ", note_peak_amps[i] );
+	}
+	printf( "\n" );
+#endif
+
+	//Now we need to handle combining notes.
+	for( i = 0; i < ECC3_MAXNOTES; i++ )
+	for( int j = 0; j < i; j++ )
+	{
+		//We'd be combining nf2 (j) into nf1 (i) if they're close enough.
+		uint8_t nf1 = ecc->note_peak_freqs[i];
+		uint8_t nf2 = ecc->note_peak_freqs[j];
+		int16_t distance = nf1 - nf2;
+
+		if( nf1 == 255 || nf2 == 255 ) continue;
+
+		if( distance < 0 ) distance = -distance;
+
+		//If it wraps around above the halfway point, then we're closer to it
+		//on the other side. 
+		if( distance > ((1<<(SEMIBITSPERBIN-1))*ECC3_BPERO) )
+		{
+			distance = ((1<<(SEMIBITSPERBIN))*ECC3_BPERO) - distance;
+		}
+
+		if( distance > ECC3_MAX_COMBINE_DISTANCE )
+		{
+			continue;
+		}
+
+		int into;
+		int from;
+
+		if( ecc->note_peak_amps[i] > ecc->note_peak_amps[j] )
+		{
+			into = i;
+			from = j;
+		}
+		else
+		{
+			into = j;
+			from = i;
+		}
+
+		//We need to combine the notes.  We need to move the new note freq
+		//towards the stronger of the two notes.  
+		int16_t amp1 = ecc->note_peak_amps[into];
+		int16_t amp2 = ecc->note_peak_amps[from];
+
+		//0 to 32768 porportional to how much of amp1 we want.
+		uint32_t porp = (amp1<<15) / (amp1+amp2+1);  
+		uint16_t newnote = (nf1 * porp + nf2 * (32768-porp))>>15;
+
+		//When combining notes, we have to use the stronger amplitude note.
+		//trying to average or combine the power of the notes looks awful.
+		ecc->note_peak_freqs[into] = newnote;
+		ecc->note_peak_amps[into] = (ecc->note_peak_amps[into]>ecc->note_peak_amps[from])?
+				ecc->note_peak_amps[into]:ecc->note_peak_amps[j];
+		ecc->note_peak_amps2[into] = (ecc->note_peak_amps2[into]>ecc->note_peak_amps2[from])?
+				ecc->note_peak_amps2[into]:ecc->note_peak_amps2[j];
+
+		ecc->note_peak_freqs[from] = 255;
+		ecc->note_peak_amps[from] = 0;
+		ecc->note_jumped_to[from] = i;
+	}
+
+	//For al lof the notes that have not been hit, we have to allow them to
+	//to decay.  We only do this for notes that have not found a peak.
+	for( i = 0; i < ECC3_MAXNOTES; i++ )
+	{
+		if( ecc->note_peak_freqs[i] == 255 || hitnotes[i] ) continue;
+
+		ecc->note_peak_amps[i] -= ecc->note_peak_amps[i]>>ECC3_AMP_1_IIR_BITS;
+		ecc->note_peak_amps2[i] -= ecc->note_peak_amps2[i]>>ECC3_AMP_2_IIR_BITS;
+
+		//In the event a note is not strong enough anymore, it is to be
+		//returned back into the great pool of unused notes.
+		if( ecc->note_peak_amps[i] < ECC3_MINIMUM_AMP_FOR_NOTE_TO_DISAPPEAR )
+		{
+			ecc->note_peak_freqs[i] = 255;
+			ecc->note_peak_amps[i] = 0;
+			ecc->note_peak_amps2[i] = 0;
+		}
 	}
 }
+
+static void ECC3UpdateLinearLEDs(embeddedcc3 * ecc)
+{
+	//Source material:
+	/*
+		extern uint8_t  note_peak_freqs[];
+		extern uint16_t note_peak_amps[];  //[MAXNOTES] 
+		extern uint16_t note_peak_amps2[];  //[MAXNOTES]  (Responds quicker)
+		extern uint8_t  note_jumped_to[]; //[MAXNOTES] When a note combines into another one,
+	*/
+
+	//Goal: Make splotches of light that are porportional to the strength of notes.
+	//Color them according to value in note_peak_amps2.
+
+	uint8_t i;
+	int8_t k;
+	uint16_t j, l;
+	uint32_t total_size_all_notes = 0;
+	int32_t porpamps[ECC3_MAXNOTES]; //LEDs for each corresponding note.
+	uint8_t sorted_note_map[ECC3_MAXNOTES]; //mapping from which note into the array of notes from the rest of the system.
+	uint8_t sorted_map_count = 0;
+	uint32_t note_nerf_a = 0;
+
+	for( i = 0; i < ECC3_MAXNOTES; i++ )
+	{
+		if( ecc->note_peak_freqs[i] == 255 ) continue;
+		note_nerf_a += ecc->note_peak_amps[i];
+	}
+
+	note_nerf_a = ((note_nerf_a * NERF_NOTE_PORP)>>8);
+
+
+	for( i = 0; i < ECC3_MAXNOTES; i++ )
+	{
+		uint16_t ist = ecc->note_peak_amps[i];
+		uint8_t nff = ecc->note_peak_freqs[i];
+		if( nff == 255 )
+		{
+			continue;
+		}
+		if( ist < note_nerf_a )
+		{
+			continue;
+		}
+
+#if SORT_NOTES
+		for( j = 0; j < sorted_map_count; j++ )
+		{
+			if( ecc->note_peak_freqs[ sorted_note_map[j] ] > nff )
+			{
+				break; // so j is correct place to insert
+			}
+		}
+		for( k = sorted_map_count; k > j; k-- ) // make room
+		{
+			ecc->sorted_note_map[k] = sorted_note_map[k-1];
+		}
+		ecc->sorted_note_map[j] = i; // insert in correct place
+#else
+		sorted_note_map[sorted_map_count] = i; // insert at end
+#endif
+		sorted_map_count++;
+	}
+
+#if 0
+	for( i = 0; i < sorted_map_count; i++ )
+	{
+		printf( "%d: %d: %d /", sorted_note_map[i],  note_peak_freqs[sorted_note_map[i]], note_peak_amps[sorted_note_map[i]] );
+	}
+	printf( "\n" );
+#endif
+
+	uint16_t local_peak_amps[ECC3_MAXNOTES];
+	uint16_t local_peak_amps2[ECC3_MAXNOTES];
+	uint8_t  local_peak_freq[ECC3_MAXNOTES];
+
+	//Make a copy of all of the variables into local ones so we don't have to keep double-dereferencing.
+	for( i = 0; i < sorted_map_count; i++ )
+	{
+		//printf( "%5d ", local_peak_amps[i] );
+		local_peak_amps[i] = ecc->note_peak_amps[sorted_note_map[i]] - note_nerf_a;
+		local_peak_amps2[i] = ecc->note_peak_amps2[sorted_note_map[i]];
+		local_peak_freq[i] = ecc->note_peak_freqs[sorted_note_map[i]];
+//		printf( "%5d ", local_peak_amps[i] );
+	}
+//	printf( "\n" );
+
+	for( i = 0; i < sorted_map_count; i++ )
+	{
+		uint16_t ist = local_peak_amps[i];
+		porpamps[i] = 0;
+		total_size_all_notes += local_peak_amps[i];
+	}
+
+	if( total_size_all_notes == 0 )
+	{
+		for( j = 0; j < USE_ECC3_NUM_LIN_LEDS * 3; j++ )
+		{
+			ecc->ledOut[j] = 0;
+		}
+		return;
+	}
+
+	uint32_t porportional = (uint32_t)(USE_ECC3_NUM_LIN_LEDS<<16)/((uint32_t)total_size_all_notes);
+
+	uint16_t total_accounted_leds = 0;
+
+	for( i = 0; i < sorted_map_count; i++ )
+	{
+		porpamps[i] = (local_peak_amps[i] * porportional) >> 16;
+		total_accounted_leds += porpamps[i];
+	}
+
+	int16_t total_unaccounted_leds = USE_ECC3_NUM_LIN_LEDS - total_accounted_leds;
+
+	int addedlast = 1;
+	do
+	{
+		for( i = 0; i < sorted_map_count && total_unaccounted_leds; i++ )
+		{
+			porpamps[i]++; total_unaccounted_leds--;
+			addedlast = 1;
+		}
+	} while( addedlast && total_unaccounted_leds );
+
+	//Put the frequencies on a ring.
+	j = 0;
+	for( i = 0; i < sorted_map_count; i++ )
+	{
+		while( porpamps[i] > 0 )
+		{
+			ecc->ledFreqOut[j] = local_peak_freq[i];
+			ecc->ledAmpOut[j] = (local_peak_amps2[i]*NOTE_FINAL_AMP)>>8;
+			j++;
+			porpamps[i]--;
+		}
+	}
+
+	//This part totally can't run on an embedded system.
+#if LIN_WRAPAROUND
+	uint16_t midx = 0;
+	uint32_t mqty = 100000000;
+	for( j = 0; j < USE_ECC3_NUM_LIN_LEDS; j++ )
+	{
+		uint32_t dqty;
+		uint16_t localj;
+
+		dqty = 0;
+		localj = j;
+		for( l = 0; l < USE_ECC3_NUM_LIN_LEDS; l++ )
+		{
+			int32_t d = (int32_t)ledFreqOut[localj] - (int32_t)ledFreqOutOld[l];
+			if( d < 0 ) d *= -1;
+			if( d > (ECC3_NOTERANGE>>1) ) { d = ECC3_NOTERANGE - d + 1; }
+			dqty += ( d * d );
+
+			localj++;
+			if( localj == USE_ECC3_NUM_LIN_LEDS ) localj = 0;
+		}
+
+		if( dqty < mqty )
+		{
+			mqty = dqty;
+			midx = j;
+		}
+	}
+
+	ecc->ledSpin = midx;
+
+#else
+	ecc->ledSpin = 0;
+#endif
+
+	j = ecc->ledSpin;
+	for( l = 0; l < USE_ECC3_NUM_LIN_LEDS; l++, j++ )
+	{
+		if( j >= USE_ECC3_NUM_LIN_LEDS ) j = 0;
+		ecc->ledFreqOutOld[l] = ecc->ledFreqOut[j];
+
+		uint16_t amp = ecc->ledAmpOut[j];
+		if( amp > 255 ) amp = 255;
+		uint32_t color = ECC3toHEX( (ecc->ledFreqOut[j]+ecc->RootNoteOffset)%ECC3_NOTERANGE, 255, amp );
+		ecc->ledOut[l*3+0] = ( color >> 0 ) & 0xff;
+		ecc->ledOut[l*3+1] = ( color >> 8 ) & 0xff;
+		ecc->ledOut[l*3+2] = ( color >>16 ) & 0xff;
+	}
+}
+
+
+
+
+static void ECC3UpdateAllSameLEDs( embeddedcc3 * ecc )
+{
+	int i;
+	uint8_t freq = 0;
+	uint16_t amp = 0;
+
+	for( i = 0; i < ECC3_MAXNOTES; i++ )
+	{
+		uint16_t ist = ecc->note_peak_amps2[i];
+		uint8_t ifrq = ecc->note_peak_freqs[i];
+		if( ist > amp && ifrq != 255 )
+		{
+			freq = ifrq;
+			amp = ist;
+		}
+	}
+
+	amp = (((uint32_t)(amp))*NOTE_FINAL_AMP)>>10;
+
+	if( amp > 255 ) amp = 255;
+	uint32_t color = ECC3toHEX( (freq+ecc->RootNoteOffset)%ECC3_NOTERANGE, 255, amp );
+
+	for( i = 0; i < USE_ECC3_NUM_LIN_LEDS; i++ )
+	{
+		ecc->ledOut[i*3+0] = ( color >> 0 ) & 0xff;
+		ecc->ledOut[i*3+1] = ( color >> 8 ) & 0xff;
+		ecc->ledOut[i*3+2] = ( color >>16 ) & 0xff;
+	}
+}
+
 
 
 
