@@ -1,0 +1,78 @@
+tested: you cannot fold everything into one octave. then perform NC.
+
+
+		float useRv[ECC3_BPERO];
+		float useIv[ECC3_BPERO];
+
+		for( int i = 0; i < ECC3_BPERO; i++ )
+		{
+			float useR = 0;
+			float useI = 0;
+			for( int o = 0; o < ECC3_OCTAVES; o++ )
+			{
+				int n = i + o * ECC3_BPERO;
+				float inrP = reals[n];
+				float iniP = imags[n];
+				float rpower = 1.0;
+				if( o == 0 )
+				{
+					rpower = i / (float)ECC3_BPERO;
+				}
+				else if( o == ECC3_OCTAVES-1 )
+				{
+					rpower = (ECC3_BPERO - i - 1) / (float)ECC3_BPERO;
+				}
+				useR += inrP * rpower;
+				useI += iniP * rpower;
+			}
+			useRv[i] = useR;
+			useIv[i] = useI;
+		}
+
+
+		fx = 0;
+
+		for( int i = 0; i < ECC3_BPERO; i++ )
+		{
+			float inrP = useRv[i];
+			float iniP = useIv[i];
+			float inrN = useRv[(i+1)%ECC3_BPERO];
+			float iniN = useIv[(i+1)%ECC3_BPERO];
+
+			float relativeRotateP = 0;
+			float relativeRotate = setRot;
+
+			float rP = cos(relativeRotateP)*inrP - sin(relativeRotateP)*iniP;
+			float iP = sin(relativeRotateP)*inrP + cos(relativeRotateP)*iniP;
+			float rN = cos(relativeRotate)*inrN - sin(relativeRotate)*iniN;
+			float iN = sin(relativeRotate)*inrN + cos(relativeRotate)*iniN;
+			float v =  -(rP * rN + iP * iN);
+			float ascale = ecc3_powerfalloff[i] / (float)(1ULL<<32);
+			
+
+			int negative = 0;
+			if( v < 0 ) { v = -v; negative = 1; }
+
+			v = sqrt(v);
+			float scale = 0.01*ascale;
+
+			if( negative )
+			{
+				uint32_t hex = ECC3toHEX( (i%ECC3_BPERO)*8, 255, 127 );
+				CNFGColor( ((hex&0xff)<<16) | ((hex&0xff00)<<16) | ((hex&0xff0000)>>8) | 0xff );
+				CNFGTackRectangle( fx, h/3, fx+fpv, h/3+v*scale ); 
+			}
+			else
+			{
+				uint32_t hex = ECC3toHEX( (i%ECC3_BPERO)*8, 255, 255 );
+				CNFGColor( ((hex&0xff)<<16) | ((hex&0xff00)<<16) | ((hex&0xff0000)>>8) | 0xff );
+				CNFGTackRectangle( fx, h/3-v*scale, fx+fpv, h/3 ); 
+			}
+
+
+			fx += fpv;
+		}
+
+
+
+tested: you also have to null out negatives in NC output if combining.
