@@ -42,11 +42,11 @@
 #endif
 
 #ifndef ECC3_AMP_1_IIR_BITS
-	#define ECC3_AMP_1_IIR_BITS 4
+	#define ECC3_AMP_1_IIR_BITS 3
 #endif
 
 #ifndef ECC3_AMP_2_IIR_BITS
-	#define ECC3_AMP_2_IIR_BITS 2
+	#define ECC3_AMP_2_IIR_BITS 1
 #endif
 
 #ifndef ECC3_MAX_COMBINE_DISTANCE
@@ -54,25 +54,38 @@
 #endif
 
 #ifndef ECC3_MINIMUM_AMP_FOR_NOTE_TO_DISAPPEAR
-	#define ECC3_MINIMUM_AMP_FOR_NOTE_TO_DISAPPEAR 64
+	#define ECC3_MINIMUM_AMP_FOR_NOTE_TO_DISAPPEAR 256
 #endif
 
 #ifndef ECC3_NUM_LIN_LEDS
 	#define ECC3_NUM_LIN_LEDS 64
 #endif
 
-#ifndef USE_ECC3_NUM_LIN_LEDS
-	#define USE_ECC3_NUM_LIN_LEDS ECC3_NUM_LIN_LEDS
+#ifndef ECC3_USE_NUM_LIN_LEDS
+	#define ECC3_USE_NUM_LIN_LEDS ECC3_NUM_LIN_LEDS
 #endif
 
-#ifndef NERF_NOTE_PORP
-	#define NERF_NOTE_PORP 15
+#ifndef ECC3_NERF_NOTE_PORP
+	#define ECC3_NERF_NOTE_PORP 15
 #endif
 
-#ifndef NOTE_FINAL_AMP
-	#define NOTE_FINAL_AMP  12   //Number from 0...255
+#ifndef ECC3_NOTE_FINAL_AMP
+	#define ECC3_NOTE_FINAL_AMP  12   //Number from 0...255
 #endif
 
+#ifndef ECC3_SORT_NOTES
+	#define ECC3_SORT_NOTES 0 // Only useful if you care to use the notes for "primary" "secondary" etc. color.
+#endif
+
+#ifndef ECC3_LIN_WRAPAROUND
+	// this actually takes up a lot of resources and can be very slow, but is for things like a ring or loop of LEDs
+	#define ECC3_LIN_WRAPAROUND 0
+#endif
+
+// Goal: Make all samples be approximately -4096 to 4095 - exceeding this can cause the frontend DFT to fail.
+#ifndef ECC3_AUDIO_LEVEL
+	#define ECC3_AUDIO_LEVEL(x) ((x)>>2)
+#endif
 
 #define ECC3_BINS ((ECC3_BPERO)*(ECC3_OCTAVES))
 #define SEMIBITSPERBIN 3 // 8 semitone levels.
@@ -93,15 +106,17 @@ typedef struct embeddedcc3_t
 {
 	int32_t spreva2[ECC3_BINS][2];
 
-	uint32_t nc_values[ECC3_BINS]; // May be useful for positionally sensitive stuff.  May be on stack.
-	uint32_t folded_dft_nc[ECC3_BPERO]; // Allowed to be on stack.
+	// Internal state, that is not used between phases. 
+	// These could live on the stack, but some users may find them
+	// useful.
+	uint32_t nc_values[ECC3_BINS];
+	uint32_t folded_dft_nc[ECC3_BPERO];
 
 	uint8_t  note_peak_freqs[ECC3_MAXNOTES];
 	uint16_t note_peak_amps[ECC3_MAXNOTES];
 	uint16_t note_peak_amps2[ECC3_MAXNOTES];
 	uint8_t  note_jumped_to[ECC3_MAXNOTES];
 
-	//uint8_t ledArray[ECC3_NUM_LIN_LEDS]; //Points to which notes correspond to these LEDs
 	uint8_t ledOut[ECC3_NUM_LIN_LEDS*3];
 	uint16_t ledAmpOut[ECC3_NUM_LIN_LEDS];
 	uint8_t ledFreqOut[ECC3_NUM_LIN_LEDS];
@@ -112,19 +127,22 @@ typedef struct embeddedcc3_t
 
 } embeddedcc3;
 
-static void ResetECC3( embeddedcc3 * ecc ) { memset( ecc, 0, sizeof(*ecc) ); }
-static void UpdateECC3( embeddedcc3 * ecc, ECC3_FRAMETYPE * frames, int nrframes );
-static void RunOutputECC3( embeddedcc3 * ecc );
+static void ECC3Reset( embeddedcc3 * ecc ) { memset( ecc, 0, sizeof(*ecc) ); }
+static void ECC3Update( embeddedcc3 * ecc, ECC3_FRAMETYPE * frames, int nrframes );
+static void ECC3ComputeNotes( embeddedcc3 * ecc );
 
+static void ECC3UpdateLinearLEDs(embeddedcc3 * ecc);
 static void ECC3UpdateAllSameLEDs( embeddedcc3 * ecc );
+
+// Also need "cells"
 
 
 // Utility
 static uint32_t ECC3toHEX( uint8_t note, uint8_t sat, uint8_t val );
-static uint32_t EHSVtoHEX( uint8_t hue, uint8_t sat, uint8_t val );
-static int apsqrt_ECC3( uint32_t i );
+static uint32_t ECC3HSVtoHEX( uint8_t hue, uint8_t sat, uint8_t val );
+static int ECC3_apsqrt( uint32_t i );
 
-static void UpdateECC3( embeddedcc3 * ecc, ECC3_FRAMETYPE * frames, int nrframes )
+static void ECC3Update( embeddedcc3 * ecc, ECC3_FRAMETYPE * frames, int nrframes )
 {
 	int i;
 	int32_t * sprevaptr = ecc->spreva2[0];
@@ -136,7 +154,7 @@ static void UpdateECC3( embeddedcc3 * ecc, ECC3_FRAMETYPE * frames, int nrframes
 		uint32_t iircons = ecc3_iirfalloff[i];
 		for( int j = 0; j < nrframes; j++ )
 		{
-			ECC3_FRAMETYPE v = frames[j];
+			ECC3_FRAMETYPE v = ECC3_AUDIO_LEVEL(frames[j]);
 			//
 			// Update phasor. The way this is written, it turns into:
 			//  mulhsu, mulhsu, slli, add, sub (RISC-V)
@@ -167,7 +185,7 @@ static void UpdateECC3( embeddedcc3 * ecc, ECC3_FRAMETYPE * frames, int nrframes
 	}
 }
 
-static void RunOutputECC3( embeddedcc3 * ecc )
+static void ECC3ComputeNotes( embeddedcc3 * ecc )
 {
 	int32_t realimag[ECC3_BINS][2];
 
@@ -185,6 +203,9 @@ static void RunOutputECC3( embeddedcc3 * ecc )
 	}
 
 	int n;
+
+
+	uint32_t folded_dft_nc_unfiltered[ECC3_BPERO];
 
 	for( n = 0; n < ECC3_BPERO; n++ )
 	{
@@ -235,13 +256,13 @@ static void RunOutputECC3( embeddedcc3 * ecc )
 
 			int negative = 0;
 			if( v < 0 ) continue;
-			v = (apsqrt_ECC3(v));
+			v = (ECC3_apsqrt(v));
 
 			ecc->nc_values[i] = v;
 
 			powervalue += v;
 		}
-		ecc->folded_dft_nc[n] = powervalue;
+		folded_dft_nc_unfiltered[n] = powervalue;
 		// Right now, this tops out around 22193.  
 		// Something else is wrong before this chunk that causes that.
 	}
@@ -251,6 +272,25 @@ static void RunOutputECC3( embeddedcc3 * ecc )
 	// The next part is wholesale-lifted from colorchord/embeddedcommon (for colorchord2)
 
 	uint32_t * folded_bins = ecc->folded_dft_nc;
+
+#if 1
+	// Need to take the unfiltered bins and filter them into filtered.
+	for( i = 0; i < ECC3_BPERO; i++ )
+	{
+		int ppbv = folded_dft_nc_unfiltered[(i-2)>=0?(i-2):(ECC3_BPERO+i-2)];
+		int pbv = folded_dft_nc_unfiltered[(i-1)>=0?(i-1):(ECC3_BPERO+i-1)];
+		int tbv = folded_dft_nc_unfiltered[i];
+		int nbv = folded_dft_nc_unfiltered[(i+1)<ECC3_BPERO?(i+1):(i+1-ECC3_BPERO)];
+		int nnbv = folded_dft_nc_unfiltered[(i+2)<ECC3_BPERO?(i+2):(i+2-ECC3_BPERO)];
+
+		folded_bins[i] = ((ppbv >> 2) + (pbv>>1) + tbv + (nbv>>1) + (nnbv>>2)) >> 1;
+	}
+#else
+	// Raw
+	memcpy( folded_bins, folded_dft_nc_unfiltered, sizeof(folded_dft_nc_unfiltered) );
+#endif
+
+
 	uint8_t hitnotes[ECC3_MAXNOTES] = { 0 };
 
 	//Next, we have to find the peaks, this is what "decompose" does in our
@@ -440,7 +480,7 @@ static void RunOutputECC3( embeddedcc3 * ecc )
 		ecc->note_jumped_to[from] = i;
 	}
 
-	//For al lof the notes that have not been hit, we have to allow them to
+	//For all of the notes that have not been hit, we have to allow them to
 	//to decay.  We only do this for notes that have not found a peak.
 	for( i = 0; i < ECC3_MAXNOTES; i++ )
 	{
@@ -488,7 +528,7 @@ static void ECC3UpdateLinearLEDs(embeddedcc3 * ecc)
 		note_nerf_a += ecc->note_peak_amps[i];
 	}
 
-	note_nerf_a = ((note_nerf_a * NERF_NOTE_PORP)>>8);
+	note_nerf_a = ((note_nerf_a * ECC3_NERF_NOTE_PORP)>>8);
 
 
 	for( i = 0; i < ECC3_MAXNOTES; i++ )
@@ -504,7 +544,7 @@ static void ECC3UpdateLinearLEDs(embeddedcc3 * ecc)
 			continue;
 		}
 
-#if SORT_NOTES
+#if ECC3_SORT_NOTES
 		for( j = 0; j < sorted_map_count; j++ )
 		{
 			if( ecc->note_peak_freqs[ sorted_note_map[j] ] > nff )
@@ -542,9 +582,19 @@ static void ECC3UpdateLinearLEDs(embeddedcc3 * ecc)
 		local_peak_amps[i] = ecc->note_peak_amps[sorted_note_map[i]] - note_nerf_a;
 		local_peak_amps2[i] = ecc->note_peak_amps2[sorted_note_map[i]];
 		local_peak_freq[i] = ecc->note_peak_freqs[sorted_note_map[i]];
-//		printf( "%5d ", local_peak_amps[i] );
+		//printf( "%5d ", local_peak_amps[i] );
 	}
-//	printf( "\n" );
+	//printf( "\n" );
+
+	int minimum_amp_to_contribute =  local_peak_amps[0]>>2; // If less than 1/8 the max, it doesn't contribute.
+	for( i = 0; i < sorted_map_count; i++ )
+	{
+		if( local_peak_amps[i] < minimum_amp_to_contribute )
+		{
+			local_peak_amps[i] = 0;
+			local_peak_amps2[i] = 0;
+		}
+	}	
 
 	for( i = 0; i < sorted_map_count; i++ )
 	{
@@ -555,15 +605,15 @@ static void ECC3UpdateLinearLEDs(embeddedcc3 * ecc)
 
 	if( total_size_all_notes == 0 )
 	{
-		for( j = 0; j < USE_ECC3_NUM_LIN_LEDS * 3; j++ )
+		for( j = 0; j < ECC3_USE_NUM_LIN_LEDS * 3; j++ )
 		{
 			ecc->ledOut[j] = 0;
 		}
 		return;
 	}
 
-	uint32_t porportional = (uint32_t)(USE_ECC3_NUM_LIN_LEDS<<16)/((uint32_t)total_size_all_notes);
-
+	// WARNING: Unsigned divide here.  This has to be a divide.  RIP the ch32v002.  It is guaranteed not to be 0.
+	uint32_t porportional = (uint32_t)(ECC3_USE_NUM_LIN_LEDS<<16)/((uint32_t)total_size_all_notes);
 	uint16_t total_accounted_leds = 0;
 
 	for( i = 0; i < sorted_map_count; i++ )
@@ -572,7 +622,7 @@ static void ECC3UpdateLinearLEDs(embeddedcc3 * ecc)
 		total_accounted_leds += porpamps[i];
 	}
 
-	int16_t total_unaccounted_leds = USE_ECC3_NUM_LIN_LEDS - total_accounted_leds;
+	int16_t total_unaccounted_leds = ECC3_USE_NUM_LIN_LEDS - total_accounted_leds;
 
 	int addedlast = 1;
 	do
@@ -591,56 +641,59 @@ static void ECC3UpdateLinearLEDs(embeddedcc3 * ecc)
 		while( porpamps[i] > 0 )
 		{
 			ecc->ledFreqOut[j] = local_peak_freq[i];
-			ecc->ledAmpOut[j] = (local_peak_amps2[i]*NOTE_FINAL_AMP)>>8;
+			ecc->ledAmpOut[j] = (local_peak_amps2[i]*ECC3_NOTE_FINAL_AMP)>>8;
 			j++;
 			porpamps[i]--;
 		}
 	}
 
 	//This part totally can't run on an embedded system.
-#if LIN_WRAPAROUND
-	uint16_t midx = 0;
-	uint32_t mqty = 100000000;
-	for( j = 0; j < USE_ECC3_NUM_LIN_LEDS; j++ )
+	if( ECC3_LIN_WRAPAROUND )
 	{
-		uint32_t dqty;
-		uint16_t localj;
-
-		dqty = 0;
-		localj = j;
-		for( l = 0; l < USE_ECC3_NUM_LIN_LEDS; l++ )
+		uint16_t midx = 0;
+		uint32_t mqty = 100000000;
+		for( j = 0; j < ECC3_USE_NUM_LIN_LEDS; j++ )
 		{
-			int32_t d = (int32_t)ledFreqOut[localj] - (int32_t)ledFreqOutOld[l];
-			if( d < 0 ) d *= -1;
-			if( d > (ECC3_NOTERANGE>>1) ) { d = ECC3_NOTERANGE - d + 1; }
-			dqty += ( d * d );
+			uint32_t dqty;
+			uint16_t localj;
 
-			localj++;
-			if( localj == USE_ECC3_NUM_LIN_LEDS ) localj = 0;
+			dqty = 0;
+			localj = j;
+			for( l = 0; l < ECC3_USE_NUM_LIN_LEDS; l++ )
+			{
+				int32_t d = (int32_t)ecc->ledFreqOut[localj] - (int32_t)ecc->ledFreqOutOld[l];
+				if( d < 0 ) d *= -1;
+				if( d > (ECC3_NOTERANGE>>1) ) { d = ECC3_NOTERANGE - d + 1; }
+				dqty += ( d * d );
+
+				localj++;
+				if( localj == ECC3_USE_NUM_LIN_LEDS ) localj = 0;
+			}
+
+			if( dqty < mqty )
+			{
+				mqty = dqty;
+				midx = j;
+			}
 		}
 
-		if( dqty < mqty )
-		{
-			mqty = dqty;
-			midx = j;
-		}
+		ecc->ledSpin = midx;
+	}
+	else
+	{
+		ecc->ledSpin = 0;
 	}
 
-	ecc->ledSpin = midx;
-
-#else
-	ecc->ledSpin = 0;
-#endif
-
 	j = ecc->ledSpin;
-	for( l = 0; l < USE_ECC3_NUM_LIN_LEDS; l++, j++ )
+	for( l = 0; l < ECC3_USE_NUM_LIN_LEDS; l++, j++ )
 	{
-		if( j >= USE_ECC3_NUM_LIN_LEDS ) j = 0;
+		if( j >= ECC3_USE_NUM_LIN_LEDS ) j = 0;
 		ecc->ledFreqOutOld[l] = ecc->ledFreqOut[j];
 
 		uint16_t amp = ecc->ledAmpOut[j];
 		if( amp > 255 ) amp = 255;
 		uint32_t color = ECC3toHEX( (ecc->ledFreqOut[j]+ecc->RootNoteOffset)%ECC3_NOTERANGE, 255, amp );
+
 		ecc->ledOut[l*3+0] = ( color >> 0 ) & 0xff;
 		ecc->ledOut[l*3+1] = ( color >> 8 ) & 0xff;
 		ecc->ledOut[l*3+2] = ( color >>16 ) & 0xff;
@@ -667,12 +720,12 @@ static void ECC3UpdateAllSameLEDs( embeddedcc3 * ecc )
 		}
 	}
 
-	amp = (((uint32_t)(amp))*NOTE_FINAL_AMP)>>10;
+	amp = (((uint32_t)(amp))*ECC3_NOTE_FINAL_AMP)>>8;
 
 	if( amp > 255 ) amp = 255;
 	uint32_t color = ECC3toHEX( (freq+ecc->RootNoteOffset)%ECC3_NOTERANGE, 255, amp );
 
-	for( i = 0; i < USE_ECC3_NUM_LIN_LEDS; i++ )
+	for( i = 0; i < ECC3_USE_NUM_LIN_LEDS; i++ )
 	{
 		ecc->ledOut[i*3+0] = ( color >> 0 ) & 0xff;
 		ecc->ledOut[i*3+1] = ( color >> 8 ) & 0xff;
@@ -684,7 +737,7 @@ static void ECC3UpdateAllSameLEDs( embeddedcc3 * ecc )
 
 
 
-static uint32_t EHSVtoHEX( uint8_t hue, uint8_t sat, uint8_t val )
+static uint32_t ECC3HSVtoHEX( uint8_t hue, uint8_t sat, uint8_t val )
 {
 	#define SIXTH1 43
 	#define SIXTH2 85
@@ -784,10 +837,10 @@ static uint32_t ECC3toHEX( uint8_t note, uint8_t sat, uint8_t val )
 	}
 	hue >>= 8;
 
-	return EHSVtoHEX( hue, sat, val );
+	return ECC3HSVtoHEX( hue, sat, val );
 }
 
-static int apsqrt_ECC3( uint32_t i )
+static int ECC3_apsqrt( uint32_t i )
 {
 	// Fast approximate square root, accurate to about 1-2 code values across integer space.
 	if( i == 0 ) return 0;

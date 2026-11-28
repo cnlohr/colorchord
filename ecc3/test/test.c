@@ -11,6 +11,7 @@
 
 #define ECC3_BPERO 24
 #define ECC3_OCTAVES 6
+#define ECC3_NUM_LIN_LEDS 6
 
 #define FREQ_BASE 32.7
 
@@ -46,8 +47,7 @@ float imags[ECC3_BINS];
 
 void AudioCB( struct CNFADriver * sd, short * out, short * in, int framesp, int framesr )
 {
-//	ResetECC3( &cc3 );
-	UpdateECC3( &cc3, in, framesr );
+	ECC3Update( &cc3, in, framesr );
 
 //	printf( "%d\n", ecc3_constants[0] );
 //	printf( "%d %d %d\n", framesr, cc3.spreva2[0], cc3.spreva2[1] );
@@ -75,8 +75,9 @@ void AudioCB( struct CNFADriver * sd, short * out, short * in, int framesp, int 
 			if( power > maxv ) maxv = power;
 		}
 
-	RunOutputECC3(&cc3);
-	ECC3UpdateLinearLEDs(&cc3);
+	ECC3ComputeNotes(&cc3);
+	//ECC3UpdateLinearLEDs(&cc3);
+	ECC3UpdateAllSameLEDs(&cc3);
 }
 
 int main()
@@ -85,7 +86,7 @@ int main()
 	CNFGSetup( "Example App", 1024, 768 );
 	cnfad = CNFAInit( 0, "ecc3", AudioCB, 0, 48000, 0, 1, 1024, 0, 0, 0 );
 
-	ResetECC3( &cc3 );
+	ECC3Reset( &cc3 );
 
 	// Radians.  Smaller numbers make NC sharper.  Larger, NC bigger.
 	// 1.25 is selected specifically because it is the minimum to always
@@ -119,7 +120,7 @@ int main()
 
 	while(CNFGHandleInput())
 	{
-		CNFGBGColor = 0x000000ff; //Dark Blue Background
+		CNFGBGColor = 0x000000ff;
 
 		short w, h;
 		CNFGClearFrame();
@@ -153,12 +154,6 @@ int main()
 			float iN = sin(relativeRotate)*inrN + cos(relativeRotate)*iniN;
 			float v =  -(rP * rN + iP * iN);
 			float ascale = ecc3_powerfalloff[i] / (float)(1ULL<<32);
-
-if( i == 48 )
-{
-CNFGColor( 0xffffffff );
-//	printf( "Rot: %6.2f %8.0f %8.0f (%6.2f) %8.0f %8.0f (%6.2f) Rot: %f\n", setRot, inrP, iniP, atan2( iniP, inrP ), inrN, iniN, atan2( iniN, inrN ) );
-}
 
 			int negative = 0;
 			if( v < 0 ) { v = -v; negative = 1; }
@@ -239,7 +234,7 @@ CNFGColor( 0xffffffff );
 			float v = cc3.folded_dft_nc[i];
 			int negative = v < 0;
 
-			float scale = 1;
+			float scale = 0.1;
 			if( negative )
 			{
 				v *= -1;
@@ -258,13 +253,18 @@ CNFGColor( 0xffffffff );
 			fx += fpv;
 		}
 
-		for( i = 0 ; i < ECC3_NUM_LIN_LEDS; i++ )
+
+		int dx = w / ECC3_NUM_LIN_LEDS;
+		int px = 0;
+		for( int i = 0 ; i < ECC3_NUM_LIN_LEDS; i++ )
 		{
-			
+			CNFGColor( 0xffffffff );
+			CNFGBGColor = ( (cc3.ledOut[i*3+0] << 16) | (cc3.ledOut[i*3+1]<<24) | (cc3.ledOut[i*3+2]<<8 ) | 0xff );
+			CNFGColor( CNFGBGColor );
+			CNFGTackRectangle( px, 0, px+dx, 10 );
+			px += dx;
 		}
-
-	uint8_t ledOut[ECC3_NUM_LIN_LEDS*3];
-
+		CNFGBGColor = 0x000000ff;
 
 		//Display the image and wait for time to display next frame.
 		CNFGSwapBuffers();	
