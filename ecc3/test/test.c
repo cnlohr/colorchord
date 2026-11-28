@@ -17,6 +17,9 @@
 
 #include "../embeddedcc3.h"
 
+#define TARG_SPS 12000
+
+
 float setRot = 1.25;
 
 void HandleKey( int keycode, int bDown )
@@ -54,7 +57,7 @@ void AudioCB( struct CNFADriver * sd, short * out, short * in, int framesp, int 
 		for( int i = 0; i < ECC3_BINS; i++ )
 		{
 			float fTarget = FREQ_BASE * pow( 2, (i-0.5)/(float)ECC3_BPERO );
-			float omegaPerSample = fTarget / 48000 * 3.1415926 * 2;
+			float omegaPerSample = fTarget / TARG_SPS * 3.1415926 * 2;
 
 			float sprev = cc3.spreva2[i][0];
 			float sprev2 = cc3.spreva2[i][1];
@@ -84,7 +87,7 @@ int main()
 {
 	struct CNFADriver * cnfad = 0;
 	CNFGSetup( "Example App", 1024, 768 );
-	cnfad = CNFAInit( 0, "ecc3", AudioCB, 0, 48000, 0, 1, 1024, 0, 0, 0 );
+	cnfad = CNFAInit( 0, "ecc3", AudioCB, 0, TARG_SPS, 0, 1, 256, 0, 0, 0 );
 
 	ECC3Reset( &cc3 );
 
@@ -99,7 +102,7 @@ int main()
 	for( int i = 0; i < ECC3_BINS; i++ )
 	{
 		float fTarget = FREQ_BASE * pow( 2, (i-0.5)/(float)ECC3_BPERO );
-		float omegaPerSample = fTarget / 48000 * 3.1415926 * 2;
+		float omegaPerSample = fTarget / TARG_SPS * 3.1415926 * 2;
 
 		float Q = 1.0; // Higher Q = more narrow.
 

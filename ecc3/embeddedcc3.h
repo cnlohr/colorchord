@@ -87,20 +87,23 @@
 	#define ECC3_AUDIO_LEVEL(x) ((x)>>2)
 #endif
 
+#ifndef ECC3_BINS
 #define ECC3_BINS ((ECC3_BPERO)*(ECC3_OCTAVES))
-#define SEMIBITSPERBIN 3 // 8 semitone levels.
-#define ECC3_NOTERANGE ((1<<SEMIBITSPERBIN)*ECC3_BPERO)
+#endif
+
+#define ECC3_SEMIBITSPERBIN 3 // 8 semitone levels.
+#define ECC3_NOTERANGE ((1<<ECC3_SEMIBITSPERBIN)*ECC3_BPERO)
 
 // Goertzels basically requires the coefficients to be 32-bits.
-uint32_t ecc3_constants[ECC3_BINS];
-uint32_t ecc3_iirfalloff[ECC3_BINS];
-uint32_t ecc3_powerfalloff[ECC3_BINS];
-
-uint32_t ecc3_phasorsin[ECC3_BINS];
-uint32_t ecc3_phasorcos[ECC3_BINS];
-uint32_t ecc3_ncrotateC;
-uint32_t ecc3_ncrotateS;
-
+#ifndef ECC3_CONSTANTS_INCLUDED
+	uint32_t ecc3_constants[ECC3_BINS];
+	uint32_t ecc3_iirfalloff[ECC3_BINS];
+	uint32_t ecc3_powerfalloff[ECC3_BINS];
+	uint32_t ecc3_phasorsin[ECC3_BINS];
+	uint32_t ecc3_phasorcos[ECC3_BINS];
+	uint32_t ecc3_ncrotateC;
+	uint32_t ecc3_ncrotateS;
+#endif
 
 typedef struct embeddedcc3_t
 {
@@ -303,7 +306,7 @@ static void ECC3ComputeNotes( embeddedcc3 * ecc )
 			int32_t prevBin = folded_bins[adjLeft];
 			int32_t nextBin = folded_bins[adjRight];
 			int32_t thisBin = folded_bins[i];
-			int thisfreq = i<<SEMIBITSPERBIN;
+			int thisfreq = i<<ECC3_SEMIBITSPERBIN;
 			int offset;
 			adjLeft++; if( adjLeft == ECC3_BPERO ) adjLeft = 0;
 			adjRight++; if( adjRight == ECC3_BPERO ) adjRight = 0;
@@ -329,11 +332,11 @@ static void ECC3ComputeNotes( embeddedcc3 * ecc )
 			}
 
 			//Need to round.  That's what that extra +(15.. is in the center.
-			thisfreq += (offset+(1<<(15-SEMIBITSPERBIN)))>>(16-SEMIBITSPERBIN);
+			thisfreq += (offset+(1<<(15-ECC3_SEMIBITSPERBIN)))>>(16-ECC3_SEMIBITSPERBIN);
 
 			//In the event we went 'below zero' need to wrap to the top.
-			if( thisfreq > 255-(1<<SEMIBITSPERBIN) )
-				thisfreq = (1<<SEMIBITSPERBIN)*ECC3_BPERO - (256-thisfreq);
+			if( thisfreq > 255-(1<<ECC3_SEMIBITSPERBIN) )
+				thisfreq = (1<<ECC3_SEMIBITSPERBIN)*ECC3_BPERO - (256-thisfreq);
 
 			//Okay, we have a peak, and a frequency. Now, we need to search
 			//through the existing notes to see if we have any matches.
@@ -360,9 +363,9 @@ static void ECC3ComputeNotes( embeddedcc3 * ecc )
 
 				//Make sure that if we've wrapped around the right side of the
 				//array, we can detect it and loop it back.
-				if( distance > ((1<<(SEMIBITSPERBIN-1))*ECC3_BPERO) )
+				if( distance > ((1<<(ECC3_SEMIBITSPERBIN-1))*ECC3_BPERO) )
 				{
-					distance = ((1<<(SEMIBITSPERBIN))*ECC3_BPERO) - distance;
+					distance = ((1<<(ECC3_SEMIBITSPERBIN))*ECC3_BPERO) - distance;
 				}
 
 				//If we find a note closer to where we are than any of the 
@@ -434,9 +437,9 @@ static void ECC3ComputeNotes( embeddedcc3 * ecc )
 
 		//If it wraps around above the halfway point, then we're closer to it
 		//on the other side. 
-		if( distance > ((1<<(SEMIBITSPERBIN-1))*ECC3_BPERO) )
+		if( distance > ((1<<(ECC3_SEMIBITSPERBIN-1))*ECC3_BPERO) )
 		{
-			distance = ((1<<(SEMIBITSPERBIN))*ECC3_BPERO) - distance;
+			distance = ((1<<(ECC3_SEMIBITSPERBIN))*ECC3_BPERO) - distance;
 		}
 
 		if( distance > ECC3_MAX_COMBINE_DISTANCE )
