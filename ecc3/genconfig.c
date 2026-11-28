@@ -12,7 +12,7 @@ int main( int argc, char ** argv )
 		return -1;
 	}
 
-	float sps = atoi(argv[1]);
+	float sps = atof(argv[1]);
 	float freqbase = (argc > 2) ? atof(argv[2]) : 32.7032;
 	int ECC3_BPERO = (argc > 3) ? atoi(argv[3]) : 24;
 	int octaves = (argc > 4) ? atoi(argv[4]) : 6;

@@ -79,8 +79,8 @@ void AudioCB( struct CNFADriver * sd, short * out, short * in, int framesp, int 
 		}
 
 	ECC3ComputeNotes(&cc3);
-	//ECC3UpdateLinearLEDs(&cc3);
-	ECC3UpdateAllSameLEDs(&cc3);
+	ECC3UpdateLinearLEDs(&cc3);
+	//ECC3UpdateAllSameLEDs(&cc3);
 }
 
 int main()
